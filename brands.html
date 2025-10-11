@@ -114,9 +114,14 @@
     function showProductsByBrand(brand) {
       const products = JSON.parse(localStorage.getItem('products') || '[]');
       selectedBrandTitle.textContent = `Товары бренда: ${brand}`;
-      const filtered = products.filter(p =>
-        p.name.toLowerCase().includes(brand.toLowerCase())
-      );
+      const filtered = products.filter(p => {
+        const name = p.name?.toLowerCase() || "";
+        return name.includes(brand.toLowerCase());
+      });
+
+      console.log("Товары в localStorage:", products);
+      console.log("Выбранный бренд:", brand);
+      console.log("Найдено товаров:", filtered);
 
       productList.innerHTML = '';
       noProductsMessage.style.display = filtered.length === 0 ? 'block' : 'none';
