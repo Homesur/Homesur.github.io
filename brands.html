@@ -33,11 +33,13 @@
       box-shadow: 0 0 15px rgba(0,0,0,0.3);
     }
     .product-list {
-      display: grid;
+      display: grid !important;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 15px;
       margin-top: 20px;
       width: 100%;
+      visibility: visible !important;
+      opacity: 1 !important;
     }
     .product-card {
       background: white;
@@ -46,6 +48,7 @@
       box-shadow: 0 0 5px rgba(0,0,0,0.1);
       word-wrap: break-word;
       overflow-wrap: break-word;
+      display: block !important;
     }
     .product-card h5 {
       font-size: clamp(1rem, 2vw, 1.2rem);
@@ -68,8 +71,8 @@
     <h2 class="text-center mb-4">Выберите бренд</h2>
     <div class="brand-grid" id="brandGrid"></div>
 
-    <h3 class="mt-5" id="selectedBrandTitle" class="text-center"></h3>
-    <div id="productList" class="product-list"></div>
+    <h3 class="mt-5" id="selectedBrandTitle" class="text-center" style="display:block;"></h3>
+    <div id="productList" class="product-list" style="display:block;"></div>
     <div id="noProductsMessage" class="no-products" style="display:none;">Нет товаров для выбранного бренда</div>
   </div>
 
@@ -128,6 +131,9 @@
 
       productList.innerHTML = '';
       noProductsMessage.style.display = filtered.length === 0 ? 'block' : 'none';
+
+      // Отладочный блок
+      document.body.insertAdjacentHTML('beforeend', `<div style="background:#ffc;padding:10px;">Найдено товаров: ${filtered.length}</div>`);
 
       filtered.forEach(p => {
         const card = document.createElement('div');
