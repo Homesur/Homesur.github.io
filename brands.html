@@ -32,12 +32,25 @@
       outline: 3px solid #333;
       box-shadow: 0 0 15px rgba(0,0,0,0.3);
     }
-    .table th {
-      background-color: #343a40;
-      color: white;
+    .product-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
     }
-    #productTable td, #productTable th {
-      font-size: clamp(0.8rem, 2vw, 1rem);
+    .product-card {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    .product-card h5 {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      margin-bottom: 5px;
+    }
+    .product-card p {
+      margin: 0;
+      font-size: clamp(0.9rem, 1.8vw, 1rem);
     }
     .no-products {
       text-align: center;
@@ -53,14 +66,7 @@
     <div class="brand-grid" id="brandGrid"></div>
 
     <h3 class="mt-5" id="selectedBrandTitle" class="text-center"></h3>
-    <div class="table-responsive">
-      <table class="table table-bordered table-striped mt-3" id="productTable">
-        <thead>
-          <tr><th>ID</th><th>Название</th><th>Цена</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+    <div id="productList" class="product-list"></div>
     <div id="noProductsMessage" class="no-products" style="display:none;">Нет товаров для выбранного бренда</div>
   </div>
 
@@ -81,7 +87,7 @@
     };
 
     const brandGrid = document.getElementById('brandGrid');
-    const productTableBody = document.querySelector('#productTable tbody');
+    const productList = document.getElementById('productList');
     const selectedBrandTitle = document.getElementById('selectedBrandTitle');
     const noProductsMessage = document.getElementById('noProductsMessage');
     let selectedBrand = null;
@@ -111,15 +117,19 @@
       const filtered = products.filter(p =>
         p.name.toLowerCase().includes(brand.toLowerCase())
       );
-      console.log("Все товары:", products);
-      console.log("Выбранный бренд:", brand);
-      console.log("Найдено товаров:", filtered);
 
-      productTableBody.innerHTML = '';
+      productList.innerHTML = '';
       noProductsMessage.style.display = filtered.length === 0 ? 'block' : 'none';
+
       filtered.forEach(p => {
-        const row = `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.price.toFixed(2)} MDL</td></tr>`;
-        productTableBody.innerHTML += row;
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.innerHTML = `
+          <h5>${p.name}</h5>
+          <p>ID: ${p.id}</p>
+          <p>Цена: ${p.price.toFixed(2)} MDL</p>
+        `;
+        productList.appendChild(card);
       });
     }
   </script>
