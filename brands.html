@@ -23,8 +23,6 @@
 
   <script>
     const brands = ["Xiaomi", "Samsung", "Apple", "Huawei", "Lenovo", "Realme", "Nokia", "Sony", "LG", "Motorola", "Asus", "Honor"];
-    const products = JSON.parse(localStorage.getItem('products') || '[]');
-
     const brandGrid = document.getElementById('brandGrid');
     const productTable = document.getElementById('productTable');
     const selectedBrandTitle = document.getElementById('selectedBrandTitle');
@@ -38,16 +36,15 @@
     });
 
     function showProductsByBrand(brand) {
-  const products = JSON.parse(localStorage.getItem('products') || '[]'); // загружаем заново
-  selectedBrandTitle.textContent = `Товары бренда: ${brand}`;
-  const filtered = products.filter(p => p.name.toLowerCase().startsWith(brand.toLowerCase()));
-  productTable.innerHTML = '<tr><th>ID</th><th>Название</th><th>Цена</th></tr>';
-  filtered.forEach(p => {
-    const row = `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.price.toFixed(2)} MDL</td></tr>`;
-    productTable.innerHTML += row;
-  });
-}
+      const products = JSON.parse(localStorage.getItem('products') || '[]'); // загружаем заново при каждом клике
+      selectedBrandTitle.textContent = `Товары бренда: ${brand}`;
+      const filtered = products.filter(p => p.name.toLowerCase().startsWith(brand.toLowerCase()));
+      productTable.innerHTML = '<tr><th>ID</th><th>Название</th><th>Цена</th></tr>';
+      filtered.forEach(p => {
+        const row = `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.price.toFixed(2)} MDL</td></tr>`;
+        productTable.innerHTML += row;
+      });
+    }
   </script>
 </body>
 </html>
-
