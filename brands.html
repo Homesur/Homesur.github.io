@@ -10,6 +10,11 @@
       background-color: #f0f2f5;
       font-family: sans-serif;
     }
+    .brand-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+    }
     .brand-card {
       border-radius: 10px;
       padding: 20px;
@@ -36,7 +41,7 @@
 <body>
   <div class="container py-4">
     <h2 class="text-center mb-4">Выберите бренд</h2>
-    <div class="row row-cols-3 g-3" id="brandGrid"></div>
+    <div class="brand-grid" id="brandGrid"></div>
 
     <h3 class="mt-5" id="selectedBrandTitle" class="text-center"></h3>
     <div class="table-responsive">
@@ -62,7 +67,7 @@
       "LG": "#d81b60",
       "Motorola": "#009688",
       "Asus": "#5d4037",
-      "Oppo": "#26a69a" // заменено вместо Honor
+      "Oppo": "#26a69a"
     };
 
     const brandGrid = document.getElementById('brandGrid');
@@ -71,14 +76,12 @@
     let selectedBrand = null;
 
     Object.entries(brands).forEach(([brand, color]) => {
-      const col = document.createElement('div');
-      col.className = 'col';
-      col.innerHTML = `
-        <div class="brand-card" style="background-color: ${color}" data-brand="${brand}">
-          ${brand}
-        </div>
-      `;
-      brandGrid.appendChild(col);
+      const card = document.createElement('div');
+      card.className = 'brand-card';
+      card.style.backgroundColor = color;
+      card.dataset.brand = brand;
+      card.textContent = brand;
+      brandGrid.appendChild(card);
     });
 
     brandGrid.addEventListener('click', function(e) {
@@ -104,5 +107,3 @@
   </script>
 </body>
 </html>
-
-
