@@ -54,7 +54,7 @@
       const table = document.getElementById('productTable');
       table.innerHTML = '<tr><th>ID</th><th>Название</th><th>Цена</th></tr>';
       products.forEach(p => {
-        const row = `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.price.toFixed(2)} руб.</td></tr>`;
+        const row = `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.price.toFixed(2)} MDL.</td></tr>`;
         table.innerHTML += row;
       });
     }
@@ -63,3 +63,4 @@
   </script>
 </body>
 </html>
+
