@@ -39,6 +39,12 @@
     #productTable td, #productTable th {
       font-size: clamp(0.8rem, 2vw, 1rem);
     }
+    .no-products {
+      text-align: center;
+      font-size: 1rem;
+      color: #555;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
@@ -55,6 +61,7 @@
         <tbody></tbody>
       </table>
     </div>
+    <div id="noProductsMessage" class="no-products" style="display:none;">Нет товаров для выбранного бренда</div>
   </div>
 
   <script>
@@ -76,6 +83,7 @@
     const brandGrid = document.getElementById('brandGrid');
     const productTableBody = document.querySelector('#productTable tbody');
     const selectedBrandTitle = document.getElementById('selectedBrandTitle');
+    const noProductsMessage = document.getElementById('noProductsMessage');
     let selectedBrand = null;
 
     Object.entries(brands).forEach(([brand, color]) => {
@@ -87,7 +95,7 @@
       brandGrid.appendChild(card);
     });
 
-    brandGrid.addEventListener('click', function(e) {
+    brandGrid.addEventListener('pointerdown', function(e) {
       const card = e.target.closest('.brand-card');
       if (!card) return;
 
@@ -102,6 +110,7 @@
       selectedBrandTitle.textContent = `Товары бренда: ${brand}`;
       const filtered = products.filter(p => p.name.toLowerCase().startsWith(brand.toLowerCase()));
       productTableBody.innerHTML = '';
+      noProductsMessage.style.display = filtered.length === 0 ? 'block' : 'none';
       filtered.forEach(p => {
         const row = `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.price.toFixed(2)} MDL</td></tr>`;
         productTableBody.innerHTML += row;
