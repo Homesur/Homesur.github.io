@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>Товары по брендам</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
@@ -51,22 +50,29 @@
   </div>
 
   <script>
-    const brands = ["Xiaomi", "Samsung", "Apple", "Huawei", "Lenovo", "Realme", "Nokia", "Sony", "LG", "Motorola", "Asus", "Honor"];
+    const brands = {
+      "Xiaomi": "#f57c00",
+      "Samsung": "#1976d2",
+      "Apple": "#37474f",
+      "Huawei": "#c2185b",
+      "Lenovo": "#512da8",
+      "Realme": "#ffca28",
+      "Nokia": "#0288d1",
+      "Sony": "#7b1fa2",
+      "LG": "#d81b60",
+      "Motorola": "#009688",
+      "Asus": "#5d4037",
+      "Honor": "#8e24aa"
+    };
+
     const brandGrid = document.getElementById('brandGrid');
     const productTableBody = document.querySelector('#productTable tbody');
     const selectedBrandTitle = document.getElementById('selectedBrandTitle');
     let selectedBrand = null;
 
-    // Генерация случайного цвета
-    function getRandomColor() {
-      const colors = ['#007bff', '#28a745', '#dc3545', '#17a2b8', '#6f42c1', '#fd7e14', '#20c997', '#6610f2', '#ffc107', '#e83e8c', '#198754', '#0dcaf0'];
-      return colors[Math.floor(Math.random() * colors.length)];
-    }
-
-    brands.forEach(brand => {
+    Object.entries(brands).forEach(([brand, color]) => {
       const col = document.createElement('div');
       col.className = 'col';
-      const color = getRandomColor();
       col.innerHTML = `
         <div class="brand-card" style="background-color: ${color}" data-brand="${brand}">
           ${brand}
@@ -75,15 +81,11 @@
       brandGrid.appendChild(col);
     });
 
-    // Обработка клика
     brandGrid.addEventListener('click', function(e) {
       const card = e.target.closest('.brand-card');
       if (!card) return;
 
-      // Сброс выделения
       document.querySelectorAll('.brand-card').forEach(c => c.classList.remove('selected'));
-
-      // Подсветка выбранной
       card.classList.add('selected');
       selectedBrand = card.dataset.brand;
       showProductsByBrand(selectedBrand);
