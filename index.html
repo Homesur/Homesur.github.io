@@ -1,57 +1,65 @@
-<?php
-$pdo = new PDO("mysql:host=db4free.net;dbname=homesurmysql;charset=utf8", "homesurmysql", "igori008");
-
-// Добавление товара
-if (isset($_POST['add'])) {
-    $name = $_POST['name'];
-    $price = $_POST['price'];
-    $stmt = $pdo->prepare("INSERT INTO products (name, price) VALUES (?, ?)");
-    $stmt->execute([$name, $price]);
-}
-
-// Удаление товара
-if (isset($_POST['delete'])) {
-    $id = $_POST['delete_id'];
-    $stmt = $pdo->prepare("DELETE FROM products WHERE id = ?");
-    $stmt->execute([$id]);
-}
-
-// Получение всех товаров
-$products = $pdo->query("SELECT * FROM products")->fetchAll(PDO::FETCH_ASSOC);
-?>
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Управление товарами</title>
+  <meta charset="UTF-8">
+  <title>Магазин на GitHub Pages</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    input, button { margin: 5px; padding: 5px; }
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  </style>
 </head>
 <body>
-    <h2>Добавить товар</h2>
-    <form method="post">
-        Название: <input type="text" name="name" required>
-        Цена: <input type="number" step="0.01" name="price" required>
-        <button type="submit" name="add">Добавить</button>
-    </form>
+  <h2>Добавить товар</h2>
+  <input type="text" id="name" placeholder="Название">
+  <input type="number" id="price" placeholder="Цена">
+  <button onclick="addProduct()">Добавить</button>
 
-    <h2>Удалить товар по ID</h2>
-    <form method="post">
-        ID: <input type="number" name="delete_id" required>
-        <button type="submit" name="delete">Удалить</button>
-    </form>
+  <h2>Удалить товар по ID</h2>
+  <input type="number" id="deleteId" placeholder="ID">
+  <button onclick="deleteProduct()">Удалить</button>
 
-    <h2>Список товаров</h2>
-    <table border="1">
-        <tr><th>ID</th><th>Название</th><th>Цена</th></tr>
-        <?php foreach ($products as $product): ?>
-            <tr>
-                <td><?= htmlspecialchars($product['id']) ?></td>
-                <td><?= htmlspecialchars($product['name']) ?></td>
-                <td><?= htmlspecialchars($product['price']) ?> руб.</td>
-            </tr>
-        <?php endforeach; ?>
-    </table>
+  <h2>Список товаров</h2>
+  <button onclick="renderProducts()">Обновить список</button>
+  <table id="productTable">
+    <tr><th>ID</th><th>Название</th><th>Цена</th></tr>
+  </table>
+
+  <script>
+    let products = JSON.parse(localStorage.getItem('products') || '[]');
+
+    function saveProducts() {
+      localStorage.setItem('products', JSON.stringify(products));
+    }
+
+    function addProduct() {
+      const name = document.getElementById('name').value.trim();
+      const price = parseFloat(document.getElementById('price').value);
+      if (!name || isNaN(price)) return alert('Введите корректные данные');
+      const id = products.length ? products[products.length - 1].id + 1 : 1;
+      products.push({ id, name, price });
+      saveProducts();
+      renderProducts();
+    }
+
+    function deleteProduct() {
+      const id = parseInt(document.getElementById('deleteId').value);
+      products = products.filter(p => p.id !== id);
+      saveProducts();
+      renderProducts();
+    }
+
+    function renderProducts() {
+      const table = document.getElementById('productTable');
+      table.innerHTML = '<tr><th>ID</th><th>Название</th><th>Цена</th></tr>';
+      products.forEach(p => {
+        const row = `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.price.toFixed(2)} руб.</td></tr>`;
+        table.innerHTML += row;
+      });
+    }
+
+    renderProducts(); // загрузка при старте
+  </script>
 </body>
 </html>
-
-
