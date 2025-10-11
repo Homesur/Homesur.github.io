@@ -1,5 +1,5 @@
 <?php
-$pdo = new PDO("mysql:host=localhost;dbname=test;charset=utf8", "root", "");
+$pdo = new PDO("mysql:host=db4free.net;dbname=homesurmysql;charset=utf8", "igori008", "");
 
 // Добавление товара
 if (isset($_POST['add'])) {
@@ -53,3 +53,4 @@ $products = $pdo->query("SELECT * FROM products")->fetchAll(PDO::FETCH_ASSOC);
     </table>
 </body>
 </html>
+
