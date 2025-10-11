@@ -38,14 +38,16 @@
     });
 
     function showProductsByBrand(brand) {
-      selectedBrandTitle.textContent = `Товары бренда: ${brand}`;
-      const filtered = products.filter(p => p.name.toLowerCase().startsWith(brand.toLowerCase()));
-      productTable.innerHTML = '<tr><th>ID</th><th>Название</th><th>Цена</th></tr>';
-      filtered.forEach(p => {
-        const row = `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.price.toFixed(2)} MDL</td></tr>`;
-        productTable.innerHTML += row;
-      });
-    }
+  const products = JSON.parse(localStorage.getItem('products') || '[]'); // загружаем заново
+  selectedBrandTitle.textContent = `Товары бренда: ${brand}`;
+  const filtered = products.filter(p => p.name.toLowerCase().startsWith(brand.toLowerCase()));
+  productTable.innerHTML = '<tr><th>ID</th><th>Название</th><th>Цена</th></tr>';
+  filtered.forEach(p => {
+    const row = `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.price.toFixed(2)} MDL</td></tr>`;
+    productTable.innerHTML += row;
+  });
+}
   </script>
 </body>
 </html>
+
