@@ -42,7 +42,7 @@
     <!-- Список всех товаров -->
     <div class="card p-4 shadow-sm mt-5">
       <h4 class="mb-3">Все товары в базе</h4>
-      <div id="productList" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3"></div>
+      <ul id="productList" class="list-group"></ul>
     </div>
   </div>
 
@@ -77,18 +77,14 @@
       }
 
       const id = Date.now();
-      console.log("Добавление товара:", { id, name, price });
-
       db.ref('products/' + id).set({ id, name, price })
         .then(() => {
-          console.log("✅ Успешно добавлено в Firebase");
           showMessage("✅ Товар успешно добавлен!");
           document.getElementById('name').value = "";
           document.getElementById('price').value = "";
           loadProducts();
         })
         .catch(err => {
-          console.error("❌ Ошибка при добавлении:", err);
           showMessage("❌ Ошибка при добавлении: " + err.message, false);
         });
     }
@@ -100,17 +96,13 @@
         return;
       }
 
-      console.log("Удаление товара с ID:", id);
-
       db.ref('products/' + id).remove()
         .then(() => {
-          console.log("🗑️ Товар удалён");
           showMessage("🗑️ Товар с ID " + id + " удалён");
           document.getElementById('deleteId').value = "";
           loadProducts();
         })
         .catch(err => {
-          console.error("❌ Ошибка при удалении:", err);
           showMessage("❌ Ошибка при удалении: " + err.message, false);
         });
     }
@@ -121,23 +113,21 @@
         productList.innerHTML = '';
 
         if (!products) {
-          productList.innerHTML = '<p class="text-muted">Нет товаров в базе</p>';
+          productList.innerHTML = '<li class="list-group-item text-muted">Нет товаров в базе</li>';
           return;
         }
 
         Object.values(products).forEach(p => {
-          const card = document.createElement('div');
-          card.className = 'col';
-          card.innerHTML = `
-            <div class="card h-100">
-              <div class="card-body">
-                <h5 class="card-title">${p.name}</h5>
-                <p class="card-text">ID: ${p.id}</p>
-                <p class="card-text">Цена: ${p.price.toFixed(2)} MDL</p>
-              </div>
+          const item = document.createElement('li');
+          item.className = 'list-group-item d-flex justify-content-between align-items-center';
+          item.innerHTML = `
+            <div>
+              <strong>${p.name}</strong><br>
+              <small>ID: ${p.id}</small>
             </div>
+            <span class="badge bg-primary rounded-pill">${p.price.toFixed(2)} MDL</span>
           `;
-          productList.appendChild(card);
+          productList.appendChild(item);
         });
       });
     }
