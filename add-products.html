@@ -115,29 +115,31 @@
     }
 
     function loadProducts() {
-  db.ref('products').once('value').then(snapshot => {
-    const products = snapshot.val();
-    productList.innerHTML = '';
+      db.ref('products').once('value').then(snapshot => {
+        const products = snapshot.val();
+        productList.innerHTML = '';
 
-    if (!products) {
-      productList.innerHTML = '<li class="list-group-item text-muted">Нет товаров в базе</li>';
-      return;
+        if (!products) {
+          productList.innerHTML = '<p class="text-muted">Нет товаров в базе</p>';
+          return;
+        }
+
+        Object.values(products).forEach(p => {
+          const card = document.createElement('div');
+          card.className = 'col';
+          card.innerHTML = `
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">${p.name}</h5>
+                <p class="card-text">ID: ${p.id}</p>
+                <p class="card-text">Цена: ${p.price.toFixed(2)} MDL</p>
+              </div>
+            </div>
+          `;
+          productList.appendChild(card);
+        });
+      });
     }
-
-    Object.values(products).forEach(p => {
-      const item = document.createElement('li');
-      item.className = 'list-group-item d-flex justify-content-between align-items-center';
-      item.innerHTML = `
-        <div>
-          <strong>${p.name}</strong><br>
-          <small>ID: ${p.id}</small>
-        </div>
-        <span class="badge bg-primary rounded-pill">${p.price.toFixed(2)} MDL</span>
-      `;
-      productList.appendChild(item);
-    });
-  });
-}
 
     loadProducts();
   </script>
