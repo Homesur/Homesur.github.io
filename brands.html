@@ -130,9 +130,11 @@
         const products = Object.values(snapshot.val() || {});
         selectedBrandTitle.textContent = `Товары бренда: ${brand}`;
         const filtered = products.filter(p => {
-          const name = p.name?.toLowerCase() || "";
-          return name.includes(brand.toLowerCase());
-        });
+  const name = p.name?.toLowerCase() || "";
+  return name.includes(brand.toLowerCase());
+});
+
+filtered.sort((a, b) => a.name.localeCompare(b.name));
 
         productList.innerHTML = '';
         noProductsMessage.style.display = filtered.length === 0 ? 'block' : 'none';
@@ -155,3 +157,4 @@
   </script>
 </body>
 </html>
+
