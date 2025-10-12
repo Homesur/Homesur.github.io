@@ -5,6 +5,8 @@
   <title>Товары по брендам</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js"></script>
   <style>
     body {
       background-color: #f0f2f5;
@@ -12,12 +14,12 @@
     }
     .brand-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
       gap: 15px;
     }
     .brand-card {
       border-radius: 10px;
-      padding: 20px;
+      padding: 15px;
       text-align: center;
       color: white;
       font-weight: bold;
@@ -33,13 +35,11 @@
       box-shadow: 0 0 15px rgba(0,0,0,0.3);
     }
     .product-list {
-      display: grid !important;
+      display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 15px;
       margin-top: 20px;
       width: 100%;
-      visibility: visible !important;
-      opacity: 1 !important;
     }
     .product-card {
       background: white;
@@ -48,7 +48,6 @@
       box-shadow: 0 0 5px rgba(0,0,0,0.1);
       word-wrap: break-word;
       overflow-wrap: break-word;
-      display: block !important;
     }
     .product-card h5 {
       font-size: clamp(1rem, 2vw, 1.2rem);
@@ -71,12 +70,24 @@
     <h2 class="text-center mb-4">Выберите бренд</h2>
     <div class="brand-grid" id="brandGrid"></div>
 
-    <h3 class="mt-5" id="selectedBrandTitle" class="text-center" style="display:block;"></h3>
-    <div id="productList" class="product-list" style="display:block;"></div>
+    <h3 class="mt-5 text-center" id="selectedBrandTitle"></h3>
+    <div id="productList" class="product-list"></div>
     <div id="noProductsMessage" class="no-products" style="display:none;">Нет товаров для выбранного бренда</div>
   </div>
 
   <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA_WAUmHLsgGKd-0T0w22mjsIh_mkXuOc4",
+      authDomain: "isota-ed295.firebaseapp.com",
+      databaseURL: "https://isota-ed295-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "isota-ed295",
+      storageBucket: "isota-ed295.firebasestorage.app",
+      messagingSenderId: "658102298792",
+      appId: "1:658102298792:web:fbc90679e3adadcac93a9d"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
     const brands = {
       "Xiaomi": "#f57c00",
       "Samsung": "#1976d2",
@@ -118,32 +129,31 @@
     });
 
     function showProductsByBrand(brand) {
-      const products = JSON.parse(localStorage.getItem('products') || '[]');
-      selectedBrandTitle.textContent = `Товары бренда: ${brand}`;
-      const filtered = products.filter(p => {
-        const name = p.name?.toLowerCase() || "";
-        return name.includes(brand.toLowerCase());
-      });
+      db.ref('products').once('value').then(snapshot => {
+        const products = Object.values(snapshot.val() || {});
+        selectedBrandTitle.textContent = `Товары бренда: ${brand}`;
+        const filtered = products.filter(p => {
+          const name = p.name?.toLowerCase() || "";
+          return name.includes(brand.toLowerCase());
+        });
 
-      console.log("Товары в localStorage:", products);
-      console.log("Выбранный бренд:", brand);
-      console.log("Найдено товаров:", filtered);
+        console.log("Товары из Firebase:", products);
+        console.log("Выбранный бренд:", brand);
+        console.log("Найдено товаров:", filtered);
 
-      productList.innerHTML = '';
-      noProductsMessage.style.display = filtered.length === 0 ? 'block' : 'none';
+        productList.innerHTML = '';
+        noProductsMessage.style.display = filtered.length === 0 ? 'block' : 'none';
 
-      // Отладочный блок
-      document.body.insertAdjacentHTML('beforeend', `<div style="background:#ffc;padding:10px;">Найдено товаров: ${filtered.length}</div>`);
-
-      filtered.forEach(p => {
-        const card = document.createElement('div');
-        card.className = 'product-card';
-        card.innerHTML = `
-          <h5>${p.name}</h5>
-          <p>ID: ${p.id}</p>
-          <p>Цена: ${p.price.toFixed(2)} MDL</p>
-        `;
-        productList.appendChild(card);
+        filtered.forEach(p => {
+          const card = document.createElement('div');
+          card.className = 'product-card';
+          card.innerHTML = `
+            <h5>${p.name}</h5>
+            <p>ID: ${p.id}</p>
+            <p>Цена: ${p.price.toFixed(2)} MDL</p>
+          `;
+          productList.appendChild(card);
+        });
       });
     }
   </script>
