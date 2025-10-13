@@ -143,13 +143,16 @@ filtered.sort((a, b) => a.name.localeCompare(b.name));
           const card = document.createElement('div');
           card.className = 'product-card';
           card.innerHTML = `
-            <h5>${p.name}</h5>
-            <div>
-              <span class="badge bg-primary rounded-pill text-white px-3 py-2">
-                ${p.price.toFixed(2)} MDL
-              </span>
-            </div>
-          `;
+  <h5>${p.name}</h5>
+  <div class="d-flex flex-wrap gap-2">
+    <span class="badge bg-primary rounded-pill text-white px-3 py-2">
+      ${p.price.toFixed(2)} MDL
+    </span>
+    <span class="badge bg-success rounded-pill text-white px-3 py-2">
+      В наличии
+    </span>
+  </div>
+`;
           productList.appendChild(card);
         });
       });
@@ -157,4 +160,5 @@ filtered.sort((a, b) => a.name.localeCompare(b.name));
   </script>
 </body>
 </html>
+
 
