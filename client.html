@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Клиентская страница</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <style>
+    body {
+      background: linear-gradient(to right, #e0f7fa, #f1f8e9);
+    }
+    .question-box {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    .category-label {
+      font-size: 18px;
+      font-weight: bold;
+      color: #00796b;
+    }
+    .question-text {
+      font-size: 24px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container py-5">
+    <h2 class="text-center mb-4">🟢 Вопрос в реальном времени</h2>
+    <div id="displayBox" class="question-box text-center">
+      <div class="category-label" id="categoryLabel">Ожидание вопроса...</div>
+      <div class="question-text" id="questionText">Здесь появится вопрос, выбранный администратором.</div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey
