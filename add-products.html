@@ -30,12 +30,11 @@
 
     const firebaseConfig = {
       apiKey: "AIzaSyBbxvDq2ScstW7vlYHj_qRoay1ed1YaQHI",
-    authDomain: "judecatoria-1e6f6.firebaseapp.com",
-    databaseURL: "https://judecatoria-1e6f6-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "judecatoria-1e6f6",
-    storageBucket: "judecatoria-1e6f6.firebasestorage.app",
-    messagingSenderId: "130607746443",
-    appId: "1:130607746443:web:bb04d8608d644e404a738e",
+      authDomain: "judecatoria-1e6f6.firebaseapp.com",
+      projectId: "judecatoria-1e6f6",
+      storageBucket: "judecatoria-1e6f6.appspot.com", // исправлено
+      messagingSenderId: "130607746443",
+      appId: "1:130607746443:web:bb04d8608d644e404a738e"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -50,14 +49,54 @@
       e.preventDefault();
       const category = document.getElementById('categoryInput').value.trim();
       const question = document.getElementById('questionInput').value.trim();
-      await addDoc(collection(db, "questions"), {
-        category,
-        question,
-        createdAt: new Date()
-      });
-      form.reset();
-      loadCategories();
+      if (!category || !question) return;
+
+      try {
+        await addDoc(collection(db, "questions"), {
+          category,
+          question,
+          createdAt: new Date()
+        });
+        form.reset();
+        loadCategories();
+      } catch (error) {
+        console.error("Ошибка при сохранении:", error);
+        alert("Не удалось сохранить вопрос.");
+      }
     });
 
     async function loadCategories() {
-      const q = query(collection
+      const q = query(collection(db, "questions"));
+      const snapshot = await getDocs(q);
+      const categories = new Set();
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.category) categories.add(data.category);
+      });
+
+      categoryCards.innerHTML = '';
+      categories.forEach(cat => {
+        const card = document.createElement('div');
+        card.className = 'category-card';
+        card.textContent = cat;
+        card.onclick = () => showQuestions(cat);
+        categoryCards.appendChild(card);
+      });
+    }
+
+    async function showQuestions(category) {
+      selectedCategory.textContent = category;
+      const q = query(collection(db, "questions"), where("category", "==", category));
+      const snapshot = await getDocs(q);
+      questionList.innerHTML = '';
+      snapshot.forEach(doc => {
+        const li = document.createElement('li');
+        li.textContent = doc.data().question;
+        questionList.appendChild(li);
+      });
+    }
+
+    loadCategories();
+  </script>
+</body>
+</html>
