@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Админка</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .category-card { border: 1px solid #ccc; padding: 10px; margin: 5px; cursor: pointer; }
+    .question-list { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Добавить вопрос</h1>
+  <form id="questionForm">
+    <input type="text" id="categoryInput" placeholder="Категория" required>
+    <textarea id="questionInput" placeholder="Вопрос" required></textarea>
+    <button type="submit">Сохранить</button>
+  </form>
+
+  <h2>Категории</h2>
+  <div id="categoryCards"></div>
+
+  <h2>Вопросы категории: <span id="selectedCategory"></span></h2>
+  <ul id="questionList" class="question-list"></ul>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "ТВОЙ_API_KEY",
+      authDomain: "ТВОЙ_ПРОЕКТ.firebaseapp.com",
+      projectId: "ТВОЙ_PROJECT_ID",
+      storageBucket: "ТВОЙ_ПРОЕКТ.appspot.com",
+      messagingSenderId: "ТВОЙ_SENDER_ID",
+      appId: "ТВОЙ_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const form = document.getElementById('questionForm');
+    const categoryCards = document.getElementById('categoryCards');
+    const questionList = document.getElementById('questionList');
+    const selectedCategory = document.getElementById('selectedCategory');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const category = document.getElementById('categoryInput').value.trim();
+      const question = document.getElementById('questionInput').value.trim();
+      await addDoc(collection(db, "questions"), {
+        category,
+        question,
+        createdAt: new Date()
+      });
+      form.reset();
+      loadCategories();
+    });
+
+    async function loadCategories() {
+      const q = query(collection
