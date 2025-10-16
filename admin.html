@@ -5,6 +5,118 @@
   <title>Админка вопросов</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js"></script>
+</head>
+<body class="bg-light">
+  <div class="container py-5">
+    <h2 class="text-center mb-4">Добавление вопросов</h2>
+
+    <!-- Форма добавления -->
+    <div class="card p-4 shadow-sm mb-4">
+      <h5 class="mb-3">Новый вопрос</h5>
+      <div class="mb-3">
+        <label for="categoryInput" class="form-label">Категория</label>
+        <input type="text" id="categoryInput" class="form-control" placeholder="Например: Гражданское право">
+      </div>
+      <div class="mb-3">
+        <label for="questionInput" class="form-label">Вопрос</label>
+        <textarea id="questionInput" class="form-control" placeholder="Введите вопрос"></textarea>
+      </div>
+      <button class="btn btn-success w-100" onclick="addQuestion()">Сохранить вопрос</button>
+    </div>
+
+    <!-- Выбор категории -->
+    <div class="card p-4 shadow-sm mb-4">
+      <h5 class="mb-3">Выбрать категорию</h5>
+      <select id="categorySelect" class="form-select" onchange="showQuestions(this.value)">
+        <option value="">-- Выберите категорию --</option>
+      </select>
+    </div>
+
+    <!-- Вопросы выбранной категории -->
+    <div class="card p-4 shadow-sm">
+      <h5>Вопросы категории: <span id="selectedCategory" class="text-primary"></span></h5>
+      <ul id="questionList" class="list-group mt-3"></ul>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBbxvDq2ScstW7vlYHj_qRoay1ed1YaQHI",
+      authDomain: "judecatoria-1e6f6.firebaseapp.com",
+      databaseURL: "https://judecatoria-1e6f6-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "judecatoria-1e6f6",
+      storageBucket: "judecatoria-1e6f6.appspot.com",
+      messagingSenderId: "130607746443",
+      appId: "1:130607746443:web:bb04d8608d644e404a738e",
+      measurementId: "G-01LNNN548P"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function addQuestion() {
+      const category = document.getElementById('categoryInput').value.trim();
+      const question = document.getElementById('questionInput').value.trim();
+      if (!category || !question) return;
+
+      const id = Date.now();
+      db.ref('questions/' + id).set({ id, category, question })
+        .then(() => {
+          document.getElementById('categoryInput').value = "";
+          document.getElementById('questionInput').value = "";
+          loadCategories();
+        })
+        .catch(err => alert("Ошибка: " + err.message));
+    }
+
+    function loadCategories() {
+      db.ref('questions').once('value').then(snapshot => {
+        const data = snapshot.val();
+        const categories = new Set();
+        for (let key in data) {
+          categories.add(data[key].category);
+        }
+
+        const select = document.getElementById('categorySelect');
+        select.innerHTML = '<option value="">-- Выберите категорию --</option>';
+        categories.forEach(cat => {
+          const option = document.createElement('option');
+          option.value = cat;
+          option.textContent = cat;
+          select.appendChild(option);
+        });
+      });
+    }
+
+    function showQuestions(category) {
+      if (!category) return;
+      document.getElementById('selectedCategory').textContent = category;
+      db.ref('questions').orderByChild('category').equalTo(category).once('value').then(snapshot => {
+        const data = snapshot.val();
+        const list = document.getElementById('questionList');
+        list.innerHTML = '';
+        for (let key in data) {
+          const li = document.createElement('li');
+          li.className = 'list-group-item';
+          li.textContent = data[key].question;
+          list.appendChild(li);
+        }
+      });
+    }
+
+    loadCategories();
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Админка вопросов</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
@@ -107,4 +219,5 @@
   </script>
 </body>
 </html>
+
 
