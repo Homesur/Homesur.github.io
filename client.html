@@ -39,4 +39,32 @@
 
   <script>
     const firebaseConfig = {
-      apiKey
+      apiKey: "AIzaSyBbxvDq2ScstW7vlYHj_qRoay1ed1YaQHI",
+      authDomain: "judecatoria-1e6f6.firebaseapp.com",
+      databaseURL: "https://judecatoria-1e6f6-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "judecatoria-1e6f6",
+      storageBucket: "judecatoria-1e6f6.appspot.com",
+      messagingSenderId: "130607746443",
+      appId: "1:130607746443:web:bb04d8608d644e404a738e",
+      measurementId: "G-01LNNN548P"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const categoryLabel = document.getElementById('categoryLabel');
+    const questionText = document.getElementById('questionText');
+
+    db.ref('realtimeDisplay').on('value', snapshot => {
+      const data = snapshot.val();
+      if (data && data.question) {
+        categoryLabel.textContent = `Категория: ${data.category}`;
+        questionText.textContent = data.question;
+      } else {
+        categoryLabel.textContent = 'Ожидание вопроса...';
+        questionText.textContent = 'Здесь появится вопрос, выбранный администратором.';
+      }
+    });
+  </script>
+</body>
+</html>
