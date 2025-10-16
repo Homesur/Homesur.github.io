@@ -29,12 +29,14 @@
     import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "ТВОЙ_API_KEY",
-      authDomain: "ТВОЙ_ПРОЕКТ.firebaseapp.com",
-      projectId: "ТВОЙ_PROJECT_ID",
-      storageBucket: "ТВОЙ_ПРОЕКТ.appspot.com",
-      messagingSenderId: "ТВОЙ_SENDER_ID",
-      appId: "ТВОЙ_APP_ID"
+     apiKey: "AIzaSyBbxvDq2ScstW7vlYHj_qRoay1ed1YaQHI",
+    authDomain: "judecatoria-1e6f6.firebaseapp.com",
+    databaseURL: "https://judecatoria-1e6f6-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "judecatoria-1e6f6",
+    storageBucket: "judecatoria-1e6f6.firebasestorage.app",
+    messagingSenderId: "130607746443",
+    appId: "1:130607746443:web:bb04d8608d644e404a738e",
+    measurementId: "G-01LNNN548P"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -59,4 +61,5 @@
     });
 
     async function loadCategories() {
+
       const q = query(collection
