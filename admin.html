@@ -2,97 +2,104 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Админка</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    .category-card { border: 1px solid #ccc; padding: 10px; margin: 5px; cursor: pointer; }
-    .question-list { margin-top: 10px; }
-  </style>
+  <title>Админка вопросов</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js"></script>
 </head>
-<body>
-  <h1>Добавить вопрос</h1>
-  <form id="questionForm">
-    <input type="text" id="categoryInput" placeholder="Категория" required>
-    <textarea id="questionInput" placeholder="Вопрос" required></textarea>
-    <button type="submit">Сохранить</button>
-  </form>
+<body class="bg-light">
+  <div class="container py-5">
+    <h2 class="text-center mb-4">Добавление вопросов</h2>
 
-  <h2>Категории</h2>
-  <div id="categoryCards"></div>
+    <!-- Форма добавления -->
+    <div class="card p-4 shadow-sm mb-4">
+      <div class="mb-3">
+        <label for="categoryInput" class="form-label">Категория</label>
+        <input type="text" id="categoryInput" class="form-control" placeholder="Например: Гражданское право">
+      </div>
+      <div class="mb-3">
+        <label for="questionInput" class="form-label">Вопрос</label>
+        <textarea id="questionInput" class="form-control" placeholder="Введите вопрос"></textarea>
+      </div>
+      <button class="btn btn-success w-100" onclick="addQuestion()">Сохранить вопрос</button>
+    </div>
 
-  <h2>Вопросы категории: <span id="selectedCategory"></span></h2>
-  <ul id="questionList" class="question-list"></ul>
+    <!-- Категории -->
+    <div class="card p-4 shadow-sm mb-4">
+      <h4>Категории</h4>
+      <div id="categoryCards" class="d-flex flex-wrap gap-2"></div>
+    </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+    <!-- Вопросы выбранной категории -->
+    <div class="card p-4 shadow-sm">
+      <h4>Вопросы категории: <span id="selectedCategory" class="text-primary"></span></h4>
+      <ul id="questionList" class="list-group mt-3"></ul>
+    </div>
+  </div>
 
+  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBbxvDq2ScstW7vlYHj_qRoay1ed1YaQHI",
       authDomain: "judecatoria-1e6f6.firebaseapp.com",
+      databaseURL: "https://judecatoria-1e6f6-default-rtdb.europe-west1.firebasedatabase.app",
       projectId: "judecatoria-1e6f6",
-      storageBucket: "judecatoria-1e6f6.appspot.com", // ✅ исправлено
+      storageBucket: "judecatoria-1e6f6.appspot.com",
       messagingSenderId: "130607746443",
       appId: "1:130607746443:web:bb04d8608d644e404a738e",
       measurementId: "G-01LNNN548P"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    const form = document.getElementById('questionForm');
-    const categoryCards = document.getElementById('categoryCards');
-    const questionList = document.getElementById('questionList');
-    const selectedCategory = document.getElementById('selectedCategory');
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    function addQuestion() {
       const category = document.getElementById('categoryInput').value.trim();
       const question = document.getElementById('questionInput').value.trim();
       if (!category || !question) return;
 
-      try {
-        await addDoc(collection(db, "questions"), {
-          category,
-          question,
-          createdAt: new Date()
+      const id = Date.now();
+      db.ref('questions/' + id).set({ id, category, question })
+        .then(() => {
+          document.getElementById('categoryInput').value = "";
+          document.getElementById('questionInput').value = "";
+          loadCategories();
+        })
+        .catch(err => alert("Ошибка: " + err.message));
+    }
+
+    function loadCategories() {
+      db.ref('questions').once('value').then(snapshot => {
+        const data = snapshot.val();
+        const categories = new Set();
+        for (let key in data) {
+          categories.add(data[key].category);
+        }
+
+        const container = document.getElementById('categoryCards');
+        container.innerHTML = '';
+        categories.forEach(cat => {
+          const btn = document.createElement('button');
+          btn.className = 'btn btn-outline-primary';
+          btn.textContent = cat;
+          btn.onclick = () => showQuestions(cat);
+          container.appendChild(btn);
         });
-        form.reset();
-        loadCategories();
-      } catch (error) {
-        console.error("Ошибка при сохранении:", error);
-        alert("Не удалось сохранить вопрос.");
-      }
-    });
-
-    async function loadCategories() {
-      const q = query(collection(db, "questions"));
-      const snapshot = await getDocs(q);
-      const categories = new Set();
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.category) categories.add(data.category);
-      });
-
-      categoryCards.innerHTML = '';
-      categories.forEach(cat => {
-        const card = document.createElement('div');
-        card.className = 'category-card';
-        card.textContent = cat;
-        card.onclick = () => showQuestions(cat);
-        categoryCards.appendChild(card);
       });
     }
 
-    async function showQuestions(category) {
-      selectedCategory.textContent = category;
-      const q = query(collection(db, "questions"), where("category", "==", category));
-      const snapshot = await getDocs(q);
-      questionList.innerHTML = '';
-      snapshot.forEach(doc => {
-        const li = document.createElement('li');
-        li.textContent = doc.data().question;
-        questionList.appendChild(li);
+    function showQuestions(category) {
+      document.getElementById('selectedCategory').textContent = category;
+      db.ref('questions').orderByChild('category').equalTo(category).once('value').then(snapshot => {
+        const data = snapshot.val();
+        const list = document.getElementById('questionList');
+        list.innerHTML = '';
+        for (let key in data) {
+          const li = document.createElement('li');
+          li.className = 'list-group-item';
+          li.textContent = data[key].question;
+          list.appendChild(li);
+        }
       });
     }
 
