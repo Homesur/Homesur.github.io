@@ -32,12 +32,10 @@
       <button class="btn btn-success w-100" onclick="addQuestion()">Сохранить вопрос</button>
     </div>
 
-    <!-- Выбор категории -->
-    <div class="card p-4 shadow-sm mb-4">
-      <h5 class="mb-3">Просмотр по категории</h5>
-      <select id="categorySelect" class="form-select" onchange="showQuestions(this.value)">
-        <option value="">-- Выберите категорию --</option>
-      </select>
+    <!-- Категории -->
+    <div class="mb-4">
+      <h5 class="mb-3">Категории</h5>
+      <div id="categoryCards" class="row g-3"></div>
     </div>
 
     <!-- Вопросы выбранной категории -->
@@ -85,19 +83,24 @@
           categories.add(data[key].category);
         }
 
-        const select = document.getElementById('categorySelect');
-        select.innerHTML = '<option value="">-- Выберите категорию --</option>';
+        const container = document.getElementById('categoryCards');
+        container.innerHTML = '';
         categories.forEach(cat => {
-          const option = document.createElement('option');
-          option.value = cat;
-          option.textContent = cat;
-          select.appendChild(option);
+          const col = document.createElement('div');
+          col.className = 'col-md-3';
+          col.innerHTML = `
+            <div class="card h-100 shadow-sm border-primary cursor-pointer" onclick="showQuestions('${cat}')">
+              <div class="card-body text-center">
+                <h6 class="card-title">${cat}</h6>
+              </div>
+            </div>
+          `;
+          container.appendChild(col);
         });
       });
     }
 
     function showQuestions(category) {
-      if (!category) return;
       document.getElementById('selectedCategory').textContent = category;
       db.ref('questions').orderByChild('category').equalTo(category).once('value').then(snapshot => {
         const data = snapshot.val();
@@ -122,7 +125,8 @@
       if (confirm("Удалить этот вопрос?")) {
         db.ref('questions/' + id).remove()
           .then(() => {
-            showQuestions(document.getElementById('selectedCategory').textContent);
+            const current = document.getElementById('selectedCategory').textContent;
+            showQuestions(current);
           })
           .catch(err => alert("Ошибка при удалении: " + err.message));
       }
@@ -146,4 +150,3 @@
   </script>
 </body>
 </html>
-
