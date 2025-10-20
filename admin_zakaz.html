@@ -64,6 +64,12 @@
       margin-top: 10px;
       width: 100%;
     }
+    .summary {
+      margin-top: 20px;
+      text-align: right;
+      font-weight: bold;
+      color: #2c3e50;
+    }
   </style>
 </head>
 <body>
@@ -72,10 +78,12 @@
     <form id="add-form">
       <input type="text" id="link" placeholder="Ссылка на товар" required />
       <input type="number" id="quantity" placeholder="Количество" min="1" required />
+      <input type="number" id="price" placeholder="Цена ($)" min="0" step="0.01" required />
       <button type="submit">Добавить</button>
     </form>
 
     <div id="product-list"></div>
+    <div class="summary" id="summary"></div>
     <button class="clear-btn" onclick="clearAllProducts()">Очистить все товары</button>
   </div>
 
@@ -85,14 +93,13 @@
   <script>
     // Инициализация Firebase
     const firebaseConfig = {
-      apiKey: "AIzaSyBbxvDq2ScstW7vlYHj_qRoay1ed1YaQHI",
-      authDomain: "judecatoria-1e6f6.firebaseapp.com",
-      databaseURL: "https://judecatoria-1e6f6-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "judecatoria-1e6f6",
-      storageBucket: "judecatoria-1e6f6.appspot.com",
-      messagingSenderId: "130607746443",
-      appId: "1:130607746443:web:bb04d8608d644e404a738e",
-      measurementId: "G-01LNNN548P"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
     firebase.initializeApp(firebaseConfig);
     const cartRef = firebase.database().ref('cart');
@@ -102,10 +109,12 @@
       e.preventDefault();
       const link = document.getElementById('link').value.trim();
       const quantity = parseInt(document.getElementById('quantity').value);
-      if (link && quantity > 0) {
-        cartRef.push({ link, quantity });
+      const price = parseFloat(document.getElementById('price').value);
+      if (link && quantity > 0 && price >= 0) {
+        cartRef.push({ link, quantity, price });
         document.getElementById('link').value = '';
         document.getElementById('quantity').value = '';
+        document.getElementById('price').value = '';
       }
     });
 
@@ -114,16 +123,22 @@
       cartRef.on('value', snapshot => {
         const items = snapshot.val();
         const container = document.getElementById('product-list');
+        const summary = document.getElementById('summary');
         container.innerHTML = '';
+        let totalItems = 0;
+        let totalPrice = 0;
         for (let id in items) {
-          const { link, quantity } = items[id];
+          const { link, quantity, price } = items[id];
+          totalItems += quantity;
+          totalPrice += quantity * price;
           container.innerHTML += `
             <div class="product-item">
-              <span>${link} (${quantity})</span>
+              <span>${link} (${quantity} шт. × $${price.toFixed(2)})</span>
               <button class="delete-btn" onclick="deleteProduct('${id}')">Удалить</button>
             </div>
           `;
         }
+        summary.textContent = `Всего товаров: ${totalItems} | Общая сумма: $${totalPrice.toFixed(2)}`;
       });
     }
 
