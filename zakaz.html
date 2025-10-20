@@ -59,29 +59,10 @@
       color: #34495e;
     }
 
-    .cart-item button {
-      background-color: #3498db;
-      color: white;
-      border: none;
-      padding: 10px 14px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-    }
-
-    .cart-item button:hover {
-      background-color: #2980b9;
-    }
-
     @media (max-width: 600px) {
       .cart-item {
         flex-direction: column;
         align-items: flex-start;
-      }
-
-      .cart-item button {
-        margin-top: 10px;
-        width: 100%;
       }
     }
   </style>
@@ -106,7 +87,7 @@
       messagingSenderId: "130607746443",
       appId: "1:130607746443:web:bb04d8608d644e404a738e",
       measurementId: "G-01LNNN548P"
-    };;
+    };
     firebase.initializeApp(firebaseConfig);
     const cartRef = firebase.database().ref('cart');
 
@@ -124,17 +105,9 @@
                 <p><strong>Ссылка:</strong> <a href="${link}" target="_blank">${link}</a></p>
                 <p><strong>Количество:</strong> ${quantity}</p>
               </div>
-              <button onclick="copyToClipboard('${link}')">Скопировать ссылку</button>
             </div>
           `;
         }
-      });
-    }
-
-    // Копирование ссылки в буфер
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        alert('Ссылка скопирована в буфер!');
       });
     }
 
