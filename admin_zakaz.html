@@ -89,15 +89,15 @@
 
     <div id="product-list"></div>
     <div class="summary" id="summary"></div>
-    <button class="export-btn" onclick="exportToPDF()">Экспорт в PDF</button>
+    <button class="export-btn" onclick="exportToExcel()">Экспорт в Excel</button>
     <button class="clear-btn" onclick="clearAllProducts()">Очистить все товары</button>
   </div>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <!-- jsPDF CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- SheetJS CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBbxvDq2ScstW7vlYHj_qRoay1ed1YaQHI",
@@ -161,31 +161,32 @@
       }
     }
 
-    async function exportToPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      let y = 20;
-      doc.setFontSize(16);
-      doc.text("Список заказов", 20, y);
-      y += 10;
-      doc.setFontSize(12);
+    function exportToExcel() {
+      const data = [];
       let totalItems = 0;
       let totalPrice = 0;
       for (let id in currentItems) {
         const { link, quantity, price } = currentItems[id];
-        doc.text(`${link}`, 20, y);
-        y += 6;
-        doc.text(`Количество: ${quantity} | Цена: $${price.toFixed(2)} | Сумма: $${(quantity * price).toFixed(2)}`, 20, y);
-        y += 10;
+        data.push({
+          Ссылка: link,
+          Количество: quantity,
+          Цена: price.toFixed(2),
+          Сумма: (quantity * price).toFixed(2)
+        });
         totalItems += quantity;
         totalPrice += quantity * price;
-        if (y > 270) {
-          doc.addPage();
-          y = 20;
-        }
       }
-      doc.text(`Всего товаров: ${totalItems} | Общая сумма: $${totalPrice.toFixed(2)}`, 20, y + 10);
-      doc.save("zakaz.pdf");
+      data.push({
+        Ссылка: "ИТОГО",
+        Количество: totalItems,
+        Цена: "",
+        Сумма: totalPrice.toFixed(2)
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Заказ");
+      XLSX.writeFile(workbook, "zakaz.xlsx");
     }
 
     renderAdminCart();
