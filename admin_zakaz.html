@@ -70,6 +70,11 @@
       font-weight: bold;
       color: #2c3e50;
     }
+    .export-btn {
+      background-color: #2ecc71;
+      margin-top: 10px;
+      width: 100%;
+    }
   </style>
 </head>
 <body>
@@ -84,14 +89,16 @@
 
     <div id="product-list"></div>
     <div class="summary" id="summary"></div>
+    <button class="export-btn" onclick="exportToPDF()">Экспорт в PDF</button>
     <button class="clear-btn" onclick="clearAllProducts()">Очистить все товары</button>
   </div>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <!-- jsPDF CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
-    // Инициализация Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyBbxvDq2ScstW7vlYHj_qRoay1ed1YaQHI",
       authDomain: "judecatoria-1e6f6.firebaseapp.com",
@@ -105,7 +112,8 @@
     firebase.initializeApp(firebaseConfig);
     const cartRef = firebase.database().ref('cart');
 
-    // Добавление товара
+    let currentItems = {};
+
     document.getElementById('add-form').addEventListener('submit', function(e) {
       e.preventDefault();
       const link = document.getElementById('link').value.trim();
@@ -119,10 +127,10 @@
       }
     });
 
-    // Отображение товаров
     function renderAdminCart() {
       cartRef.on('value', snapshot => {
         const items = snapshot.val();
+        currentItems = items || {};
         const container = document.getElementById('product-list');
         const summary = document.getElementById('summary');
         container.innerHTML = '';
@@ -143,20 +151,44 @@
       });
     }
 
-    // Удаление одного товара
     function deleteProduct(id) {
       cartRef.child(id).remove();
     }
 
-    // Очистка всех товаров
     function clearAllProducts() {
       if (confirm('Удалить все товары?')) {
         cartRef.remove();
       }
     }
 
+    async function exportToPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      let y = 20;
+      doc.setFontSize(16);
+      doc.text("Список заказов", 20, y);
+      y += 10;
+      doc.setFontSize(12);
+      let totalItems = 0;
+      let totalPrice = 0;
+      for (let id in currentItems) {
+        const { link, quantity, price } = currentItems[id];
+        doc.text(`${link}`, 20, y);
+        y += 6;
+        doc.text(`Количество: ${quantity} | Цена: $${price.toFixed(2)} | Сумма: $${(quantity * price).toFixed(2)}`, 20, y);
+        y += 10;
+        totalItems += quantity;
+        totalPrice += quantity * price;
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+      }
+      doc.text(`Всего товаров: ${totalItems} | Общая сумма: $${totalPrice.toFixed(2)}`, 20, y + 10);
+      doc.save("zakaz.pdf");
+    }
+
     renderAdminCart();
   </script>
 </body>
 </html>
-
