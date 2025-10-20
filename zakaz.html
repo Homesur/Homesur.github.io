@@ -6,48 +6,83 @@
   <title>Zakaz</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f4f7ff;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #eef2f7, #dbe9ff);
       margin: 0;
       padding: 20px;
     }
+
     .cart-container {
-      max-width: 800px;
+      max-width: 900px;
       margin: auto;
-      background: linear-gradient(to right, #f8fcff, #e0f0ff);
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 30px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     }
+
     h2 {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
+      color: #2c3e50;
     }
+
     .cart-item {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      background: white;
-      padding: 12px;
-      margin-bottom: 10px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      justify-content: space-between;
+      background: #f9fbff;
+      padding: 16px;
+      margin-bottom: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      transition: transform 0.2s ease;
     }
+
+    .cart-item:hover {
+      transform: scale(1.01);
+    }
+
     .cart-item .info {
       flex-grow: 1;
     }
+
     .cart-item a {
-      color: #4a90e2;
+      color: #2980b9;
       text-decoration: none;
+      font-weight: 500;
       word-break: break-word;
     }
+
+    .cart-item p {
+      margin: 6px 0;
+      color: #34495e;
+    }
+
     .cart-item button {
-      background-color: #4a90e2;
+      background-color: #3498db;
       color: white;
       border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
+      padding: 10px 14px;
+      border-radius: 8px;
       cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .cart-item button:hover {
+      background-color: #2980b9;
+    }
+
+    @media (max-width: 600px) {
+      .cart-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .cart-item button {
+        margin-top: 10px;
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -71,7 +106,7 @@
       messagingSenderId: "130607746443",
       appId: "1:130607746443:web:bb04d8608d644e404a738e",
       measurementId: "G-01LNNN548P"
-    };
+    };;
     firebase.initializeApp(firebaseConfig);
     const cartRef = firebase.database().ref('cart');
 
@@ -107,4 +142,3 @@
   </script>
 </body>
 </html>
-
