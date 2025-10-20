@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zakaz</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7ff;
+      margin: 0;
+      padding: 20px;
+    }
+    .cart-container {
+      max-width: 800px;
+      margin: auto;
+      background: linear-gradient(to right, #f8fcff, #e0f0ff);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .cart-item .info {
+      flex-grow: 1;
+    }
+    .cart-item a {
+      color: #4a90e2;
+      text-decoration: none;
+      word-break: break-word;
+    }
+    .cart-item button {
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="cart-container">
+    <h2>Корзина клиента</h2>
+    <div id="cart-items"></div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    // Инициализация Firebase
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const cartRef = firebase.database().ref('cart');
+
+    // Отображение корзины
+    function renderCart() {
+      cartRef.on('value', snapshot => {
+        const items = snapshot.val();
+        const container = document.getElementById('cart-items');
+        container.innerHTML = '';
+        for (let id in items) {
+          const { link, quantity } = items[id];
+          container.innerHTML += `
+            <div class="cart-item">
+              <div class="info">
+                <p><strong>Ссылка:</strong> <a href="${link}" target="_blank">${link}</a></p>
+                <p><strong>Количество:</strong> ${quantity}</p>
+              </div>
+              <button onclick="copyToClipboard('${link}')">Скопировать ссылку</button>
+            </div>
+          `;
+        }
+      });
+    }
+
+    // Копирование ссылки в буфер
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Ссылка скопирована в буфер!');
+      });
+    }
+
+    renderCart();
+  </script>
+</body>
+</html>
