@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>SIM-LEX | Дело клиента</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <img src="logo.png" alt="SIM-LEX Logo" class="logo-img" />
+    <h1>Карточка клиента</h1>
+  </header>
+
+  <main class="container fade-in">
+    <section class="form-card">
+      <h2>Информация о деле</h2>
+      <p><strong>Номер дела:</strong> <span id="case-title">—</span></p>
+      <p><strong>Клиент:</strong> <span id="client-name">—</span></p>
+    </section>
+
+    <section class="form-card">
+      <h2>Добавить услугу</h2>
+      <div class="form-grid">
+        <input type="date" id="service-date" />
+        <input type="time" id="start-time" />
+        <input type="time" id="end-time" />
+        
+      </div>
+      <textarea id="service-description" placeholder="Описание услуги" rows="4"></textarea>
+      <button class="save-btn" onclick="addService()">✅ Выполнено</button>
+    </section>
+
+    <section class="form-card">
+  <h2>Услуги по делу</h2>
+  <div id="service-list" class="fade-in-slow"></div>
+  <button onclick="exportToExcel()" class="save-btn">📤 Экспорт в Excel</button>
+</section>
+  </main>
+
+  <script src="firebase.js"></script>
+  <script src="case.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</body>
+</html>
