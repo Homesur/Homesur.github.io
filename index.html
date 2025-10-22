@@ -2,44 +2,46 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Учёт дел адвоката</title>
+  <title>SIM-LEX | Учёт дел адвоката</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1>📁 Мои дела</h1>
+  <header class="site-header">
+    <img src="logo.png" alt="SIM-LEX Logo" class="logo-img" />
+    <h1>SIM-LEX</h1>
+  </header>
 
+  <main class="container fade-in">
     <div class="button-row">
       <button class="add-btn" onclick="showAddCaseForm()">➕ Добавить новое дело</button>
       <button class="select-btn" onclick="showSelectForm()">🔍 Выбрать дело</button>
     </div>
 
     <!-- Форма добавления дела -->
-    <div id="add-case-form" class="form-card" style="display:none;">
+    <section id="add-case-form" class="form-card" style="display:none;">
       <h2>Новое дело</h2>
-      <input type="text" id="new-client" placeholder="Имя клиента" />
+      <input type="text" id="new-title" placeholder="Номер дела (автогенерация)" readonly />
+      <input type="text" id="new-firstname" placeholder="Имя клиента" />
+      <input type="text" id="new-lastname" placeholder="Фамилия клиента" />
       <input type="password" id="new-password" placeholder="Пароль для доступа" />
       <label class="checkbox">
         <input type="checkbox" id="new-isLocked" checked />
         Защитить паролем
       </label>
       <button class="save-btn" onclick="addNewCase()">💾 Сохранить</button>
-    </div>
+    </section>
 
     <!-- Форма выбора дела -->
-    <div id="select-case-form" class="form-card" style="display:none;">
+    <section id="select-case-form" class="form-card" style="display:none;">
       <h2>Поиск дела по клиенту</h2>
       <input type="text" id="search-firstname" placeholder="Имя клиента" />
       <input type="text" id="search-lastname" placeholder="Фамилия клиента" />
-      <button onclick="searchCaseByClient()">Найти</button>
-
+      <button class="save-btn" onclick="searchCaseByClient()">🔍 Найти</button>
       <div id="search-result" style="margin-top:10px;"></div>
-    </div>
-
-    <div id="case-list" class="case-list"></div>
-  </div>
+    </section>
+  </main>
 
   <script src="firebase.js"></script>
   <script src="script.js"></script>
