@@ -4,33 +4,47 @@
   <meta charset="UTF-8" />
   <title>SIM-LEX | Учёт дел адвоката</title>
   <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
   <header class="site-header">
-    <img src="logo.png" alt="SIM-LEX Logo" class="logo-img" />
+    <a href="index.html">
+  <img src="logo.png" alt="SIM-LEX Logo" class="logo-img" />
+</a>
     <h1>SIM-LEX</h1>
   </header>
 
   <main class="container fade-in">
     <div class="button-row">
-      <button class="add-btn" onclick="showAddCaseForm()">➕ Добавить новое дело</button>
+      <button class="add-btn" onclick="showAddClientForm()">👤 Добавить клиента</button>
+      <button class="add-btn" onclick="showAddCaseForm()">➕ Добавить дело</button>
       <button class="select-btn" onclick="showSelectForm()">🔍 Выбрать дело</button>
     </div>
+
+    <!-- Форма добавления клиента -->
+    <section id="add-client-form" class="form-card" style="display:none;">
+      <h2>Добавить клиента</h2>
+      <input type="text" id="client-firstname" placeholder="Имя клиента" />
+      <input type="text" id="client-lastname" placeholder="Фамилия клиента" />
+      <input type="text" id="client-idnp" placeholder="IDNP" />
+      <input type="text" id="client-phone" placeholder="Телефон" />
+      <input type="text" id="client-address" placeholder="Адрес" />
+      <button class="save-btn" onclick="addNewClient()">💾 Сохранить клиента</button>
+    </section>
 
     <!-- Форма добавления дела -->
     <section id="add-case-form" class="form-card" style="display:none;">
       <h2>Новое дело</h2>
+      <select id="client-select"></select>
       <input type="text" id="new-title" placeholder="Номер дела (автогенерация)" readonly />
-      <input type="text" id="new-firstname" placeholder="Имя клиента" />
-      <input type="text" id="new-lastname" placeholder="Фамилия клиента" />
       <input type="password" id="new-password" placeholder="Пароль для доступа" />
       <label class="checkbox">
         <input type="checkbox" id="new-isLocked" checked />
         Защитить паролем
       </label>
-      <button class="save-btn" onclick="addNewCase()">💾 Сохранить</button>
+      <button class="save-btn" onclick="addNewCase()">💾 Сохранить дело</button>
     </section>
 
     <!-- Форма выбора дела -->
