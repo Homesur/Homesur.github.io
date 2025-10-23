@@ -1,11 +1,12 @@
 const caseId = new URLSearchParams(window.location.search).get("id");
+let pendingAction = null;
+let casePassword = null;
 
 if (!caseId) {
   alert("ID дела не найден в URL");
   window.location.href = "index.html";
 }
 
-// Загрузка данных дела
 firebase.firestore().collection("cases").doc(caseId).get().then(doc => {
   if (!doc.exists) {
     alert("Дело не найдено");
@@ -13,12 +14,32 @@ firebase.firestore().collection("cases").doc(caseId).get().then(doc => {
   }
 
   const data = doc.data();
+  casePassword = data.password || null;
   document.getElementById("case-title").textContent = data.title || "—";
-  document.getElementById("client-name").textContent = `${data.firstname || ""} ${data.lastname || ""}`;
+
+  // Загрузка клиента
+  const clientId = data.clientId;
+  if (!clientId) {
+    document.getElementById("client-name").textContent = "Клиент не указан";
+    return;
+  }
+
+  firebase.firestore().collection("clients").doc(clientId).get().then(clientDoc => {
+    if (!clientDoc.exists) {
+      document.getElementById("client-name").textContent = "Клиент не найден";
+      return;
+    }
+
+    const client = clientDoc.data();
+    document.getElementById("client-name").textContent = `${client.firstname} ${client.lastname}`;
+    document.getElementById("client-phone").textContent = client.phone || "—";
+	document.getElementById("client-idnp").textContent = client.idnp || "—";
+    document.getElementById("client-address").textContent = client.address || "—";
+  });
+
   loadServices();
 });
 
-// Добавление новой услуги
 function addService() {
   const date = document.getElementById("service-date").value;
   const start = document.getElementById("start-time").value;
@@ -35,6 +56,7 @@ function addService() {
     start,
     end,
     description,
+    isDone: false,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 
@@ -44,7 +66,6 @@ function addService() {
   });
 }
 
-// Очистка формы
 function clearForm() {
   document.getElementById("service-date").value = "";
   document.getElementById("start-time").value = "";
@@ -52,70 +73,109 @@ function clearForm() {
   document.getElementById("service-description").value = "";
 
   const saveBtn = document.querySelector(".save-btn");
-  saveBtn.textContent = "✅ Выполнено";
+  saveBtn.textContent = "➕ Добавить в заметки";
   saveBtn.onclick = addService;
 }
 
-// Загрузка и отображение услуг
 function loadServices() {
   const list = document.getElementById("service-list");
   list.innerHTML = "<p>Загрузка...</p>";
   let totalMinutes = 0;
 
   firebase.firestore().collection("cases").doc(caseId).collection("services")
-    .orderBy("createdAt", "desc")
+    .orderBy("createdAt", "asc")
     .get().then(snapshot => {
       list.innerHTML = "";
 
       if (snapshot.empty) {
-        list.innerHTML = "<p>Услуги пока не добавлены.</p>";
+        list.innerHTML = "<p>Заметок пока нет.</p>";
         return;
       }
 
+      const active = [];
+      const done = [];
+
       snapshot.forEach(doc => {
         const s = doc.data();
-
         const [startH, startM] = s.start.split(":").map(Number);
         const [endH, endM] = s.end.split(":").map(Number);
         const startTotal = startH * 60 + startM;
         const endTotal = endH * 60 + endM;
         const duration = endTotal - startTotal;
-        totalMinutes += duration;
+
+        if (s.isDone) totalMinutes += duration;
 
         const hours = Math.floor(duration / 60);
         const minutes = duration % 60;
         const durationText = `${hours ? hours + " час" : ""}${minutes ? " " + minutes + " мин" : ""}`.trim() || "менее минуты";
 
         const item = document.createElement("div");
-        item.className = "case-card fade-in";
+        item.className = `case-card fade-in ${s.isDone ? "done" : ""}`;
         item.innerHTML = `
-          <p><strong>${s.date}</strong> начало ${s.start} окончание ${s.end} затрачено времени ${durationText}</p>
-          <p>${s.description}</p>
-          <button onclick="editService('${doc.id}', '${s.date}', '${s.start}', '${s.end}', \`${s.description.replace(/`/g, "\\`")}\`)">✏️ Редактировать</button>
-          <button onclick="deleteService('${doc.id}')">🗑️ Удалить</button>
+  <p><strong>${s.date}</strong> начало в ${s.start} окончание в ${s.end} затрачено времени ${durationText}</p>
+  <p>${s.description}</p>
+  <div class="button-group">
+    <button onclick="requestPassword(() => toggleDone('${doc.id}', ${s.isDone}))" class="done-btn ${s.isDone ? 'done' : 'not-done'}">
+      ${s.isDone ? '✅ Выполнено' : '🔴 Выполнить!'}
+    </button>
+    <button onclick="requestPassword(() => editService('${doc.id}', '${s.date}', '${s.start}', '${s.end}', \`${s.description.replace(/`/g, "\\`")}\`))" class="done-btn edit-btn">✏️ Редактировать</button>
+    <button onclick="requestPassword(() => deleteService('${doc.id}'))" class="done-btn delete-btn">🗑️ Удалить</button>
+  </div>
         `;
-        list.appendChild(item);
+
+        if (s.isDone) {
+          done.push(item);
+        } else {
+          active.push(item);
+        }
       });
+
+      active.forEach(el => list.appendChild(el));
+
+      if (done.length > 0) {
+        const divider = document.createElement("div");
+        divider.className = "section-divider";
+        divider.textContent = "✅ Выполненные";
+        list.appendChild(divider);
+      }
+
+      done.forEach(el => list.appendChild(el));
 
       const totalHours = Math.floor(totalMinutes / 60);
       const totalMins = totalMinutes % 60;
       const summary = document.createElement("div");
       summary.className = "case-card fade-in";
-      summary.innerHTML = `<p><strong>⏱ Общее затраченное время:</strong> ${totalHours} час${totalHours !== 1 ? "а" : ""} ${totalMins} мин</p>`;
+      summary.innerHTML = `<p><strong>⏱ Общее затраченное время (выполненные):</strong> ${totalHours} час${totalHours !== 1 ? "а" : ""} ${totalMins} мин</p>`;
       list.appendChild(summary);
     });
 }
 
-// Удаление услуги
-function deleteService(serviceId) {
-  if (!confirm("Удалить услугу?")) return;
-
-  firebase.firestore().collection("cases").doc(caseId).collection("services").doc(serviceId).delete().then(() => {
+function toggleDone(id, currentStatus) {
+  firebase.firestore().collection("cases").doc(caseId).collection("services").doc(id).update({
+    isDone: !currentStatus
+  }).then(() => {
     loadServices();
   });
 }
 
-// Редактирование услуги
+function deleteService(id) {
+  firebase.firestore().collection("cases").doc(caseId).collection("services").doc(id).delete().then(() => {
+    loadServices();
+  });
+}
+
+// Заглушки для requestPassword и editService — если ещё не реализованы
+function requestPassword(callback) {
+  // Здесь можно вставить модальное окно для ввода пароля
+  if (!casePassword) return callback();
+  const entered = prompt("Введите пароль для подтверждения:");
+  if (entered === casePassword) {
+    callback();
+  } else {
+    alert("Неверный пароль");
+  }
+}
+
 function editService(id, date, start, end, description) {
   document.getElementById("service-date").value = date;
   document.getElementById("start-time").value = start;
@@ -125,73 +185,16 @@ function editService(id, date, start, end, description) {
   const saveBtn = document.querySelector(".save-btn");
   saveBtn.textContent = "💾 Сохранить изменения";
   saveBtn.onclick = function () {
-    const newDate = document.getElementById("service-date").value;
-    const newStart = document.getElementById("start-time").value;
-    const newEnd = document.getElementById("end-time").value;
-    const newDesc = document.getElementById("service-description").value.trim();
+    const updated = {
+      date: document.getElementById("service-date").value,
+      start: document.getElementById("start-time").value,
+      end: document.getElementById("end-time").value,
+      description: document.getElementById("service-description").value.trim()
+    };
 
-    if (!newDate || !newStart || !newEnd || !newDesc) {
-      alert("Заполните все поля");
-      return;
-    }
-
-    firebase.firestore().collection("cases").doc(caseId).collection("services").doc(id).update({
-      date: newDate,
-      start: newStart,
-      end: newEnd,
-      description: newDesc
-    }).then(() => {
+    firebase.firestore().collection("cases").doc(caseId).collection("services").doc(id).update(updated).then(() => {
       clearForm();
       loadServices();
     });
   };
-}
-
-// Экспорт услуг в Excel (.xlsx)
-function exportToExcel() {
-  firebase.firestore().collection("cases").doc(caseId).collection("services")
-    .orderBy("createdAt", "asc")
-    .get().then(snapshot => {
-      if (snapshot.empty) {
-        alert("Нет данных для экспорта.");
-        return;
-      }
-
-      const rows = [["Дата", "Начало", "Окончание", "Описание", "Затрачено"]];
-      let totalMinutes = 0;
-
-      snapshot.forEach(doc => {
-        const s = doc.data();
-        const [startH, startM] = s.start.split(":").map(Number);
-        const [endH, endM] = s.end.split(":").map(Number);
-        const startTotal = startH * 60 + startM;
-        const endTotal = endH * 60 + endM;
-        const duration = endTotal - startTotal;
-        totalMinutes += duration;
-
-        const hours = Math.floor(duration / 60);
-        const minutes = duration % 60;
-        const durationText = `${hours ? hours + " час" : ""}${minutes ? " " + minutes + " мин" : ""}`.trim() || "менее минуты";
-
-        rows.push([
-          s.date,
-          s.start,
-          s.end,
-          s.description,
-          durationText
-        ]);
-      });
-
-      const totalHours = Math.floor(totalMinutes / 60);
-      const totalMins = totalMinutes % 60;
-      const summaryText = `${totalHours} час${totalHours !== 1 ? "а" : ""} ${totalMins} мин`;
-
-      rows.push(["", "", "", "⏱ Общее время", summaryText]);
-
-      const worksheet = XLSX.utils.aoa_to_sheet(rows);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Услуги");
-
-      XLSX.writeFile(workbook, `Услуги_${caseId}.xlsx`);
-    });
 }
