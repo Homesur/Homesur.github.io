@@ -125,6 +125,25 @@ textarea {
   transition: background 0.3s ease;
 }
 
+.done-btn:hover {
+  background-color: #357ab8;
+}
+
+.upload-btn {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.download-btn {
+  text-decoration: none;
+  display: inline-block;
+  padding: 8px 12px;
+  background-color: #4a90e2;
+  color: white;
+  border-radius: 6px;
+  margin: 4px;
+}
+
 .done-btn.not-done {
   background: #cc0000;
   color: white;
@@ -161,6 +180,65 @@ textarea {
   align-items: center;
   z-index: 999;
 }
+.logo-img {
+  max-width: 200px; /* увеличено с обычных 100–120px */
+  height: auto;
+  display: block;
+  margin: 20px auto;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.logo-img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+.service-grid {
+  background: #fff;
+  padding: 40px 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.service-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-top: 30px;
+}
+
+.service-card {
+  background: linear-gradient(to bottom right, #fff7f7, #ffecec);
+  border: 1px solid #e0c0c0;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: transform 0.3s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+.service-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+  color: #b30000;
+}
+
+.service-card h3 {
+  font-size: 20px;
+  color: #b30000;
+  margin-bottom: 8px;
+}
+
+.service-card p {
+  font-size: 16px;
+  color: #333;
+}
 
 .modal-content {
   background: white;
@@ -173,6 +251,16 @@ textarea {
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
+.section-title {
+  text-align: center;
+  font-size: 34px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #a00000;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
 .modal-content input[type="password"] {
   width: 100%;
   padding: 12px;
@@ -181,6 +269,179 @@ textarea {
   border-radius: 8px;
   font-size: 1em;
 }
+.contact-section {
+  background: #fff;
+  padding: 40px 30px;
+  border-radius: 12px;
+  max-width: 700px;
+  margin: 60px auto;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+}
+
+.contact-info p {
+  font-size: 16px;
+  margin: 8px 0;
+  color: #333;
+}
+
+.contact-info a {
+  color: #b30000;
+  text-decoration: none;
+}
+
+#contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 30px;
+}
+
+#contact-form input,
+#contact-form textarea {
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+}
+
+#contact-form input:focus,
+#contact-form textarea:focus {
+  border-color: #b30000;
+  outline: none;
+}
+
+.save-btn {
+  background: linear-gradient(to right, #b00000, #e00000);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  font-weight: bold;
+  font-size: 17px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.save-btn:hover {
+  background: linear-gradient(to right, #900000, #c00000);
+  transform: scale(1.03);
+}
+.testimonials {
+  background: #fff;
+  padding: 40px 30px;
+  border-radius: 12px;
+  max-width: 900px;
+  margin: 60px auto;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+}
+
+.testimonial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-top: 30px;
+}
+
+.testimonial-card {
+  background: linear-gradient(to bottom right, #fff7f7, #ffecec);
+  border: 1px solid #e0c0c0;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: transform 0.3s ease;
+}
+
+.testimonial-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+.testimonial-icon {
+  font-size: 30px;
+  margin-bottom: 12px;
+  color: #b30000;
+}
+
+.testimonial-card p {
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.testimonial-author {
+  font-size: 14px;
+  color: #777;
+.review-form {
+  background: #fff;
+  padding: 40px 30px;
+  border-radius: 12px;
+  max-width: 700px;
+  margin: 60px auto;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+}
+
+.review-form form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.review-form input,
+.review-form textarea,
+.review-form select {
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+}
+
+.review-form input:focus,
+.review-form textarea:focus,
+.review-form select:focus {
+  border-color: #b30000;
+  outline: none;
+}
+
+.review-form .save-btn {
+  background: linear-gradient(to right, #b00000, #e00000);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  font-weight: bold;
+  font-size: 17px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.review-form .save-btn:hover {
+  background: linear-gradient(to right, #900000, #c00000);
+  transform: scale(1.03);
+}
+.status-open {
+  background-color: #007bff; /* синий */
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.status-closed {
+  background-color: #28a745; /* зелёный */
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
 
 /* Разделитель */
 .section-divider {
