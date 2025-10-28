@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const caseId = new URLSearchParams(window.location.search).get("id");
   let casePassword = null;
   let isLocked = false;
+  let pendingAction = null;
 
   if (!caseId) {
     alert("ID дела не найден в URL");
@@ -21,16 +22,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("case-title").textContent = data.title || "—";
 
-    // Статус дела
     const statusBtn = document.getElementById("status-btn");
     updateStatusButton(statusBtn, isLocked);
 
     statusBtn.addEventListener("click", () => {
-  document.getElementById("password-modal").style.display = "flex";
-  pendingAction = isLocked ? "open" : "close";
-});
+      document.getElementById("password-modal").style.display = "flex";
+      pendingAction = isLocked ? "open" : "close";
+    });
 
-    // Клиент
     const clientId = data.clientId;
     if (!clientId) {
       document.getElementById("client-name").textContent = "Клиент не указан";
@@ -54,45 +53,49 @@ document.addEventListener("DOMContentLoaded", () => {
     loadDocuments();
   });
 
-  // Статус кнопки
   function updateStatusButton(btn, locked) {
     if (locked) {
-      btn.textContent = "🔒 Закрыто";
+      btn.textContent = "🔒 Закрыто (нажмите для открытия)";
       btn.className = "status-closed";
     } else {
-      btn.textContent = "🔓 Открыто";
+      btn.textContent = "🔓 Открыто (нажмите для закрытия)";
       btn.className = "status-open";
     }
   }
 
-  // Подтверждение пароля
   function confirmAction() {
-  const input = document.getElementById("confirm-password").value.trim();
-  if (input !== casePassword) {
-    alert("Неверный пароль");
-    return;
-  }
+    const input = document.getElementById("confirm-password").value.trim();
+    if (input !== casePassword) {
+      alert("Неверный пароль");
+      return;
+    }
 
     const newStatus = pendingAction === "close";
-  firebase.firestore().collection("cases").doc(caseId).update({
-    isLocked: newStatus
-  }).then(() => {
-    isLocked = newStatus;
-    updateStatusButton(document.getElementById("status-btn"), isLocked);
-    closeModal();
-    alert(`Дело ${newStatus ? "закрыто" : "открыто"} успешно`);
-  });
-}
+    firebase.firestore().collection("cases").doc(caseId).update({
+      isLocked: newStatus
+    }).then(() => {
+      isLocked = newStatus;
+      updateStatusButton(document.getElementById("status-btn"), isLocked);
+      closeModal();
+      alert(`Дело ${newStatus ? "закрыто" : "открыто"} успешно`);
+    });
+  }
 
   function closeModal() {
     document.getElementById("password-modal").style.display = "none";
     document.getElementById("confirm-password").value = "";
   }
 
-  window.confirmAction = confirmAction;
-  window.closeModal = closeModal;
-
-  // Услуги
+  function requestPassword(callback) {
+    if (!casePassword) return callback();
+    const entered = prompt("Введите пароль для подтверждения:");
+    if (entered === casePassword) {
+      callback();
+    } else {
+      alert("Неверный пароль");
+    }
+  }
+window.requestPassword = requestPassword;
   function addService() {
     const date = document.getElementById("service-date").value;
     const start = document.getElementById("start-time").value;
@@ -215,16 +218,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function requestPassword(callback) {
-    if (!casePassword) return callback();
-    const entered = prompt("Введите пароль для подтверждения:");
-    if (entered === casePassword) {
-      callback();
-    } else {
-      alert("Неверный пароль");
-    }
-  }
-
   function editService(id, date, start, end, description) {
     document.getElementById("service-date").value = date;
     document.getElementById("start-time").value = start;
@@ -278,7 +271,7 @@ function loadDocuments() {
 
 function deleteDocument(docId) {
   const repo = "homesur/homesur.github.io"; // ← твой репозиторий
-  const token = "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"; // ← твой GitHub токен
+  const token = "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"; // ← твой GitHub токен
 
   const docRef = firebase.firestore().collection("cases").doc(caseId).collection("documents").doc(docId);
   docRef.get().then(doc => {
@@ -332,7 +325,7 @@ function uploadDocument() {
     const fileName = encodeURIComponent(file.name);
     const repo = "homesur/homesur.github.io";
     const path = `docs/${fileName}`;
-    const token = "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";
+    const token = "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";
 
     fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
       method: "PUT",
@@ -369,9 +362,16 @@ function uploadDocument() {
   };
 window.confirmAction = confirmAction;
 window.closeModal = closeModal;
+window.deleteService = deleteService;
   reader.readAsDataURL(file);
 }
 window.confirmAction = confirmAction;
 window.closeModal = closeModal;
+window.deleteService = deleteService;
+window.editService = editService;
+window.toggleDone = toggleDone;
+window.addService = addService;
+window.uploadDocument = uploadDocument;
+window.deleteDocument = deleteDocument;
 });
 
