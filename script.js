@@ -118,7 +118,8 @@ function searchCaseByClient() {
       return;
     }
 
-    const clientIds = matches.map(c => c.id);
+    
+	const clientIds = matches.map(c => c.id);
 
     firebase.firestore().collection("cases")
       .where("clientId", "in", clientIds)
@@ -138,7 +139,8 @@ function searchCaseByClient() {
           link.style.display = "block";
           link.style.marginBottom = "8px";
           result.appendChild(link);
-        });
+        
+		});
       });
   });
 }
