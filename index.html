@@ -13,7 +13,7 @@
     <a href="index.html">
   <img src="logo.png" alt="SIM-LEX Logo" class="logo-img" />
 </a>
-    <h1>SIM-LEX</h1>
+    <h1>DURA LEX - SED LEX</h1>
   </header>
 
   <main class="container fade-in">
@@ -55,9 +55,174 @@
       <button class="save-btn" onclick="searchCaseByClient()">🔍 Найти</button>
       <div id="search-result" style="margin-top:10px;"></div>
     </section>
-  </main>
+  
+  <section class="service-grid">
+  <h2 class="section-title">Наши юридические направления</h2>
+  <div class="service-cards">
+    <div class="service-card">
+      <div class="service-icon">📄</div>
+      <h3>Документы</h3>
+      <p>Иски, жалобы, договоры, правовая экспертиза</p>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">⚖️</div>
+      <h3>Судебная защита</h3>
+      <p>Представительство, обжалование, переговоры</p>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">📞</div>
+      <h3>Консультации</h3>
+      <p>Анализ ситуации, разъяснение норм, рекомендации</p>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">🏢</div>
+      <h3>Бизнес сопровождение</h3>
+      <p>Регистрация, договоры, защита интересов</p>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">👨‍👩‍👧‍👦</div>
+      <h3>Частное право</h3>
+      <p>Семейные, наследственные, жилищные споры</p>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">🔍</div>
+      <h3>Анализ и стратегия</h3>
+      <p>Оценка рисков, правовая позиция, план действий</p>
+    </div>
+  </div>
+</section>
+<section class="contact-section">
+  <div class="contact-info">
+    <p>📍 Адрес: г. Кишинёв, ул. Юридическая, 12</p>
+    <p>📞 Телефон: <a href="tel:+37360012345">+373 600 12345</a></p>
+	<p>📱 Watsapp: <a href="tel:+37360012345">+373 600 12345</a></p>
+	<p>📱 Viber: <a href="tel:+37360012345">+373 600 12345</a></p>
+	<p>📱 Telegram: <a href="tel:+37360012345">+373 600 12345</a></p>
+    <p>📧 Email: <a href="mailto:office@simlex.md">office@simlex.md</a></p>
+    <p>🕒 Время работы: Пн–Пт, 09:00–18:00</p>
+  </div>
 
+<section class="contact-form">
+  <form id="callback-form">
+    <input type="text" name="user_name" placeholder="Ваше имя" required>
+    <input type="text" name="user_phone" placeholder="Телефон" required>
+    <textarea name="user_message" rows="4" placeholder="Комментарий (необязательно)"></textarea>
+    <button type="submit" class="save-btn">📞 Обратный звонок!</button>
+  </form>
+</section>
+<section class="testimonials">
+  <h2 class="section-title">Отзывы наших клиентов</h2>
+  <div class="testimonial-grid">
+    <div class="testimonial-card">
+      <div class="testimonial-icon">👩‍⚖️</div>
+      <p>“SIM-LEX помог мне выиграть дело о наследстве. Всё чётко, грамотно и вовремя.”</p>
+      <span class="testimonial-author">— Мария С., Кишинёв</span>
+    </div>
+    <div class="testimonial-card">
+      <div class="testimonial-icon">📄</div>
+      <p>“Получил консультацию по договору аренды. Юристы SIM-LEX всё разъяснили и составили документ.”</p>
+      <span class="testimonial-author">— Андрей П., Бэлць</span>
+    </div>
+    <div class="testimonial-card">
+      <div class="testimonial-icon">⚖️</div>
+      <p>“Благодарю за помощь в суде. Представительство было на высшем уровне.”</p>
+      <span class="testimonial-author">— Светлана К., Орхей</span>
+    </div>
+  </div>
+</section>
+<section class="review-form">
+  <h2 class="section-title">Оставить отзыв</h2>
+  <form id="review-form">
+  <input type="text" id="review-name" placeholder="Ваше имя" required>
+  <textarea id="review-text" placeholder="Ваш отзыв" required></textarea>
+  <select id="review-rating">
+    <option value="">Оценка (необязательно)</option>
+    <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
+    <option value="4">⭐️⭐️⭐️⭐️</option>
+    <option value="3">⭐️⭐️⭐️</option>
+    <option value="2">⭐️⭐️</option>
+    <option value="1">⭐️</option>
+  </select>
+  <button type="submit">📨 Отправить</button>
+</form>
+</section>
+<!-- ✅ Вставь JS здесь -->
+<script>
+  document.getElementById("review-form").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const name = document.getElementById("review-name").value.trim();
+    const text = document.getElementById("review-text").value.trim();
+    const rating = document.getElementById("review-rating").value;
+
+    if (!name || !text) {
+      alert("Заполните имя и отзыв");
+      return;
+    }
+
+    const reviewData = {
+      name,
+      text,
+      rating: rating || null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    firebase.firestore().collection("reviews").add(reviewData).then(() => {
+      alert("Спасибо за отзыв!");
+      this.reset();
+      loadReviews(); // обновить отображение
+    });
+  });
+</script>  
+  </main>
   <script src="firebase.js"></script>
   <script src="script.js"></script>
+<script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+<script>
+  emailjs.init("I3zUshu0uvHvH8Mzn"); // ← вставь свой public key
+
+  document.getElementById("callback-form").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    emailjs.sendForm("service_eyv801m", "template_rphb96o", this)
+      .then(() => {
+        alert("Запрос успешно отправлен!");
+        this.reset();
+      }, (error) => {
+        alert("Ошибка при отправке: " + error.text);
+      });
+  });
+</script>
+<script>
+  function loadReviews() {
+    const container = document.querySelector(".testimonial-grid");
+    container.innerHTML = "";
+
+    firebase.firestore().collection("reviews")
+      .orderBy("createdAt", "desc")
+      .get()
+      .then(snapshot => {
+        if (snapshot.empty) {
+          container.innerHTML = "<p>Пока нет отзывов.</p>";
+          return;
+        }
+
+        snapshot.forEach(doc => {
+          const r = doc.data();
+          const card = document.createElement("div");
+          card.className = "testimonial-card";
+          card.innerHTML = `
+            <div class="testimonial-icon">💬</div>
+            <p>“${r.text}”</p>
+            <span class="testimonial-author">— ${r.name}${r.rating ? ` (${r.rating}⭐)` : ""}</span>
+          `;
+          container.appendChild(card);
+        });
+      });
+  }
+
+  // Загружаем отзывы при загрузке страницы
+  window.addEventListener("DOMContentLoaded", loadReviews);
+</script>
 </body>
 </html>
