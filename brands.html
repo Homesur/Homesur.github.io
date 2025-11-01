@@ -9,8 +9,16 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
     body {
-      background-color: #f0f2f5;
+      background: linear-gradient(270deg, #f0f2f5, #e0e7ff);
+      background-size: 400% 400%;
+      animation: gradientMove 12s ease infinite;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
     h2, h3 {
@@ -59,16 +67,11 @@
       padding: 15px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       border: 1px solid #e0e0e0;
-      animation: fadeIn 0.4s ease-in-out;
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+      transition: transform 0.3s ease;
     }
 
     .product-card h5 {
@@ -111,7 +114,7 @@
 </head>
 <body>
   <div class="container py-4">
-    <h2>ISota LCD Store</h2>
+    <h2>ISOTA LCD STORE</h2>
     <div class="brand-grid" id="brandGrid"></div>
 
     <h3 class="mt-5" id="selectedBrandTitle"></h3>
@@ -174,11 +177,13 @@
     });
 
     function showProductsByBrand(brand) {
+      selectedBrandTitle.textContent = `Дисплеи: ${brand}`;
+      selectedBrandTitle.scrollIntoView({ behavior: 'smooth' });
+      productList.innerHTML = '';
+      noProductsMessage.style.display = 'none';
+
       db.ref('products').once('value').then(snapshot => {
         const products = Object.values(snapshot.val() || {});
-        selectedBrandTitle.textContent = `Дисплеи: ${brand}`;
-        selectedBrandTitle.scrollIntoView({ behavior: 'smooth' });
-
         const filtered = products.filter(p => {
           const name = p.name?.toLowerCase() || "";
           return name.includes(brand.toLowerCase());
@@ -186,8 +191,9 @@
 
         filtered.sort((a, b) => a.name.localeCompare(b.name));
 
-        productList.innerHTML = '';
-        noProductsMessage.style.display = filtered.length === 0 ? 'block' : 'none';
+        if (filtered.length === 0) {
+          noProductsMessage.style.display = 'block';
+        }
 
         filtered.forEach(p => {
           const card = document.createElement('div');
@@ -207,7 +213,13 @@
         });
       });
     }
+
+    window.addEventListener('scroll', () => {
+      const offset = window.scrollY * 0.02;
+      document.querySelectorAll('.product-card').forEach(card => {
+        card.style.transform = `translateY(${offset}px)`;
+      });
+    });
   </script>
 </body>
 </html>
-
