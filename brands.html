@@ -111,7 +111,7 @@
 </head>
 <body>
   <div class="container py-4">
-    <h2>Выберите бренд</h2>
+    <h2>ISota LCD Store</h2>
     <div class="brand-grid" id="brandGrid"></div>
 
     <h3 class="mt-5" id="selectedBrandTitle"></h3>
@@ -176,7 +176,7 @@
     function showProductsByBrand(brand) {
       db.ref('products').once('value').then(snapshot => {
         const products = Object.values(snapshot.val() || {});
-        selectedBrandTitle.textContent = `Товары бренда: ${brand}`;
+        selectedBrandTitle.textContent = `Дисплеи: ${brand}`;
         selectedBrandTitle.scrollIntoView({ behavior: 'smooth' });
 
         const filtered = products.filter(p => {
@@ -210,3 +210,4 @@
   </script>
 </body>
 </html>
+
