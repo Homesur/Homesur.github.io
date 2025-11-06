@@ -11,56 +11,58 @@
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
 
-  <header class="flex justify-between items-center px-6 py-4 bg-white border-b shadow-sm">
+  <header class="flex flex-col sm:flex-row justify-between items-center px-4 py-4 bg-white border-b shadow-sm gap-2">
     <h1 class="text-xl font-semibold">SURDU ANASTASIA - SALARIU</h1>
     <select id="monthSelector" onchange="loadMonth(this.value)" class="text-sm border rounded px-2 py-1">
       <option value="2025-08">Август 2025</option>
       <option value="2025-09">Сентябрь 2025</option>
       <option value="2025-10">Октябрь 2025</option>
       <option value="2025-11" selected>Ноябрь 2025</option>
-	  <option value="2025-12">Декабрь 2025</option>
+      <option value="2025-12">Декабрь 2025</option>
     </select>
   </header>
 
-  <main class="grid grid-cols-2 grid-rows-2 gap-6 p-6">
+  <main class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
     <!-- 1. График смен -->
     <div class="bg-white rounded-lg shadow p-4">
       <h2 class="text-lg font-medium mb-4">График смен</h2>
       <div id="shiftGrid" class="grid grid-cols-5 gap-2"></div>
-    <div id="reportBlock" class="mt-4 p-4 bg-gray-100 rounded text-sm hidden"></div>
-	</div>
+      <div id="reportBlock" class="mt-4 p-4 bg-gray-100 rounded text-sm hidden"></div>
+    </div>
 
     <!-- 2. Учёт зарплаты -->
     <div class="bg-white rounded-lg shadow p-4">
       <h2 class="text-lg font-medium mb-4">Учёт зарплаты</h2>
-      <div class="flex gap-2 mb-4">
-        <input id="revenueDate" type="date" class="border rounded px-3 py-2 w-1/2" />
-        <input id="revenueInput" type="number" placeholder="Выручка (MDL)" class="border rounded px-3 py-2 w-1/2" />
-
-        <button onclick="addEntry()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Добавить</button>
+      <div class="flex flex-col sm:flex-row gap-2 mb-4">
+        <input id="revenueDate" type="date" class="border rounded px-3 py-2 w-full sm:w-1/2" />
+        <input id="revenueInput" type="number" placeholder="Выручка (MDL)" class="border rounded px-3 py-2 w-full sm:w-1/2" />
+        <button onclick="addEntry()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full sm:w-auto">Добавить</button>
       </div>
-      <table class="w-full text-sm mb-4">
-        <thead>
-          <tr class="border-b">
-            <th>Дата</th>
-            <th>Выручка</th>
-            <th>Зарплата</th>
-          </tr>
-        </thead>
-        <tbody id="salaryTable"></tbody>
-      </table>
+      <div class="overflow-x-auto">
+        <table class="min-w-[320px] w-full text-sm mb-4">
+          <thead>
+            <tr class="border-b">
+              <th>Дата</th>
+              <th>Выручка</th>
+              <th>Зарплата</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="salaryTable"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- 3. График выручки -->
     <div class="bg-white rounded-lg shadow p-4">
       <h2 class="text-lg font-medium mb-4">График выручки</h2>
-      <canvas id="revenueChart" height="200"></canvas>
+      <canvas id="revenueChart" class="w-full h-[200px] sm:h-[300px]"></canvas>
     </div>
 
     <!-- 4. График зарплаты -->
     <div class="bg-white rounded-lg shadow p-4">
       <h2 class="text-lg font-medium mb-4">График зарплаты</h2>
-      <canvas id="salaryChart" height="200"></canvas>
+      <canvas id="salaryChart" class="w-full h-[200px] sm:h-[300px]"></canvas>
     </div>
   </main>
 
@@ -69,86 +71,86 @@
   </footer>
 
   <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyA_WAUmHLsgGKd-0T0w22mjsIh_mkXuOc4",
-    authDomain: "isota-ed295.firebaseapp.com",
-    databaseURL: "https://isota-ed295-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "isota-ed295",
-    storageBucket: "isota-ed295.firebasestorage.app",
-    messagingSenderId: "658102298792",
-    appId: "1:658102298792:web:fbc90679e3adadcac93a9d"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+    const firebaseConfig = {
+      apiKey: "AIzaSyA_WAUmHLsgGKd-0T0w22mjsIh_mkXuOc4",
+      authDomain: "isota-ed295.firebaseapp.com",
+      databaseURL: "https://isota-ed295-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "isota-ed295",
+      storageBucket: "isota-ed295.firebasestorage.app",
+      messagingSenderId: "658102298792",
+      appId: "1:658102298792:web:fbc90679e3adadcac93a9d"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-  let currentMonth = "";
-  let shifts = {};
-  let salary = [];
+    let currentMonth = "";
+    let shifts = {};
+    let salary = [];
 
-  function generateDays(monthKey) {
-    const [year, month] = monthKey.split('-').map(Number);
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const grid = document.getElementById('shiftGrid');
-    grid.innerHTML = '';
-    for (let i = 0; i < daysInMonth; i++) {
-      const date = new Date(year, month - 1, i + 1);
-      const key = date.toISOString().split('T')[0];
-      const isWork = shifts[key] ?? (i % 4 === 0 || i % 4 === 1);
-      shifts[key] = isWork;
-      const cell = document.createElement('button');
-      cell.textContent = date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
-      cell.className = `p-2 rounded text-sm border ${
-        isWork ? 'bg-green-100 text-green-800 border-green-300' : 'bg-gray-100 text-gray-500 border-gray-300'
-      } hover:ring-2 hover:ring-blue-400`;
-      cell.onclick = () => {
-        shifts[key] = !shifts[key];
-        db.ref(`months/${currentMonth}/shifts`).set(shifts);
-        generateDays(currentMonth);
-      };
-      grid.appendChild(cell);
-	  renderReport();
+    function generateDays(monthKey) {
+      const [year, month] = monthKey.split('-').map(Number);
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const grid = document.getElementById('shiftGrid');
+      grid.innerHTML = '';
+      for (let i = 0; i < daysInMonth; i++) {
+        const date = new Date(year, month - 1, i + 1);
+        const key = date.toISOString().split('T')[0];
+        const isWork = shifts[key] ?? (i % 4 === 0 || i % 4 === 1);
+        shifts[key] = isWork;
+        const cell = document.createElement('button');
+        cell.textContent = date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+        cell.className = `p-2 rounded text-sm border ${
+          isWork ? 'bg-green-100 text-green-800 border-green-300' : 'bg-gray-100 text-gray-500 border-gray-300'
+        } hover:ring-2 hover:ring-blue-400`;
+        cell.onclick = () => {
+          shifts[key] = !shifts[key];
+          db.ref(`months/${currentMonth}/shifts`).set(shifts);
+          generateDays(currentMonth);
+          renderReport();
+        };
+        grid.appendChild(cell);
+      }
     }
-  }
 
-  function addEntry() {
-    const input = document.getElementById('revenueInput');
-    const dateInput = document.getElementById('revenueDate');
-    const revenue = parseFloat(input.value);
-    const date = dateInput.value || new Date().toISOString().split('T')[0];
-    if (isNaN(revenue) || revenue <= 0 || !date) return;
+    function addEntry() {
+      const input = document.getElementById('revenueInput');
+      const dateInput = document.getElementById('revenueDate');
+      const revenue = parseFloat(input.value);
+      const date = dateInput.value || new Date().toISOString().split('T')[0];
+      if (isNaN(revenue) || revenue <= 0 || !date) return;
 
-    const salaryAmount = +(revenue * 0.045).toFixed(2);
-    const entry = { date, revenue, salary: salaryAmount };
+      const salaryAmount = +(revenue * 0.045).toFixed(2);
+      const entry = { date, revenue, salary: salaryAmount };
 
-    salary = salary.filter(e => e.date !== date);
-    salary.push(entry);
-    salary.sort((a, b) => new Date(a.date) - new Date(b.date));
+      salary = salary.filter(e => e.date !== date);
+      salary.push(entry);
+      salary.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    db.ref(`months/${currentMonth}/salary`).set(salary);
-    renderSalaryTable();
-    renderCharts();
-	renderReport();
-    input.value = '';
-    dateInput.value = '';
-  }
+      db.ref(`months/${currentMonth}/salary`).set(salary);
+      renderSalaryTable();
+      renderCharts();
+      renderReport();
+      input.value = '';
+      dateInput.value = '';
+    }
 
-  function renderSalaryTable() {
-    const table = document.getElementById('salaryTable');
-    table.innerHTML = '';
-    salary.forEach(entry => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${entry.date}</td>
-        <td>${entry.revenue} MDL</td>
-        <td>${entry.salary} MDL</td>
-        <td class="flex gap-2">
-          <button onclick="editEntry('${entry.date}')" class="text-blue-600 hover:underline text-xs">✏️</button>
-          <button onclick="deleteEntry('${entry.date}')" class="text-red-600 hover:underline text-xs">🗑️</button>
-        </td>
-      `;
-      table.appendChild(row);
-    });
-  }
+    function renderSalaryTable() {
+      const table = document.getElementById('salaryTable');
+      table.innerHTML = '';
+      salary.forEach(entry => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${entry.date}</td>
+          <td>${entry.revenue} MDL</td>
+          <td>${entry.salary} MDL</td>
+          <td class="flex gap-2">
+            <button onclick="editEntry('${entry.date}')" class="text-blue-600 hover:underline text-xs">✏️</button>
+            <button onclick="deleteEntry('${entry.date}')" class="text-red-600 hover:underline text-xs">🗑️</button>
+          </td>
+        `;
+        table.appendChild(row);
+      });
+    }
 
   function editEntry(date) {
     const entry = salary.find(e => e.date === date);
@@ -165,90 +167,90 @@
   }
 
   function deleteEntry(date) {
-    salary = salary.filter(e => e.date !== date);
-    db.ref(`months/${currentMonth}/salary`).set(salary);
-    renderSalaryTable();
-    renderCharts();
-	renderReport();
-  }
-
-  function renderCharts() {
-    document.getElementById('salaryChart').replaceWith(document.getElementById('salaryChart').cloneNode());
-    document.getElementById('revenueChart').replaceWith(document.getElementById('revenueChart').cloneNode());
-
-    const labels = salary.map(e => e.date);
-    const salaryData = salary.map(e => e.salary);
-    const revenueData = salary.map(e => e.revenue);
-
-    new Chart(document.getElementById('salaryChart'), {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Зарплата (MDL)',
-          data: salaryData,
-          borderColor: '#0077cc',
-          backgroundColor: 'rgba(0,119,204,0.1)',
-          fill: true
-        }]
-      }
-    });
-
-    new Chart(document.getElementById('revenueChart'), {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Выручка (MDL)',
-          data: revenueData,
-          borderColor: '#28a745',
-          backgroundColor: 'rgba(40,167,69,0.1)',
-          fill: true
-        }]
-      }
-    });
-  }
-
-  function renderReport() {
-  const totalRevenue = salary.reduce((sum, e) => sum + e.revenue, 0);
-  const totalSalary = salary.reduce((sum, e) => sum + e.salary, 0);
-  const workDays = Object.values(shifts).filter(v => v).length;
-  const avgSalary = workDays ? (totalSalary / workDays).toFixed(2) : 0;
-
-  const reportHTML = `
-    <h3 class="text-lg font-semibold mb-2">Отчёт за ${currentMonth}</h3>
-    <p>📅 Рабочих дней: <strong>${workDays}</strong></p>
-    <p>💰 Общая выручка: <strong>${totalRevenue.toFixed(2)} MDL</strong></p>
-    <p>🧾 Общая зарплата: <strong>${totalSalary.toFixed(2)} MDL</strong></p>
-    <p>📈 Средняя зарплата в день: <strong>${avgSalary} MDL</strong></p>
-  `;
-
-  const block = document.getElementById('reportBlock');
-  block.innerHTML = reportHTML;
-  block.classList.remove('hidden');
-}
-
-  function loadMonth(monthKey) {
-    currentMonth = monthKey;
-    db.ref(`months/${monthKey}`).once('value').then(snapshot => {
-      const data = snapshot.val();
-      shifts = data?.shifts || {};
-      salary = data?.salary || [];
-      generateDays(monthKey);
+      salary = salary.filter(e => e.date !== date);
+      db.ref(`months/${currentMonth}/salary`).set(salary);
       renderSalaryTable();
       renderCharts();
-	  renderReport();
-    });
-  }
+      renderReport();
+    }
 
-  window.onload = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const autoMonth = `${year}-${month}`;
-    document.getElementById('monthSelector').value = autoMonth;
-    loadMonth(autoMonth);
-  };
-</script>
+    function renderCharts() {
+      document.getElementById('salaryChart').replaceWith(document.getElementById('salaryChart').cloneNode());
+      document.getElementById('revenueChart').replaceWith(document.getElementById('revenueChart').cloneNode());
+
+      const labels = salary.map(e => e.date);
+      const salaryData = salary.map(e => e.salary);
+      const revenueData = salary.map(e => e.revenue);
+
+      new Chart(document.getElementById('salaryChart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Зарплата (MDL)',
+            data: salaryData,
+            borderColor: '#0077cc',
+            backgroundColor: 'rgba(0,119,204,0.1)',
+            fill: true
+          }]
+        }
+      });
+
+      new Chart(document.getElementById('revenueChart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Выручка (MDL)',
+            data: revenueData,
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40,167,69,0.1)',
+            fill: true
+          }]
+        }
+      });
+    }
+
+    function renderReport() {
+      const totalRevenue = salary.reduce((sum, e) => sum + e.revenue, 0);
+      const totalSalary = salary.reduce((sum, e) => sum + e.salary, 0);
+      const workDays = Object.values(shifts).filter(v => v).length;
+      const avgSalary = workDays ? (totalSalary / workDays).toFixed(2) : 0;
+
+      const reportHTML = `
+        <h3 class="text-lg font-semibold mb-2">Отчёт за ${currentMonth}</h3>
+        <p>📅 Рабочих дней: <strong>${workDays}</strong></p>
+        <p>💰 Общая выручка: <strong>${totalRevenue.toFixed(2)} MDL</strong></p>
+        <p>🧾 Общая зарплата: <strong>${totalSalary.toFixed(2)} MDL</strong></p>
+        <p>📈 Средняя зарплата в день: <strong>${avgSalary} MDL</strong></p>
+      `;
+
+      const block = document.getElementById('reportBlock');
+      block.innerHTML = reportHTML;
+      block.classList.remove('hidden');
+    }
+
+    function loadMonth(monthKey) {
+      currentMonth = monthKey;
+      db.ref(`months/${monthKey}`).once('value').then(snapshot => {
+        const data = snapshot.val();
+        shifts = data?.shifts || {};
+        salary = data?.salary || [];
+        generateDays(monthKey);
+        renderSalaryTable();
+        renderCharts();
+        renderReport();
+      });
+    }
+
+    window.onload = () => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const autoMonth = `${year}-${month}`;
+      document.getElementById('monthSelector').value = autoMonth;
+      loadMonth(autoMonth);
+    };
+  </script>
 </body>
 </html>
