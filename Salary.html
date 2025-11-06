@@ -69,9 +69,22 @@
   <footer class="text-center text-xs text-gray-500 py-4 border-t">
     © 2025 • Платформа учёта • Версия 1.0
   </footer>
-
+	
+	<div id="lexBot" class="fixed bottom-4 right-4 bg-white border shadow-lg rounded-lg p-3 w-64 text-sm hidden z-50">
+  <div id="lexMessage" class="mb-2">👋 Привет! Я Lex, твой юридический помощник.</div>
+  <button onclick="hideLex()" class="text-xs text-blue-600 hover:underline">Скрыть</button>
+  
   <script>
-    const ADMIN_PASSWORD = "0000"; // можешь заменить на свой
+    const lexPhrases = [
+  "📜 Fiat justitia, ruat caelum — Да свершится правосудие, пусть даже рухнет небо.",
+  "⚖️ Labor omnia vincit — Труд побеждает всё.",
+  "📈 Сегодня выручка выше средней — хорошая работа!",
+  "🧾 Не забудь отметить смену за сегодня.",
+  "🔐 Закон — это порядок, возведённый в правило.",
+  "📅 Помни: каждый рабочий день — это кирпич в твоей защите.",
+  "📜 Dura Lex - Sed Lex — Закон суров - но он закон!."
+];
+	const ADMIN_PASSWORD = "0000"; // можешь заменить на свой
 	const firebaseConfig = {
       apiKey: "AIzaSyA_WAUmHLsgGKd-0T0w22mjsIh_mkXuOc4",
       authDomain: "isota-ed295.firebaseapp.com",
@@ -115,7 +128,18 @@
       }
     }
 
-    function addEntry() {
+    function showLex(message = null) {
+  const box = document.getElementById('lexBot');
+  const msg = document.getElementById('lexMessage');
+  msg.textContent = message || lexPhrases[Math.floor(Math.random() * lexPhrases.length)];
+  box.classList.remove('hidden');
+  setTimeout(() => box.classList.add('hidden'), 8000);
+}
+
+function hideLex() {
+  document.getElementById('lexBot').classList.add('hidden');
+}
+	function addEntry() {
       const input = document.getElementById('revenueInput');
       const dateInput = document.getElementById('revenueDate');
       const revenue = parseFloat(input.value);
@@ -135,6 +159,7 @@
       renderReport();
       input.value = '';
       dateInput.value = '';
+	  showLex("✅ Выручка добавлена. Игорь доволен!.");
     }
 
     function renderSalaryTable() {
@@ -244,9 +269,11 @@
         shifts = data?.shifts || {};
         salary = data?.salary || [];
         generateDays(monthKey);
+		showLex("📅 Смена обновлена. Всё под контролем.");
         renderSalaryTable();
         renderCharts();
         renderReport();
+		showLex();
       });
     }
 
@@ -259,5 +286,7 @@
       loadMonth(autoMonth);
     };
   </script>
+
+</div>
 </body>
 </html>
