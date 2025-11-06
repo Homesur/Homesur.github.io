@@ -71,7 +71,8 @@
   </footer>
 
   <script>
-    const firebaseConfig = {
+    const ADMIN_PASSWORD = "0000"; // можешь заменить на свой
+	const firebaseConfig = {
       apiKey: "AIzaSyA_WAUmHLsgGKd-0T0w22mjsIh_mkXuOc4",
       authDomain: "isota-ed295.firebaseapp.com",
       databaseURL: "https://isota-ed295-default-rtdb.europe-west1.firebasedatabase.app",
@@ -103,11 +104,13 @@
           isWork ? 'bg-green-100 text-green-800 border-green-300' : 'bg-gray-100 text-gray-500 border-gray-300'
         } hover:ring-2 hover:ring-blue-400`;
         cell.onclick = () => {
-          shifts[key] = !shifts[key];
-          db.ref(`months/${currentMonth}/shifts`).set(shifts);
-          generateDays(currentMonth);
-          renderReport();
-        };
+  const pass = prompt("Введите пароль для изменения смены:");
+  if (pass !== ADMIN_PASSWORD) return alert("Неверный пароль");
+  shifts[key] = !shifts[key];
+  db.ref(`months/${currentMonth}/shifts`).set(shifts);
+  generateDays(currentMonth);
+  renderReport();
+};
         grid.appendChild(cell);
       }
     }
@@ -153,7 +156,9 @@
     }
 
   function editEntry(date) {
-    const entry = salary.find(e => e.date === date);
+    const pass = prompt("Введите пароль для редактирования:");
+	if (pass !== ADMIN_PASSWORD) return alert("Неверный пароль");
+	const entry = salary.find(e => e.date === date);
     if (!entry) return;
     const newRevenue = prompt(`Изменить выручку за ${date}`, entry.revenue);
     const revenue = parseFloat(newRevenue);
@@ -167,7 +172,9 @@
   }
 
   function deleteEntry(date) {
-      salary = salary.filter(e => e.date !== date);
+      const pass = prompt("Введите пароль для удаления:");
+	if (pass !== ADMIN_PASSWORD) return alert("Неверный пароль");
+	  salary = salary.filter(e => e.date !== date);
       db.ref(`months/${currentMonth}/salary`).set(salary);
       renderSalaryTable();
       renderCharts();
