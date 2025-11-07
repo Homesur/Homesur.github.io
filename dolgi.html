@@ -180,7 +180,7 @@ th {
 <body>
   <h1>📄 Учет возврата долгов</h1>
 
-  <h3>➕ Добавить должника</h3>
+  <h3>➕ Добавить кредитора</h3>
   <input id="newName" placeholder="Имя" />
   <input id="newAmount" type="number" placeholder="Сумма (EUR)" />
   <button onclick="addDebtor()">Добавить</button>
@@ -188,7 +188,7 @@ th {
   <table>
     <thead>
       <tr>
-        <th>Должник</th><th>Сумма долга</th><th>Вернули</th><th>Остаток</th><th>Статус</th><th>Действия</th>
+        <th>Кредитор</th><th>Сумма долга</th><th>Вернули</th><th>Остаток</th><th>Статус</th><th>Действия</th>
       </tr>
     </thead>
     <tbody id="debtTable"></tbody>
@@ -301,9 +301,9 @@ th {
   const totalRemaining = totalDebt - totalPaid;
 
   document.getElementById('summaryBox').innerHTML = `
-    💰 Общая сумма долга: <b>${totalDebt.toLocaleString()} MDL</b><br>
-    ✅ Выплачено: <span style="color:green;"><b>${totalPaid.toLocaleString()} MDL</b></span><br>
-    ❌ Осталось выплатить: <span style="color:red;"><b>${totalRemaining.toLocaleString()} MDL</b></span>
+    💰 Общая сумма долга: <b>${totalDebt.toLocaleString()} EUR</b><br>
+    ✅ Выплачено: <span style="color:green;"><b>${totalPaid.toLocaleString()} EUR</b></span><br>
+    ❌ Осталось выплатить: <span style="color:red;"><b>${totalRemaining.toLocaleString()} EUR</b></span>
   `;
 }
 	
@@ -450,3 +450,4 @@ th {
   </script>
 </body>
 </html>
+
