@@ -245,9 +245,19 @@ function loadDocuments() {
   const list = document.getElementById("doc-list");
   list.innerHTML = "<p>Загрузка документов...</p>";
 
-  firebase.firestore().collection("cases").doc(caseId).collection("documents")
+  if (!caseId) {
+    console.error("caseId не определён");
+    list.innerHTML = "<p>Ошибка: не указан идентификатор дела.</p>";
+    return;
+  }
+
+  firebase.firestore()
+    .collection("cases")
+    .doc(caseId)
+    .collection("documents")
     .orderBy("uploadedAt", "desc")
-    .get().then(snapshot => {
+    .get()
+    .then(snapshot => {
       list.innerHTML = "";
 
       if (snapshot.empty) {
@@ -257,6 +267,8 @@ function loadDocuments() {
 
       snapshot.forEach(doc => {
         const data = doc.data();
+        console.log("Документ из Firestore:", data);
+
         const item = document.createElement("div");
         item.className = "case-card fade-in";
         item.innerHTML = `
@@ -270,46 +282,63 @@ function loadDocuments() {
 }
 
 function deleteDocument(docId) {
-  const repo = "homesur/homesur.github.io"; // ← твой репозиторий
-  const token = "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"; // ← твой GitHub токен
+  if (!caseId) {
+    console.error("caseId не определён");
+    alert("Ошибка: не указан идентификатор дела");
+    return;
+  }
 
-  const docRef = firebase.firestore().collection("cases").doc(caseId).collection("documents").doc(docId);
-  docRef.get().then(doc => {
-    if (!doc.exists) return;
+  const DROPBOX_TOKEN = "sl.u.AGEFEU-RPT4iy1_ZtozMAxgz9y2c-OWJSGitx1gq85f_vMymOgG63JRc-f7QrAK82NDfcZ-LaOs-wMuv7ieXF0FBXRb8POb9Vtu3_S-SXW3IQp3kVl24eFPeEmMzZDQeEEUDKZLLIsY9Ylwf_u-WemN-SagVFscBYj_pqWcaoKeLCnoPNswHBqlf9AkLgeAYfwFPmX14w0nWGGGZV3_MrEJKEPIigOGqpSgY1FTIjCAMwn4s6TLtS5KaZ7rWNbCoDlAGITcOKSZtM4MyhrOVxQpwyGzyeVxHgIq6YzEwqz1tVLL0lJvFv_Fg-vVC7hX76JqC1luPaF63Ig_exQuwvxOWk65bGmBgYzerH15cXrObg9CKXt1JxDP5pe6JY1tSv_i89AY8LvgCkiwJsICrrBwzwzGKHSQzuWIlj4NMAu5MbBF_ggYHpPXZjbBhd-HbGdHbIwpA-t156HRyuogLfb2IoId6OdUQKM0j2xgkVZpcHGVJmfz4ow0nYDBF_XzTw50z-7ViEbesDYJjkNquHhp2zY4pkuwtFVaksHKVQ68frYou0GPcs3Fvbv0IbalYe26AB5efRGIrCRYE7wsLTBA5mQCuxFtd7MZEzniRtbX3E0iLd4Wed6qw9SUjwmcJR2rs3-sfJlJker2hRx1JwhGI_hYlZRWa4XlfcZYwZBYDA4JQb0qkbTTNk2n7XzE67tQCGmSllKVrRibDZXelFeRhtT8EWY1zmnMj4LopNvdr6Sx5ARdDPKOXLqD6NtCcJOcDDXEToEOeqYyYpcAHQvXUXpaFeLBjY1CP6hkNppJB49yQ1oSmEhnX66eT9KBFksdHiJRXzC-f-Umnb1E23Md7RSdkR-L8hjplcfP-jsexwAEkPsaoKQVhRunHRnZoLTVS72x1IrCtPEg2dk26XNco0RpRGLhco20kkmZ2yG5nZqdZpTz8-dCCr5htSSUv8FFckSLjVKaK-evctJy25OAGTfUoIR_mV0f0a6-ouKXEpTweRzLkkMBbn-NUPT8duXI6TBpZBPAIhDMB5oY6tOeMdUluze3hEpgUqUfxw1T7id2Xgwwa9HSq4-gV0-Rw6b3MPZ2F_NdAJdyx6L0CtYKrZg25teKToA6MlzHEX9KMzuVYhTH_VJrhJ4RaB_gh5i8j3BhF-FGUOkOr3y18axy1s00sOndPNtYshzuFgD5_o2ivcMhC2Pi6F6paatgD_QcXZIGRGQQy82UdAGoBRzfA_zUh19O0jagtv4-QjYB8vYO91KxTfTPXoSoNcj-n8jE"; // 🔐 вставь свой токен
 
-    const data = doc.data();
-    const fileName = encodeURIComponent(data.name);
-    const path = `docs/${fileName}`;
+  // Получаем документ из Firestore
+  firebase.firestore()
+    .collection("cases")
+    .doc(caseId)
+    .collection("documents")
+    .doc(docId)
+    .get()
+    .then(doc => {
+      if (!doc.exists) throw new Error("Документ не найден");
 
-    fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${token}`
-      }
-    })
-    .then(res => res.json())
-    .then(fileData => {
-      const sha = fileData.sha;
+      const data = doc.data();
+      const dropboxPath = data.path;
+      if (!dropboxPath) throw new Error("Путь Dropbox не сохранён");
 
-      fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
-        method: "DELETE",
+      // Удаляем файл из Dropbox
+      return fetch("https://api.dropboxapi.com/2/files/delete_v2", {
+        method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${DROPBOX_TOKEN}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          message: `Удаление файла ${data.name}`,
-          sha: sha
-        })
+        body: JSON.stringify({ path: dropboxPath })
       })
-      .then(() => {
-        docRef.delete().then(() => {
-          loadDocuments();
-        });
+      .then(async res => {
+        const text = await res.text();
+        if (!res.ok) {
+          console.error("Ошибка Dropbox:", text);
+          throw new Error("Ошибка при удалении файла из Dropbox");
+        }
+        console.log("Файл удалён из Dropbox:", dropboxPath);
+
+        // Удаляем запись из Firestore
+        return firebase.firestore()
+          .collection("cases")
+          .doc(caseId)
+          .collection("documents")
+          .doc(docId)
+          .delete();
       });
-    });
-  });
-}
+    })
+    .then(() => {
+      console.log("Запись удалена из Firestore:", docId);
+      loadDocuments(); // 🔄 обновляем карточки
+    })
+    .catch(error => {
+      console.error("Ошибка при удалении документа:", error);
+      alert("Ошибка при удалении документа");
+        });
+ }
 
 function uploadDocument() {
   const fileInput = document.getElementById("doc-upload");
@@ -319,45 +348,67 @@ function uploadDocument() {
     return;
   }
 
+  if (!caseId) {
+    console.error("caseId не определён");
+    alert("Ошибка: не указан идентификатор дела");
+    return;
+  }
+
   const reader = new FileReader();
   reader.onload = function () {
     const content = reader.result.split(",")[1];
-    const fileName = encodeURIComponent(file.name);
-    const repo = "homesur/homesur.github.io";
-    const path = `docs/${fileName}`;
-    const token = "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";
+    const DROPBOX_TOKEN = "sl.u.AGEFEU-RPT4iy1_ZtozMAxgz9y2c-OWJSGitx1gq85f_vMymOgG63JRc-f7QrAK82NDfcZ-LaOs-wMuv7ieXF0FBXRb8POb9Vtu3_S-SXW3IQp3kVl24eFPeEmMzZDQeEEUDKZLLIsY9Ylwf_u-WemN-SagVFscBYj_pqWcaoKeLCnoPNswHBqlf9AkLgeAYfwFPmX14w0nWGGGZV3_MrEJKEPIigOGqpSgY1FTIjCAMwn4s6TLtS5KaZ7rWNbCoDlAGITcOKSZtM4MyhrOVxQpwyGzyeVxHgIq6YzEwqz1tVLL0lJvFv_Fg-vVC7hX76JqC1luPaF63Ig_exQuwvxOWk65bGmBgYzerH15cXrObg9CKXt1JxDP5pe6JY1tSv_i89AY8LvgCkiwJsICrrBwzwzGKHSQzuWIlj4NMAu5MbBF_ggYHpPXZjbBhd-HbGdHbIwpA-t156HRyuogLfb2IoId6OdUQKM0j2xgkVZpcHGVJmfz4ow0nYDBF_XzTw50z-7ViEbesDYJjkNquHhp2zY4pkuwtFVaksHKVQ68frYou0GPcs3Fvbv0IbalYe26AB5efRGIrCRYE7wsLTBA5mQCuxFtd7MZEzniRtbX3E0iLd4Wed6qw9SUjwmcJR2rs3-sfJlJker2hRx1JwhGI_hYlZRWa4XlfcZYwZBYDA4JQb0qkbTTNk2n7XzE67tQCGmSllKVrRibDZXelFeRhtT8EWY1zmnMj4LopNvdr6Sx5ARdDPKOXLqD6NtCcJOcDDXEToEOeqYyYpcAHQvXUXpaFeLBjY1CP6hkNppJB49yQ1oSmEhnX66eT9KBFksdHiJRXzC-f-Umnb1E23Md7RSdkR-L8hjplcfP-jsexwAEkPsaoKQVhRunHRnZoLTVS72x1IrCtPEg2dk26XNco0RpRGLhco20kkmZ2yG5nZqdZpTz8-dCCr5htSSUv8FFckSLjVKaK-evctJy25OAGTfUoIR_mV0f0a6-ouKXEpTweRzLkkMBbn-NUPT8duXI6TBpZBPAIhDMB5oY6tOeMdUluze3hEpgUqUfxw1T7id2Xgwwa9HSq4-gV0-Rw6b3MPZ2F_NdAJdyx6L0CtYKrZg25teKToA6MlzHEX9KMzuVYhTH_VJrhJ4RaB_gh5i8j3BhF-FGUOkOr3y18axy1s00sOndPNtYshzuFgD5_o2ivcMhC2Pi6F6paatgD_QcXZIGRGQQy82UdAGoBRzfA_zUh19O0jagtv4-QjYB8vYO91KxTfTPXoSoNcj-n8jE"; // 🔐 вставь свой токен
+    const safeName = file.name.replace(/[^\w.-]/g, "_");
+    const dropboxPath = `/advocall/${safeName}`;
 
-    fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
-      method: "PUT",
+    // 📤 Загрузка файла
+    fetch("https://content.dropboxapi.com/2/files/upload", {
+      method: "POST",
       headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
+        Authorization: `Bearer ${DROPBOX_TOKEN}`,
+        "Dropbox-API-Arg": `{"path": "${dropboxPath}", "mode": "add", "autorename": true}`,
+        "Content-Type": "application/octet-stream"
       },
-      body: JSON.stringify({
-        message: `Добавлен файл ${file.name}`,
-        content: content
-      })
+      body: atob(content)
+    })
+    .then(() => {
+      // 🔗 Получение ссылки
+      return fetch("https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${DROPBOX_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ path: dropboxPath })
+      });
     })
     .then(res => res.json())
-    .then(data => {
-      if (data.content && data.content.download_url) {
-        const docData = {
-          name: file.name,
-          url: data.content.download_url,
-          uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        firebase.firestore().collection("cases").doc(caseId).collection("documents").add(docData).then(() => {
-          fileInput.value = "";
-          loadDocuments();
-        });
-      } else {
-        console.error("Ошибка загрузки:", data);
-        alert("Не удалось загрузить файл. Проверь токен и репозиторий.");
-      }
+    .then(linkData => {
+      const rawUrl = linkData.url.replace("?dl=0", "?raw=1");
+      console.log("Ссылка Dropbox:", rawUrl);
+
+      const docData = {
+        name: file.name,
+        url: rawUrl,
+        path: dropboxPath, // ✅ сохраняем путь для удаления
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      console.log("Сохраняем в Firestore:", docData);
+
+      return firebase.firestore()
+        .collection("cases")
+        .doc(caseId)
+        .collection("documents")
+        .add(docData);
+    })
+    .then(() => {
+      fileInput.value = "";
+      loadDocuments(); // ✅ обновляем карточки
     })
     .catch(error => {
-      console.error("Ошибка запроса к GitHub API:", error);
-      alert("Ошибка при загрузке файла. Проверь подключение и токен.");
+      console.error("Ошибка загрузки:", error);
+      alert("Ошибка при загрузке файла");
     });
   };
 window.confirmAction = confirmAction;
@@ -374,4 +425,3 @@ window.addService = addService;
 window.uploadDocument = uploadDocument;
 window.deleteDocument = deleteDocument;
 });
-
