@@ -63,8 +63,9 @@
   </header>
 
   <main class="container fade-in">
+  <div class="client-grid">
     <!-- Карточка клиента -->
-    <section class="form-card">
+    <section class="form-card info-block">
       <h2 style="text-align: center; font-weight: bold;">Карточка клиента</h2>
       <p><strong>Статус дела:</strong>
         <button id="status-btn" class="status-open">🔓 Открыто</button>
@@ -77,7 +78,7 @@
     </section>
 
     <!-- Добавление услуги -->
-    <section class="form-card">
+    <section class="form-card services-block">
       <h2 style="text-align: center;">Добавить услугу</h2>
       <div class="form-grid">
         <input type="date" id="service-date" />
@@ -89,14 +90,14 @@
     </section>
 
     <!-- Заметки -->
-    <section class="form-card">
+    <section class="form-card notes-block">
       <h2>Заметки по делу</h2>
       <div id="service-list" class="fade-in-slow"></div>
       <button onclick="exportToExcel()" class="save-btn">📤 Экспорт в Excel</button>
     </section>
 
     <!-- Документы -->
-    <section class="form-card">
+    <section class="form-card files-block">
       <h2>📎 Документы</h2>
       <div class="button-group">
         <label class="done-btn upload-btn">
