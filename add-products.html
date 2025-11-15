@@ -52,7 +52,7 @@
       authDomain: "isota-ed295.firebaseapp.com",
       databaseURL: "https://isota-ed295-default-rtdb.europe-west1.firebasedatabase.app",
       projectId: "isota-ed295",
-      storageBucket: "isota-ed295.firebasestorage.app",
+      storageBucket: "isota-ed295.appspot.com",
       messagingSenderId: "658102298792",
       appId: "1:658102298792:web:fbc90679e3adadcac93a9d"
     };
@@ -77,18 +77,14 @@
       }
 
       const id = Date.now();
-      console.log("Добавление товара:", { id, name, price });
-
       db.ref('products/' + id).set({ id, name, price })
         .then(() => {
-          console.log("✅ Успешно добавлено в Firebase");
           showMessage("✅ Товар успешно добавлен!");
           document.getElementById('name').value = "";
           document.getElementById('price').value = "";
           loadProducts();
         })
         .catch(err => {
-          console.error("❌ Ошибка при добавлении:", err);
           showMessage("❌ Ошибка при добавлении: " + err.message, false);
         });
     }
@@ -100,49 +96,65 @@
         return;
       }
 
-      console.log("Удаление товара с ID:", id);
-
       db.ref('products/' + id).remove()
         .then(() => {
-          console.log("🗑️ Товар удалён");
           showMessage("🗑️ Товар с ID " + id + " удалён");
           document.getElementById('deleteId').value = "";
           loadProducts();
         })
         .catch(err => {
-          console.error("❌ Ошибка при удалении:", err);
           showMessage("❌ Ошибка при удалении: " + err.message, false);
         });
     }
 
-    function loadProducts() {
-  db.ref('products').once('value').then(snapshot => {
-    const products = snapshot.val();
-    productList.innerHTML = '';
-
-    if (!products) {
-      productList.innerHTML = '<li class="list-group-item text-muted">Нет товаров в базе</li>';
-      return;
+    function deleteProductById(id) {
+      if (confirm(`Удалить товар с ID ${id}?`)) {
+        db.ref('products/' + id).remove()
+          .then(() => {
+            showMessage(`🗑️ Товар с ID ${id} удалён`);
+            loadProducts();
+          })
+          .catch(err => {
+            showMessage("❌ Ошибка при удалении: " + err.message, false);
+          });
+      }
     }
 
-    Object.values(products).forEach(p => {
-      const item = document.createElement('li');
-      item.className = 'list-group-item d-flex justify-content-between align-items-center';
-      item.innerHTML = `
-        <div>
-          <strong>${p.name}</strong><br>
-          <small>ID: ${p.id}</small>
-        </div>
-        <span class="badge bg-primary rounded-pill">${p.price.toFixed(2)} MDL</span>
-      `;
-      productList.appendChild(item);
-    });
-  });
-}
+    function loadProducts() {
+      db.ref('products').once('value').then(snapshot => {
+        const products = snapshot.val();
+        productList.innerHTML = '';
+
+        if (!products) {
+          productList.innerHTML = '<div class="text-muted">Нет товаров в базе</div>';
+          return;
+        }
+
+        Object.values(products).forEach(p => {
+          const col = document.createElement('div');
+          col.className = 'col';
+
+          col.innerHTML = `
+            <div class="card h-100 shadow-sm">
+              <div class="card-body d-flex flex-column justify-content-between">
+                <div>
+                  <h5 class="card-title">${p.name}</h5>
+                  <p class="card-text text-muted mb-2"><small>ID: ${p.id}</small></p>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-auto">
+                  <span class="badge bg-primary">${p.price.toFixed(2)} MDL</span>
+                  <button class="btn btn-sm btn-outline-danger" onclick="deleteProductById(${p.id})">Удалить</button>
+                </div>
+              </div>
+            </div>
+          `;
+
+          productList.appendChild(col);
+        });
+      });
+    }
 
     loadProducts();
   </script>
 </body>
 </html>
-
-
