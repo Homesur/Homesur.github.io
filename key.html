@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Изготовление ключей любой сложности в Бельцах | КЛЮЧ-СЕРВИС</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #f7a016; /* Яркий оранжевый/желтый акцент */
+            --secondary-color: #444; /* Темно-серый для текста */
+            --light-bg: #f5f5f5; /* Светлый фон секций */
+            --dark-bg: #222; /* Темный фон шапки и подвала */
+            --text-light: #fff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            line-height: 1.6;
+            color: var(--secondary-color);
+            background-color: var(--light-bg);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1280px;
+            margin: auto;
+            overflow: hidden;
+            padding: 20px 0;
+        }
+
+        /* --- 1. ШАПКА / РЕКЛАМНЫЙ БАННЕР --- */
+        header {
+            background: var(--dark-bg);
+            color: var(--text-light);
+            padding: 40px 0;
+            text-align: center;
+            border-bottom: 7px solid var(--primary-color);
+            background-image: url('main-key-background.jpg'); /* ЗАМЕНИТЕ на фоновое изображение ключей */
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7); /* Сильное затемнение */
+            z-index: 0;
+        }
+
+        header > * {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header-top-info {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: 20px;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        header h1 {
+            font-size: 3em;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+
+        .slogan {
+            font-size: 1.5em;
+            font-weight: 900;
+            margin-bottom: 20px;
+        }
+
+        .phone-call-btn {
+            display: inline-block;
+            background: var(--primary-color);
+            color: var(--dark-bg);
+            padding: 15px 40px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 900;
+            font-size: 1.3em;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            transition: background 0.3s;
+            cursor: default;
+        }
+
+        /* --- 2. СЕКЦИИ УСЛУГ (БЛОКИ ОТДЕЛОВ) --- */
+        section {
+            padding: 60px 0;
+            text-align: center;
+        }
+
+        .section-title {
+            font-size: 2.2em;
+            font-weight: 900;
+            margin-bottom: 50px;
+            color: var(--dark-bg);
+        }
+
+        .department-grid {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .department-item {
+            flex: 1 1 300px;
+            max-width: 350px;
+            background: var(--text-light);
+            padding: 30px;
+            border-radius: 5px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border-top: 5px solid var(--primary-color);
+            text-align: left;
+        }
+        
+        .department-item h3 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 10px;
+        }
+
+        .department-item p {
+            margin-bottom: 15px;
+        }
+        
+        .department-item .detail-info {
+            font-weight: 700;
+            color: var(--secondary-color);
+            margin-top: 10px;
+        }
+
+        /* --- 3. ЦИФРЫ И ФАКТЫ --- */
+        .facts-section {
+            background: var(--primary-color);
+            color: var(--dark-bg);
+            padding: 40px 0;
+        }
+        
+        .fact-grid {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+            flex-wrap: wrap;
+            text-align: center;
+        }
+
+        .fact-item h4 {
+            font-size: 3em;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 5px;
+        }
+
+        .fact-item p {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--dark-bg);
+        }
+
+        /* --- 4. КОНТАКТЫ И АДРЕС --- */
+        .contact-section {
+            padding-top: 40px;
+        }
+        
+        .contact-block {
+            border: 1px solid #ddd;
+            padding: 30px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .contact-block h3 {
+            font-size: 1.5em;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .contact-block p {
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+        
+        .map-placeholder {
+            width: 100%;
+            height: 450px;
+            background-color: #e0e0e0;
+            border: 2px solid var(--primary-color);
+            border-radius: 5px;
+            margin-top: 30px;
+            line-height: 450px;
+            text-align: center;
+            color: var(--secondary-color);
+            font-weight: 700;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* --- 5. ФУТЕР --- */
+        footer {
+            background: var(--dark-bg);
+            color: var(--text-light);
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 0;
+            font-size: 0.9em;
+            border-top: 7px solid var(--primary-color);
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2.2em;
+            }
+            .slogan {
+                font-size: 1.2em;
+            }
+            .header-top-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .department-grid {
+                gap: 20px;
+            }
+            .department-item {
+                max-width: 100%;
+            }
+            .fact-item h4 {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <div class="header-top-info">
+                
+                <span>info@k********.md</span>
+            </div>
+            
+            <h1>МАСТЕРСКАЯ КЛЮЧ-СЕРВИС</h1>
+            <p class="slogan">В ДЕЛЕ С 1995 ГОДА! Изготовление ключей любой сложности в Бельцах.</p>
+            
+            <div class="phone-call-btn">
+                + 373 **********
+            </div>
+        </div>
+    </header>
+
+    <section class="services-section">
+        <div class="container">
+            <h2 class="section-title">НАШИ УСЛУГИ!</h2>
+            
+            <div class="department-grid">
+                
+                <div class="department-item">
+                    <div class="title-wrapper">
+                        
+                        <h3>Дверные Ключи</h3>
+                    </div>
+                    <p style="margin-top: -10px; font-weight: 500; font-size: 0.9em; color: #777;">
+                        Изготовление, ремонт и обслуживание замочной продукции.
+                    </p>
+                    <div class="detail-info">
+                        <p>✅ Дубликаты ключей любой сложности.</p>
+                        <p>✅ Качественные расходные материалы.</p>
+                        <p>✅ Ремонт замков и цилиндров.</p>
+						<p>✅ 4000+ видов заготовок.</p>
+						<p>✅ Станок с компьютерным управлением.</p>
+                    </div>
+                </div>
+
+                <div class="department-item">
+                    <div class="title-wrapper">
+                        
+                        <h3>Автомобильные Ключи</h3>
+                    </div>
+                    <p style="margin-top: -10px; font-weight: 500; font-size: 0.9em; color: #777;">
+                        Изготовление, ремонт и обслуживание автомобильных ключей.
+                    </p>
+                    <div class="detail-info">
+                        <p>✅ Изготовление автомобильных ключей.</p>
+                        <p>✅ Программирование автомобильных ключей.</p>
+                        <p>✅ Ремонт автомобильных ключей.</p>
+                    </div>
+                </div>
+
+                <div class="department-item">
+                    <div class="title-wrapper">
+                        
+                        <h3>Брелки Домофонные</h3>
+                    </div>
+                    <p style="margin-top: -10px; font-weight: 500; font-size: 0.9em; color: #777;">
+                        Все для Домофона: заготовки, чипы и инструмент.
+                    </p>
+                    <div class="detail-info">
+                        <p>✅ Изготовление домофонных чипов.</p>
+                        <p>✅ Копирование домофонных чипов.</p>
+                        <p>✅ Расходные материалы для производства.</p>
+                    </div>
+                
+				
+				
+				</div>
+				<div class="department-item">
+                    <div class="title-wrapper">
+                        
+                        <h3>Брелки Сигнализаций</h3>
+                    </div>
+                    <p style="margin-top: -10px; font-weight: 500; font-size: 0.9em; color: #777;">
+                        Изготовление, ремонт и обслуживание Сигнализаций.
+                    </p>
+                    <div class="detail-info">
+                        <p>✅ Дубликаты чипов любой сложности.</p>
+                        <p>✅ Программирование брелков.</p>
+						<p>✅ Замена корпусов ключей.</p>
+						<p>✅ Новые пульты и брелки.</p>
+                    </div>
+                </div>
+
+                <div class="department-item">
+                    <div class="title-wrapper">
+                        
+                        <h3>Ремонт Часов</h3>
+                    </div>
+                    <p style="margin-top: -10px; font-weight: 500; font-size: 0.9em; color: #777;">
+                        Ремонт и обслуживание часов.
+                    </p>
+                    <div class="detail-info">
+                        <p>✅ Замена батареек.</p>
+                        <p>✅ Замена стекол.</p>
+                        <p>✅ Замена ремешков.</p>
+						<p>✅ Настройка.</p>
+                    </div>
+                </div>
+
+                <div class="department-item">
+                    <div class="title-wrapper">
+                        
+                        <h3>Услуги мастера</h3>
+                    </div>
+                    <p style="margin-top: -10px; font-weight: 500; font-size: 0.9em; color: #777;">
+                        Выездные услуги мастера: 
+                    </p>
+                    <div class="detail-info">
+                        <p>✅ Вскрытие автомобиля.</p>
+                        <p>✅ Восстановление ключей при полной утере.</p>
+                        <p>✅ Диагностика брелков имобилайзера.</p>
+                    </div>
+
+            </div>
+        </div>
+    </section>
+    
+    <section class="facts-section">
+        <div class="container fact-grid">
+            <div class="fact-item">
+                <h4>30 лет</h4>
+                <p>опыта и профессионального роста</p>
+            </div>
+            <div class="fact-item">
+                <h4>78%</h4>
+                <p>клиентов обращаются по рекомендации</p>
+            </div>
+            <div class="fact-item">
+                <h4>8 мин</h4>
+                <p>среднее время изготовления дубликата</p>
+            </div>
+            <div class="fact-item">
+                <h4>100%</h4>
+                <p>гарантия при наличии замка*</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="contact-section">
+        <div class="container">
+            <h2 class="section-title">КОНТАКТЫ И АДРЕС</h2>
+            
+            <div class="contact-block">
+                <h3>МАСТЕРСКАЯ</h3>
+                <p>📍 **Адрес:** г. Бельцы, ул. ******, д. ***</p>              
+                <p>📞 **Телефон:** +373 *********</p>
+                <p>📧 **Email:** info@********.md</p>
+                <p style="margin-top: 15px; font-style: italic;">Работаем с 9:00 до 16:00 ПН - СБ</p>
+            </div>
+            
+            <h3 style="margin-top: 40px; margin-bottom: 15px; text-align: center; color: var(--secondary-color);">КАРТА И МАРШРУТ</h3>
+            <div class="map-placeholder">
+                
+
+[Image of the location on a map with a red pin]
+
+                МЕСТО ДЛЯ ИНТЕРАКТИВНОЙ КАРТЫ
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 МАСТЕРСКАЯ КЛЮЧ-СЕРВИС. | Данный сайт носит исключительно информационный характер и не является публичной офертой.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
