@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Work</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background:#f4f6f9; }
+    table { border-collapse: collapse; width: 100%; background:#fff; border-radius:8px; overflow:hidden; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; font-size:14px; }
+    th { background:#1e3a8a; color:#fff; }
+
+    button { margin: 3px; padding:6px 10px; border:none; border-radius:6px; cursor:pointer; font-size:13px; }
+    button:hover { opacity:0.9; }
+    .edit-btn { background:#1e3a8a; color:#fff; }
+    .delete-btn { background:#dc2626; color:#fff; }
+
+    .badge { display:inline-flex; padding:2px 6px; border-radius:6px; color:#fff; font-weight:bold; font-size:12px; width:auto; }
+    .status-work { background: crimson; }
+    .status-ready { background: blue; }
+    .status-issued { background: green; }
+
+    /* Модальное окно */
+    .modal {
+      display: none; 
+      position: fixed; 
+      z-index: 1000; 
+      left: 0; top: 0; width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background: #fff; margin: 10% auto; padding: 20px; border: 1px solid #333;
+      width: 400px; border-radius: 8px;
+      display:flex; flex-direction:column; align-items:center;
+    }
+    .modal-content h3 { margin:0 0 15px 0; text-align:center; }
+    .modal-content label { width:100%; text-align:left; margin-top:10px; font-weight:bold; }
+    .modal-content input, .modal-content select {
+      width:100%; padding:8px; margin-top:6px; border:1px solid #ccc; border-radius:6px; font-size:14px; box-sizing:border-box;
+    }
+    .modal-buttons { display:flex; justify-content:space-between; width:100%; margin-top:15px; }
+    .modal-buttons button { width:48%; padding:8px; border:none; border-radius:6px; font-size:14px; cursor:pointer; }
+    .save-btn { background:#1e3a8a; color:#fff; }
+    .cancel-btn { background:#ccc; color:#333; }
+  </style>
+</head>
+<body>
+  <h2>Все телефоны</h2>
+  <table id="phonesTable">
+   <tr>
+  <th>Номер Тел:</th>
+  <th>Модель</th>
+  <th>Неисправность</th>
+  <th>Дата приёма</th>
+  <th>Дата выдачи</th>
+  <th>Статус</th>
+  <th>Услуги</th>
+  <th>Цена</th>
+  <th>Поставщик</th> <!-- 👈 новая колонка -->
+  <th>Действия
+  </table>
+
+  <!-- Модальное окно -->
+  <div id="editModal" class="modal">
+  <div class="modal-content">
+    <h3>Редактирование телефона</h3>
+
+    <label>Статус ремонта:</label>
+    <select id="editStatus">
+      <option value="В работе">В работе</option>
+      <option value="Готов">Готов</option>
+      <option value="Ожидает запчастей">Ожидает запчастей</option>
+      <option value="Выдан клиенту">Выдан клиенту</option>
+    </select>
+
+    <label>Услуга:</label>
+    <input id="editService" placeholder="Например: Замена экрана">
+
+    <label>Цена:</label>
+    <input id="editPrice" type="number" placeholder="Введите цену">
+
+    <!-- 👇 новое поле -->
+    <label>Поставщик запчастей:</label>
+    <select id="editSupplier">
+      <option value="">-- Выберите поставщика --</option>
+      <option value="Samsung Parts">Samsung Parts</option>
+      <option value="Apple Service">Apple Service</option>
+      <option value="Xiaomi Supply">Xiaomi Supply</option>
+      <option value="Local Store">Local Store</option>
+    </select>
+
+    <div class="modal-buttons">
+      <button class="save-btn" onclick="saveChanges()">Сохранить</button>
+      <button class="cancel-btn" onclick="closeModal()">Отмена</button>
+    </div>
+  </div>
+</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyB6hf_Xm8Tvu6t-BoRgiLR6PBwHZv7bo2I",
+  authDomain: "phones-690eb.firebaseapp.com",
+  projectId: "phones-690eb",
+  storageBucket: "phones-690eb.firebasestorage.app",
+  messagingSenderId: "58794916374",
+  appId: "1:58794916374:web:88420ab7bb2303ec96d337"
+};
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let currentEditId = null;
+
+    async function loadPhones() {
+  const snap = await getDocs(collection(db, "phones"));
+  const table = document.getElementById("phonesTable");
+
+  snap.forEach(d => {
+    const data = d.data();
+    let badgeClass = "status-work";
+    if (data.status === "Готов") badgeClass = "status-ready";
+    else if (data.status === "Выдан клиенту") badgeClass = "status-issued";
+
+    const receivedDate = data.receivedAt ? new Date(data.receivedAt).toLocaleDateString() : "-";
+    const issuedDate = data.issuedAt ? new Date(data.issuedAt).toLocaleDateString() : "-";
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${data.phoneNumber}</td>
+      <td>${data.phoneModel}</td>
+      <td>${data.issue}</td>
+      <td>${receivedDate}</td>
+      <td>${issuedDate}</td>
+      <td><span class="badge ${badgeClass}">${data.status}</span></td>
+      <td>${data.services.join(", ")}</td>
+      <td>${data.price || "-"}</td>
+      <td>${data.supplier || "-"}</td> <!-- 👈 выводим поставщика -->
+      <td>
+        <button class="edit-btn" onclick="openModal('${d.id}', '${data.status}', '${data.services.join(",")}', '${data.price || ""}', '${data.supplier || ""}')">Редактировать</button>
+        <button class="delete-btn" onclick="deletePhone('${d.id}')">Удалить</button>
+      </td>`;
+    table.appendChild(row);
+      });
+    }
+
+    window.openModal = function(id, status, services, price, supplier) {
+  currentEditId = id;
+  document.getElementById("editStatus").value = status;
+  document.getElementById("editService").value = services;
+  document.getElementById("editPrice").value = price;
+  document.getElementById("editSupplier").value = supplier; // 👈 заполняем поле
+  document.getElementById("editModal").style.display = "block";
+    }
+
+    window.closeModal = function() {
+      document.getElementById("editModal").style.display = "none";
+    }
+
+    window.saveChanges = async function() {
+      const newStatus = document.getElementById("editStatus").value;
+      const newService = document.getElementById("editService").value;
+      const newPrice = document.getElementById("editPrice").value;
+      const ref = doc(db, "phones", currentEditId);
+      const newSupplier = document.getElementById("editSupplier").value;
+  
+  let updateData = {
+  status: newStatus,
+  services: newService ? [newService] : [],
+  price: newPrice ? Number(newPrice) : null,
+  supplier: newSupplier || null   // 👈 сохраняем поставщика
+};
+
+      if (newStatus === "Выдан клиенту") {
+        updateData.issuedAt = new Date().toISOString();
+      }
+
+      await updateDoc(ref, updateData);
+
+      alert("Обновлено!");
+      closeModal();
+      location.reload();
+    }
+
+    window.deletePhone = async function(id) {
+      if (confirm("Вы уверены, что хотите удалить этот телефон?")) {
+        const ref = doc(db, "phones", id);
+        await deleteDoc(ref);
+        alert("Телефон удалён!");
+        location.reload();
+      }
+    }
+
+    loadPhones();
+  </script>
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Phones</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f6f9;
+      color: #333;
+    }
+
+    header {
+      background: #1e3a8a;
+      color: #fff;
+      padding: 15px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .container {
+      padding: 15px;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 18px;
+      color: #1e3a8a;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    button {
+      background: #1e3a8a;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #2563eb;
+    }
+
+    .result {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .phone-card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+	.phone-header {
+      font-weight: bold;
+      font-size: 16px;
+      color: #1e3a8a;
+    }
+
+    .phone-detail {
+      font-size: 14px;
+      color: #444;
+    }
+
+    .badge {
+  display: inline-flex;       /* компактное отображение */
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;           /* уменьшенные отступы */
+  border-radius: 6px;
+  color: #fff;
+  font-weight: bold;
+  font-size: 12px;
+  width: auto;                /* ширина по содержимому */
+  max-width: fit-content;     /* не растягивается */
+}
+.status-work { background: crimson; }
+.status-ready { background: blue; }
+.status-issued { background: green; }
+  </style>
+</head>
+<body>
+  <header>WELL-TELL База данных по ремонту техники 2026г</header>
+
+  <div class="container">
+    <div class="card">
+      <h2>Добавить телефон</h2>
+      <input id="phoneNumber" placeholder="Номер телефона">
+      <input id="phoneModel" placeholder="Модель телефона">
+
+      <select id="issue">
+        <option value="Не включается">Не включается</option>
+        <option value="Не заряжается">Не заряжается</option>
+        <option value="Разбит экран">Разбит экран</option>
+        <option value="Не работает звук">Не работает звук</option>
+        <option value="Не ловит сеть">Не ловит сеть</option>
+        <option value="Другое">Другое...</option>
+      </select>
+
+      <button onclick="addPhone()">Сохранить</button>
+    </div>
+
+    <div class="card">
+      <h2>Поиск</h2>
+      <input id="searchQuery" placeholder="Поиск по номеру или модели">
+      <button onclick="searchPhone()">Найти</button>
+    </div>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyB6hf_Xm8Tvu6t-BoRgiLR6PBwHZv7bo2I",
+  authDomain: "phones-690eb.firebaseapp.com",
+  projectId: "phones-690eb",
+  storageBucket: "phones-690eb.firebasestorage.app",
+  messagingSenderId: "58794916374",
+  appId: "1:58794916374:web:88420ab7bb2303ec96d337"
+};
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function addPhone() {
+  const phoneNumber = document.getElementById("phoneNumber").value;
+  const phoneModel = document.getElementById("phoneModel").value;
+  let issue = document.getElementById("issue").value;
+
+  if (issue === "Другое") {
+    issue = prompt("Введите причину неисправности:");
+  }
+
+  const receivedAt = new Date().toISOString(); // 👈 дата приёма
+
+  await addDoc(collection(db, "phones"), {
+    phoneNumber,
+    phoneModel,
+    issue,
+    status: "В работе",
+    services: [],
+    price: null,
+    receivedAt,       // сохраняем дату приёма
+    issuedAt: null    // дата выдачи пока пустая
+  });
+  alert("Телефон добавлен!");
+    }
+
+    async function searchPhone() {
+  const q = document.getElementById("searchQuery").value.toLowerCase().trim();
+  const phonesRef = collection(db, "phones");
+  const snap = await getDocs(phonesRef);
+
+  let resultHTML = "";
+  snap.forEach(doc => {
+    const data = doc.data();
+    if (
+      data.phoneNumber.toLowerCase().includes(q) ||
+      data.phoneModel.toLowerCase().includes(q)
+    ) {
+      let badgeClass = "status-work";
+      if (data.status === "Готов") badgeClass = "status-ready";
+      else if (data.status === "Выдан клиенту") badgeClass = "status-issued"; // 👈 точка с запятой
+
+      resultHTML += `
+        <div class="phone-card">
+          <div class="phone-header">${data.phoneModel}</div>
+          <div class="phone-detail">📅 Дата приёма: ${data.receivedAt ? new Date(data.receivedAt).toLocaleDateString() : "-"}</div>
+          <div class="phone-detail">📱 Номер Телефона: ${data.phoneNumber}</div>
+          <div class="phone-detail">⚡ Неисправность: ${data.issue}</div>
+          <div class="phone-detail">💰 Цена: ${data.price || "-"}</div>
+      `;
+
+      if ((data.status === "Готов" || data.status === "Выдан клиенту") && data.services && data.services.length > 0) {
+        resultHTML += `<div class="phone-detail">🛠 Услуга: ${data.services.join(", ")}</div>`;
+      }
+
+      if (data.issuedAt) {
+        resultHTML += `<div class="phone-detail">✅ Дата выдачи: ${new Date(data.issuedAt).toLocaleDateString()}</div>`;
+      }
+
+      resultHTML += `<span class="badge ${badgeClass}">${data.status}</span></div>`;
+    }
+  });
+
+  document.getElementById("result").innerHTML = resultHTML || "<p>Ничего не найдено</p>";
+    }
+
+    window.addPhone = addPhone;
+    window.searchPhone = searchPhone;
+  </script>
+</body>
+</html>
