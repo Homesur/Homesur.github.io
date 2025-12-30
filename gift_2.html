@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Новогодний подарок</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #000;
+    }
+
+    /* GIF занимает всю ширину, но сохраняет пропорции */
+    .fullscreen-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      cursor: pointer;
+    }
+
+    /* Модальное окно */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;   /* вертикальное центрирование */
+      justify-content: center; /* горизонтальное центрирование */
+    }
+
+    .modal-content {
+      max-width: 90%;
+      max-height: 80%;
+      border-radius: 12px;
+      box-shadow: 0 0 20px #fff;
+      animation: fadeIn 0.6s ease; /* плавное появление */
+    }
+
+    .close {
+      position: absolute;
+      top: 20px;
+      right: 35px;
+      color: #fff;
+      font-size: 40px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close:hover {
+      color: #ffde59;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <!-- GIF на всю страницу -->
+  <img src="main.gif" alt="Новогодний фон" class="fullscreen-img" id="mainImg">
+
+  <!-- Модальное окно -->
+  <div id="myModal" class="modal">
+    <span class="close">&times;</span>
+    <img class="modal-content" id="modalImg" src="gift_2.png" alt="Подарок">
+  </div>
+
+  <script>
+    const modal = document.getElementById("myModal");
+    const mainImg = document.getElementById("mainImg");
+    const closeBtn = document.querySelector(".close");
+
+    // Клик по GIF открывает подарок
+    mainImg.onclick = function() {
+      modal.style.display = "flex";
+    }
+
+    // Закрытие по крестику
+    closeBtn.onclick = function() {
+      modal.style.display = "none";
+    }
+
+    // Закрытие по клику вне картинки
+    window.onclick = function(event) {
+      if (event.target === modal) {
+        modal.style.display = "none";
+      }
+    }
+  </script>
+</body>
+</html>
