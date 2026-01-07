@@ -12,7 +12,6 @@
       background: #f4f6f9;
       color: #333;
     }
-
     header {
       background: #1e3a8a;
       color: #fff;
@@ -21,13 +20,11 @@
       font-size: 20px;
       font-weight: bold;
     }
-
     .container {
       padding: 15px;
-      max-width: 600px;
+      max-width: 700px;
       margin: auto;
     }
-
     .card {
       background: #fff;
       border-radius: 10px;
@@ -35,13 +32,11 @@
       padding: 15px;
       margin-bottom: 20px;
     }
-
     .card h2 {
       margin-top: 0;
       font-size: 18px;
       color: #1e3a8a;
     }
-
     input, select, button {
       width: 100%;
       padding: 10px;
@@ -51,7 +46,6 @@
       font-size: 16px;
       box-sizing: border-box;
     }
-
     button {
       background: #1e3a8a;
       color: #fff;
@@ -59,18 +53,18 @@
       cursor: pointer;
       transition: background 0.3s;
     }
-
-    button:hover {
-      background: #2563eb;
+    button:hover { background: #2563eb; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
     }
-
     .result {
       display: flex;
       flex-direction: column;
       gap: 12px;
       margin-top: 15px;
     }
-
     .phone-card {
       background: #fff;
       border-radius: 10px;
@@ -80,32 +74,23 @@
       flex-direction: column;
       gap: 6px;
     }
-	.phone-header {
-      font-weight: bold;
-      font-size: 16px;
-      color: #1e3a8a;
-    }
-
-    .phone-detail {
-      font-size: 14px;
-      color: #444;
-    }
-
+    .phone-header { font-weight: bold; font-size: 16px; color: #1e3a8a; }
+    .phone-detail { font-size: 14px; color: #444; }
     .badge {
-  display: inline-flex;       /* компактное отображение */
-  align-items: center;
-  justify-content: center;
-  padding: 2px 6px;           /* уменьшенные отступы */
-  border-radius: 6px;
-  color: #fff;
-  font-weight: bold;
-  font-size: 12px;
-  width: auto;                /* ширина по содержимому */
-  max-width: fit-content;     /* не растягивается */
-}
-.status-work { background: crimson; }
-.status-ready { background: blue; }
-.status-issued { background: green; }
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 6px;
+      border-radius: 6px;
+      color: #fff;
+      font-weight: bold;
+      font-size: 12px;
+      width: auto;
+      max-width: fit-content;
+    }
+    .status-work { background: crimson; }
+    .status-ready { background: blue; }
+    .status-issued { background: green; }
   </style>
 </head>
 <body>
@@ -114,8 +99,36 @@
   <div class="container">
     <div class="card">
       <h2>Добавить телефон</h2>
-      <input id="phoneNumber" placeholder="Имя/Номер телефона">
-      <input id="phoneModel" placeholder="Модель телефона">
+      <div class="form-grid">
+        <select id="clientSelect">
+          <option value="">-- Выберите клиента --</option>
+          <option value="Anatolii Rinok">Anatolii Rinok</option>
+          <option value="Djordan">Djordan</option>
+          <option value="Dvatunea">Dvatunea</option>
+          <option value="Gudok">Gudok</option>
+          <option value="Eldar">Eldar</option>
+          <option value="Jenea Rinok">Jenea Rinok</option>
+          <option value="Valea Rinok">Valea Rinok</option>
+          <option value="Misha Rinok">Misha Rinok</option>
+          <option value="Misha Motruk">Misha Motruk</option>
+          <option value="Rustam">Rustam</option>
+        </select>
+        <input id="clientName" placeholder="Новый клиент (если нет в списке)">
+        <select id="brandSelect">
+          <option value="">-- Выберите марку --</option>
+          <option value="Apple">Apple</option>
+          <option value="Samsung">Samsung</option>
+          <option value="Xiaomi">Xiaomi</option>
+          <option value="Huawei">Huawei</option>
+          <option value="Nokia">Nokia</option>
+          <option value="Sony">Sony</option>
+          <option value="Motorola">Motorola</option>
+          <option value="LG">LG</option>
+          <option value="Google">Google (Pixel)</option>
+          <!-- остальные бренды -->
+        </select>
+        <input id="phoneModel" placeholder="Модель телефона">
+      </div>
 
       <select id="issue">
         <option value="Не включается">Не включается</option>
@@ -123,11 +136,11 @@
         <option value="Разбит экран">Разбит экран</option>
         <option value="Не работает звук">Не работает звук</option>
         <option value="Не ловит сеть">Не ловит сеть</option>
-		  <option value="Нет изображения">Нет изображения</option>
-		  <option value="Не работает сенсор">Не работает сенсор</option>
-		  <option value="Забыли пароль">Забыли пароль</option>
-		  <option value="Google account">Google account</option>
-		  <option value="Mi account">Mi account</option>
+        <option value="Нет изображения">Нет изображения</option>
+        <option value="Не работает сенсор">Не работает сенсор</option>
+        <option value="Забыли пароль">Забыли пароль</option>
+        <option value="Google account">Google account</option>
+        <option value="Mi account">Mi account</option>
         <option value="Другое">Другое...</option>
       </select>
 
@@ -136,98 +149,115 @@
 
     <div class="card">
       <h2>Поиск</h2>
-      <input id="searchQuery" placeholder="Поиск по номеру или модели">
+      <input id="searchQuery" placeholder="Поиск по номеру, клиенту или модели">
       <button onclick="searchPhone()">Найти</button>
     </div>
 
     <div id="result" class="result"></div>
   </div>
 
-  <script type="module">
+    <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
-  apiKey: "AIzaSyB6hf_Xm8Tvu6t-BoRgiLR6PBwHZv7bo2I",
-  authDomain: "phones-690eb.firebaseapp.com",
-  projectId: "phones-690eb",
-  storageBucket: "phones-690eb.firebasestorage.app",
-  messagingSenderId: "58794916374",
-  appId: "1:58794916374:web:88420ab7bb2303ec96d337"
-};
+      apiKey: "AIzaSyB6hf_Xm8Tvu6t-BoRgiLR6PBwHZv7bo2I",
+      authDomain: "phones-690eb.firebaseapp.com",
+      projectId: "phones-690eb",
+      storageBucket: "phones-690eb.firebasestorage.app",
+      messagingSenderId: "58794916374",
+      appId: "1:58794916374:web:88420ab7bb2303ec96d337"
+    };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
     async function addPhone() {
-  const phoneNumber = document.getElementById("phoneNumber").value;
-  const phoneModel = document.getElementById("phoneModel").value;
-  let issue = document.getElementById("issue").value;
+      const clientSelect = document.getElementById("clientSelect").value;
+      const clientName = document.getElementById("clientName").value.trim();
+      const brand = document.getElementById("brandSelect").value;
+      const phoneModel = document.getElementById("phoneModel").value.trim();
+      let issue = document.getElementById("issue").value;
 
-  if (issue === "Другое") {
-    issue = prompt("Введите причину неисправности:");
-  }
+      if (issue === "Другое") {
+        issue = prompt("Введите причину неисправности:");
+      }
 
-  const receivedAt = new Date().toISOString(); // 👈 дата приёма
+      const client = clientName || clientSelect;
+      if (!client) {
+        alert("Укажите клиента!");
+        return;
+      }
 
-  await addDoc(collection(db, "phones"), {
-    phoneNumber,
-    phoneModel,
-    issue,
-    status: "В работе",
-    services: [],
-    price: null,
-    receivedAt,       // сохраняем дату приёма
-    issuedAt: null    // дата выдачи пока пустая
-  });
-  alert("Телефон добавлен!");
+      const receivedAt = new Date().toISOString();
+
+      await addDoc(collection(db, "phones"), {
+        client,
+        brand,
+        phoneModel,
+        issue,
+        status: "В работе",
+        services: [],
+        price: null,
+        receivedAt,
+        issuedAt: null
+      });
+      alert("Телефон добавлен!");
     }
 
     async function searchPhone() {
-  const q = document.getElementById("searchQuery").value.toLowerCase().trim();
-  const phonesRef = collection(db, "phones");
-  const snap = await getDocs(phonesRef);
+      const q = document.getElementById("searchQuery").value.toLowerCase().trim();
 
-  let resultHTML = "";
-  snap.forEach(doc => {
-    const data = doc.data();
-    if (
-      data.phoneNumber.toLowerCase().includes(q) ||
-      data.phoneModel.toLowerCase().includes(q)
-    ) {
-      let badgeClass = "status-work";
-      if (data.status === "Готов") badgeClass = "status-ready";
-      else if (data.status === "Выдан клиенту") badgeClass = "status-issued"; // 👈 точка с запятой
-
-      resultHTML += `
-        <div class="phone-card">
-          <div class="phone-header">${data.phoneModel}</div>
-          <div class="phone-detail">📅 Дата приёма: ${data.receivedAt ? new Date(data.receivedAt).toLocaleDateString() : "-"}</div>
-          <div class="phone-detail">📱 Номер Телефона: ${data.phoneNumber}</div>
-          <div class="phone-detail">⚡ Неисправность: ${data.issue}</div>
-          <div class="phone-detail">💰 Цена: ${data.price || "-"}</div>
-      `;
-
-      if ((data.status === "Готов" || data.status === "Выдан клиенту") && data.services && data.services.length > 0) {
-        resultHTML += `<div class="phone-detail">🛠 Услуга: ${data.services.join(", ")}</div>`;
+      // 🚫 если строка поиска пустая — не выполняем поиск
+      if (!q) {
+        document.getElementById("result").innerHTML = "<p>Введите запрос для поиска</p>";
+        return;
       }
 
-      if (data.issuedAt) {
-        resultHTML += `<div class="phone-detail">✅ Дата выдачи: ${new Date(data.issuedAt).toLocaleDateString()}</div>`;
-      }
+      const phonesRef = collection(db, "phones");
+      const snap = await getDocs(phonesRef);
 
-      resultHTML += `<span class="badge ${badgeClass}">${data.status}</span></div>`;
+      let resultHTML = "";
+      snap.forEach(doc => {
+        const data = doc.data();
+        if (
+          (data.client && data.client.toLowerCase().includes(q)) ||
+          (data.phoneNumber && data.phoneNumber.toLowerCase().includes(q)) ||
+          (data.phoneModel && data.phoneModel.toLowerCase().includes(q))
+        ) {
+          let badgeClass = "status-work";
+          if (data.status === "Готов") badgeClass = "status-ready";
+          else if (data.status === "Выдан клиенту") badgeClass = "status-issued";
+
+          resultHTML += `
+            <div class="phone-card">
+              <div class="phone-header">${data.brand || ""} ${data.phoneModel || ""}</div>
+              <div class="phone-detail">👤 Клиент: ${data.client || "-"}</div>
+              <div class="phone-detail">📅 Дата приёма: ${data.receivedAt ? new Date(data.receivedAt).toLocaleDateString() : "-"}</div>
+              <div class="phone-detail">⚡ Неисправность: ${data.issue}</div>
+              <div class="phone-detail">💰 Цена: ${data.price || "-"}</div>
+          `;
+
+          if (
+  (["Готов", "Выдан клиенту", "Выдан в долг!"].includes(data.status)) &&
+  data.services &&
+  data.services.length > 0
+) {
+  resultHTML += `<div class="phone-detail">🛠 Услуга: ${data.services.join(", ")}</div>`;
+}
+
+
+          if (data.issuedAt) {
+            resultHTML += `<div class="phone-detail">✅ Дата выдачи: ${new Date(data.issuedAt).toLocaleDateString()}</div>`;
+          }
+
+          resultHTML += `<span class="badge ${badgeClass}">${data.status}</span></div>`;
+        }
+      });
+
+      document.getElementById("result").innerHTML = resultHTML || "<p>Ничего не найдено</p>";
     }
-  });
 
-  document.getElementById("result").innerHTML = resultHTML || "<p>Ничего не найдено</p>";
-    }
-
+    // делаем функции доступными для кнопок
     window.addPhone = addPhone;
     window.searchPhone = searchPhone;
   </script>
-</body>
-</html>
-
-
-
