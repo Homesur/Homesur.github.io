@@ -157,107 +157,112 @@
   </div>
 
     <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB6hf_Xm8Tvu6t-BoRgiLR6PBwHZv7bo2I",
-      authDomain: "phones-690eb.firebaseapp.com",
-      projectId: "phones-690eb",
-      storageBucket: "phones-690eb.firebasestorage.app",
-      messagingSenderId: "58794916374",
-      appId: "1:58794916374:web:88420ab7bb2303ec96d337"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const firebaseConfig = {
+    apiKey: "AIzaSyB6hf_Xm8Tvu6t-BoRgiLR6PBwHZv7bo2I",
+    authDomain: "phones-690eb.firebaseapp.com",
+    projectId: "phones-690eb",
+    storageBucket: "phones-690eb.firebasestorage.app",
+    messagingSenderId: "58794916374",
+    appId: "1:58794916374:web:88420ab7bb2303ec96d337"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    async function addPhone() {
-      const clientSelect = document.getElementById("clientSelect").value;
-      const clientName = document.getElementById("clientName").value.trim();
-      const brand = document.getElementById("brandSelect").value;
-      const phoneModel = document.getElementById("phoneModel").value.trim();
-      let issue = document.getElementById("issue").value;
+  async function addPhone() {
+    const clientSelect = document.getElementById("clientSelect").value;
+    const clientName = document.getElementById("clientName").value.trim();
+    const brand = document.getElementById("brandSelect").value;
+    const phoneModel = document.getElementById("phoneModel").value.trim();
+    let issue = document.getElementById("issue").value;
 
-      if (issue === "Другое") {
-        issue = prompt("Введите причину неисправности:");
-      }
-
-      const client = clientName || clientSelect;
-      if (!client) {
-        alert("Укажите клиента!");
-        return;
-      }
-
-      const receivedAt = new Date().toISOString();
-
-      await addDoc(collection(db, "phones"), {
-        client,
-        brand,
-        phoneModel,
-        issue,
-        status: "В работе",
-        services: [],
-        price: null,
-        receivedAt,
-        issuedAt: null
-      });
-      alert("Телефон добавлен!");
+    if (issue === "Другое") {
+      issue = prompt("Введите причину неисправности:");
     }
 
-    async function searchPhone() {
-      const q = document.getElementById("searchQuery").value.toLowerCase().trim();
+    const client = clientName || clientSelect;
+    if (!client) {
+      alert("Укажите клиента!");
+      return;
+    }
 
-      // 🚫 если строка поиска пустая — не выполняем поиск
-      if (!q) {
-        document.getElementById("result").innerHTML = "<p>Введите запрос для поиска</p>";
-        return;
-      }
+    const receivedAt = new Date().toISOString();
 
-      const phonesRef = collection(db, "phones");
-      const snap = await getDocs(phonesRef);
+    await addDoc(collection(db, "phones"), {
+      client,
+      brand,
+      phoneModel,
+      issue,
+      status: "В работе",
+      services: [],
+      price: null,
+      receivedAt,
+      issuedAt: null
+    });
+    alert("Телефон добавлен!");
+  }
 
-      let resultHTML = "";
-      snap.forEach(doc => {
-        const data = doc.data();
+  async function searchPhone() {
+    const q = document.getElementById("searchQuery").value.toLowerCase().trim();
+
+    // 🚫 если строка поиска пустая — не выполняем поиск
+    if (!q) {
+      document.getElementById("result").innerHTML = "<p>Введите запрос для поиска</p>";
+      return;
+    }
+
+    const phonesRef = collection(db, "phones");
+    const snap = await getDocs(phonesRef);
+
+    let resultHTML = "";
+    snap.forEach(doc => {
+      const data = doc.data();
+      const fullModel = `${data.brand || ""} ${data.phoneModel || ""}`.toLowerCase();
+
+      if (
+        (data.client && data.client.toLowerCase().includes(q)) ||
+        (data.phoneNumber && data.phoneNumber.toLowerCase().includes(q)) ||
+        (data.phoneModel && data.phoneModel.toLowerCase().includes(q)) ||
+        fullModel.includes(q)
+      ) {
+        let badgeClass = "status-work";
+        if (data.status === "Готов") badgeClass = "status-ready";
+        else if (data.status === "Выдан клиенту") badgeClass = "status-issued";
+        else if (data.status === "Выдан в долг!") badgeClass = "status-work"; // можно задать отдельный цвет
+
+        resultHTML += `
+          <div class="phone-card">
+            <div class="phone-header">${data.brand || ""} ${data.phoneModel || ""}</div>
+            <div class="phone-detail">👤 Клиент: ${data.client || "-"}</div>
+            <div class="phone-detail">📅 Дата приёма: ${data.receivedAt ? new Date(data.receivedAt).toLocaleDateString() : "-"}</div>
+            <div class="phone-detail">⚡ Неисправность: ${data.issue}</div>
+            <div class="phone-detail">💰 Цена: ${data.price || "-"}</div>
+        `;
+
+        // 🛠 Услуга для трёх статусов
         if (
-          (data.client && data.client.toLowerCase().includes(q)) ||
-          (data.phoneNumber && data.phoneNumber.toLowerCase().includes(q)) ||
-          (data.phoneModel && data.phoneModel.toLowerCase().includes(q))
+          ["Готов", "Выдан клиенту", "Выдан в долг!"].includes(data.status) &&
+          data.services &&
+          data.services.length > 0
         ) {
-          let badgeClass = "status-work";
-          if (data.status === "Готов") badgeClass = "status-ready";
-          else if (data.status === "Выдан клиенту") badgeClass = "status-issued";
-
-          resultHTML += `
-            <div class="phone-card">
-              <div class="phone-header">${data.brand || ""} ${data.phoneModel || ""}</div>
-              <div class="phone-detail">👤 Клиент: ${data.client || "-"}</div>
-              <div class="phone-detail">📅 Дата приёма: ${data.receivedAt ? new Date(data.receivedAt).toLocaleDateString() : "-"}</div>
-              <div class="phone-detail">⚡ Неисправность: ${data.issue}</div>
-              <div class="phone-detail">💰 Цена: ${data.price || "-"}</div>
-          `;
-
-          if (
-  (["Готов", "Выдан клиенту", "Выдан в долг!"].includes(data.status)) &&
-  data.services &&
-  data.services.length > 0
-) {
-  resultHTML += `<div class="phone-detail">🛠 Услуга: ${data.services.join(", ")}</div>`;
-}
-
-
-          if (data.issuedAt) {
-            resultHTML += `<div class="phone-detail">✅ Дата выдачи: ${new Date(data.issuedAt).toLocaleDateString()}</div>`;
-          }
-
-          resultHTML += `<span class="badge ${badgeClass}">${data.status}</span></div>`;
+          resultHTML += `<div class="phone-detail">🛠 Услуга: ${data.services.join(", ")}</div>`;
         }
-      });
 
-      document.getElementById("result").innerHTML = resultHTML || "<p>Ничего не найдено</p>";
-    }
+        if (data.issuedAt) {
+          resultHTML += `<div class="phone-detail">✅ Дата выдачи: ${new Date(data.issuedAt).toLocaleDateString()}</div>`;
+        }
 
-    // делаем функции доступными для кнопок
-    window.addPhone = addPhone;
-    window.searchPhone = searchPhone;
-  </script>
+        resultHTML += `<span class="badge ${badgeClass}">${data.status}</span></div>`;
+      }
+    });
+
+    document.getElementById("result").innerHTML = resultHTML || "<p>Ничего не найдено</p>";
+  }
+
+  // делаем функции доступными для кнопок
+  window.addPhone = addPhone;
+  window.searchPhone = searchPhone;
+</script>
+
