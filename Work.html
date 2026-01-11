@@ -239,155 +239,157 @@ tr:nth-child(even) {
   </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB6hf_Xm8Tvu6t-BoRgiLR6PBwHZv7bo2I",
-      authDomain: "phones-690eb.firebaseapp.com",
-      projectId: "phones-690eb",
-      storageBucket: "phones-690eb.firebasestorage.app",
-      messagingSenderId: "58794916374",
-      appId: "1:58794916374:web:88420ab7bb2303ec96d337"
+  const firebaseConfig = {
+    apiKey: "AIzaSyB6hf_Xm8Tvu6t-BoRgiLR6PBwHZv7bo2I",
+    authDomain: "phones-690eb.firebaseapp.com",
+    projectId: "phones-690eb",
+    storageBucket: "phones-690eb.firebasestorage.app",
+    messagingSenderId: "58794916374",
+    appId: "1:58794916374:web:88420ab7bb2303ec96d337"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  let currentEditId = null;
+
+  async function loadPhones(filters = {}) {
+    // сортировка по дате приёма (новые сверху)
+    const q = query(collection(db, "phones"), orderBy("receivedAt", "desc"));
+    const snap = await getDocs(q);
+
+    const table = document.getElementById("phonesTable");
+    table.innerHTML = `
+      <tr>
+        <th>Имя/Номер Тел:</th>
+        <th>Модель</th>
+        <th>Неисправность</th>
+        <th>Дата приёма</th>
+        <th>Дата выдачи</th>
+        <th>Статус</th>
+        <th>Услуги</th>
+        <th>Цена</th>
+        <th>Поставщик</th>
+        <th>Действия</th>
+      </tr>`;
+
+    snap.forEach(d => {
+      const data = d.data();
+
+      // фильтры
+      if (filters.status && data.status !== filters.status) return;
+
+      if (filters.receivedDate) {
+        const receivedDate = data.receivedAt ? new Date(data.receivedAt).toISOString().split("T")[0] : null;
+        if (receivedDate !== filters.receivedDate) return;
+      }
+
+      if (filters.issuedDate) {
+        const issuedDate = data.issuedAt ? new Date(data.issuedAt).toISOString().split("T")[0] : null;
+        if (issuedDate !== filters.issuedDate) return;
+      }
+
+      if (filters.client) {
+        const clientStr = `${data.client || ""} ${data.phoneNumber || ""}`.toLowerCase();
+        if (!clientStr.includes(filters.client)) return;
+      }
+
+      // badge
+      let badgeClass = "";
+      if (data.status === "В работе") badgeClass = "status-work";
+      else if (data.status === "Готов") badgeClass = "status-ready";
+      else if (data.status === "Выдан клиенту") badgeClass = "status-issued";
+      else if (data.status === "Выдан в долг!") badgeClass = "status-debt";
+
+      const receivedDateStr = data.receivedAt ? new Date(data.receivedAt).toLocaleDateString() : "-";
+      const issuedDateStr = data.issuedAt ? new Date(data.issuedAt).toLocaleDateString() : "-";
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${ data.client && data.phoneNumber ? `${data.client} (${data.phoneNumber})` : (data.client || data.phoneNumber || "-") }</td>
+        <td>${ data.brand && data.phoneModel ? `${data.brand} ${data.phoneModel}` : (data.brand || data.phoneModel || "-") }</td>
+        <td>${data.issue}</td>
+        <td>${receivedDateStr}</td>
+        <td>${issuedDateStr}</td>
+        <td><span class="badge ${badgeClass}">${data.status}</span></td>
+        <td>${data.services && data.services.length > 0 ? data.services.join(", ") : "-"}</td>
+        <td>${data.price || "-"}</td>
+        <td>${data.supplier || "-"}</td>
+        <td>
+          <button class="edit-btn" onclick="openModal('${d.id}', '${data.status}', '${(data.services || []).join(",")}', '${data.price || ""}', '${data.supplier || ""}')">Редактировать</button>
+          <button class="delete-btn" onclick="deletePhone('${d.id}')">Удалить</button>
+        </td>`;
+      table.appendChild(row);
+    });
+  }
+
+  // глобальные функции для кнопок
+  window.applyFilters = function() {
+    const status = document.getElementById("filterStatus").value;
+    const receivedDate = document.getElementById("filterReceived").value;
+    const issuedDate = document.getElementById("filterIssued").value;
+    const client = document.getElementById("filterClient").value.trim().toLowerCase();
+    loadPhones({ status, receivedDate, issuedDate, client });
+  }
+
+  window.resetFilters = function() {
+    document.getElementById("filterStatus").value = "";
+    document.getElementById("filterReceived").value = "";
+    document.getElementById("filterIssued").value = "";
+    document.getElementById("filterClient").value = "";
+    loadPhones();
+  }
+
+  window.openModal = function(id, status, services, price, supplier) {
+    currentEditId = id;
+    document.getElementById("editStatus").value = status;
+    document.getElementById("editService").value = services;
+    document.getElementById("editPrice").value = price;
+    document.getElementById("editSupplier").value = supplier;
+    document.getElementById("editModal").style.display = "block";
+  }
+
+  window.closeModal = function() {
+    document.getElementById("editModal").style.display = "none";
+  }
+
+  window.saveChanges = async function() {
+    const newStatus = document.getElementById("editStatus").value;
+    const newService = document.getElementById("editService").value;
+    const newPrice = document.getElementById("editPrice").value;
+    const newSupplier = document.getElementById("editSupplier").value;
+    const ref = doc(db, "phones", currentEditId);
+
+    let updateData = {
+      status: newStatus,
+      services: newService ? [newService] : [],
+      price: newPrice ? Number(newPrice) : null,
+      supplier: newSupplier || null
     };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
 
-    let currentEditId = null;
-
-    async function loadPhones(filters = {}) {
-      const snap = await getDocs(collection(db, "phones"));
-      const table = document.getElementById("phonesTable");
-
-      table.innerHTML = `
-        <tr>
-          <th>Имя/Номер Тел:</th>
-          <th>Модель</th>
-          <th>Неисправность</th>
-          <th>Дата приёма</th>
-          <th>Дата выдачи</th>
-          <th>Статус</th>
-          <th>Услуги</th>
-          <th>Цена</th>
-          <th>Поставщик</th>
-          <th>Действия</th>
-        </tr>`;
-
-      snap.forEach(d => {
-        const data = d.data();
-
-        // фильтры
-        if (filters.status && data.status !== filters.status) return;
-
-        if (filters.receivedDate) {
-          const receivedDate = data.receivedAt ? new Date(data.receivedAt).toISOString().split("T")[0] : null;
-          if (receivedDate !== filters.receivedDate) return;
-        }
-
-        if (filters.issuedDate) {
-          const issuedDate = data.issuedAt ? new Date(data.issuedAt).toISOString().split("T")[0] : null;
-          if (issuedDate !== filters.issuedDate) return;
-        }
-
-                if (filters.client) {
-          const clientStr = `${data.client || ""} ${data.phoneNumber || ""}`.toLowerCase();
-          if (!clientStr.includes(filters.client)) return;
-        }
-
-        // badge
-        let badgeClass = "";
-        if (data.status === "В работе") badgeClass = "status-work";
-        else if (data.status === "Готов") badgeClass = "status-ready";
-        else if (data.status === "Выдан клиенту") badgeClass = "status-issued";
-        else if (data.status === "Выдан в долг!") badgeClass = "status-debt";
-
-        const receivedDateStr = data.receivedAt ? new Date(data.receivedAt).toLocaleDateString() : "-";
-        const issuedDateStr = data.issuedAt ? new Date(data.issuedAt).toLocaleDateString() : "-";
-
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${ data.client && data.phoneNumber ? `${data.client} (${data.phoneNumber})` : (data.client || data.phoneNumber || "-") }</td>
-          <td>${ data.brand && data.phoneModel ? `${data.brand} ${data.phoneModel}` : (data.brand || data.phoneModel || "-") }</td>
-          <td>${data.issue}</td>
-          <td>${receivedDateStr}</td>
-          <td>${issuedDateStr}</td>
-          <td><span class="badge ${badgeClass}">${data.status}</span></td>
-          <td>${data.services.join(", ")}</td>
-          <td>${data.price || "-"}</td>
-          <td>${data.supplier || "-"}</td>
-          <td>
-            <button class="edit-btn" onclick="openModal('${d.id}', '${data.status}', '${data.services.join(",")}', '${data.price || ""}', '${data.supplier || ""}')">Редактировать</button>
-            <button class="delete-btn" onclick="deletePhone('${d.id}')">Удалить</button>
-          </td>`;
-        table.appendChild(row);
-      });
+    // дата выдачи для "Выдан в долг!" и "Выдан клиенту"
+    if (newStatus === "Выдан в долг!" || newStatus === "Выдан клиенту") {
+      updateData.issuedAt = new Date().toISOString();
     }
 
-    // глобальные функции для кнопок
-    window.applyFilters = function() {
-      const status = document.getElementById("filterStatus").value;
-      const receivedDate = document.getElementById("filterReceived").value;
-      const issuedDate = document.getElementById("filterIssued").value;
-      const client = document.getElementById("filterClient").value.trim().toLowerCase();
-      loadPhones({ status, receivedDate, issuedDate, client });
-    }
+    await updateDoc(ref, updateData);
+    alert("Обновлено!");
+    closeModal();
+    loadPhones();
+  }
 
-    window.resetFilters = function() {
-      document.getElementById("filterStatus").value = "";
-      document.getElementById("filterReceived").value = "";
-      document.getElementById("filterIssued").value = "";
-      document.getElementById("filterClient").value = "";
+  window.deletePhone = async function(id) {
+    if (confirm("Вы уверены, что хотите удалить этот телефон?")) {
+      const ref = doc(db, "phones", id);
+      await deleteDoc(ref);
+      alert("Телефон удалён!");
       loadPhones();
     }
+  }
 
-    window.openModal = function(id, status, services, price, supplier) {
-      currentEditId = id;
-      document.getElementById("editStatus").value = status;
-      document.getElementById("editService").value = services;
-      document.getElementById("editPrice").value = price;
-      document.getElementById("editSupplier").value = supplier;
-      document.getElementById("editModal").style.display = "block";
-    }
-
-    window.closeModal = function() {
-      document.getElementById("editModal").style.display = "none";
-    }
-
-    window.saveChanges = async function() {
-      const newStatus = document.getElementById("editStatus").value;
-      const newService = document.getElementById("editService").value;
-      const newPrice = document.getElementById("editPrice").value;
-      const newSupplier = document.getElementById("editSupplier").value;
-      const ref = doc(db, "phones", currentEditId);
-
-      let updateData = {
-        status: newStatus,
-        services: newService ? [newService] : [],
-        price: newPrice ? Number(newPrice) : null,
-        supplier: newSupplier || null
-      };
-
-      // дата выдачи для "Выдан в долг!" и "Выдан клиенту"
-      if (newStatus === "Выдан в долг!" || newStatus === "Выдан клиенту") {
-        updateData.issuedAt = new Date().toISOString();
-      }
-
-      await updateDoc(ref, updateData);
-      alert("Обновлено!");
-      closeModal();
-      location.reload();
-    }
-
-    window.deletePhone = async function(id) {
-      if (confirm("Вы уверены, что хотите удалить этот телефон?")) {
-        const ref = doc(db, "phones", id);
-        await deleteDoc(ref);
-        alert("Телефон удалён!");
-        location.reload();
-      }
-    }
-
-    loadPhones();
-  </script>
+  loadPhones();
+</script>
 </body>
 </html>
