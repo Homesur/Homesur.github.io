@@ -6,76 +6,90 @@
   <title>Zakaz</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to right, #eef2f7, #dbe9ff);
+      font-family: Arial, sans-serif;
+      background: #f4f7ff;
       margin: 0;
       padding: 20px;
     }
-
     .cart-container {
-      max-width: 900px;
+      max-width: 800px;
       margin: auto;
-      padding: 30px;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      background: linear-gradient(to right, #f8fcff, #e0f0ff);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-
     h2 {
       text-align: center;
-      margin-bottom: 30px;
-      color: #2c3e50;
+      margin-bottom: 20px;
     }
-
     .cart-item {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      background: #f9fbff;
-      padding: 16px;
-      margin-bottom: 15px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      transition: transform 0.2s ease;
+      align-items: center;
+      background: white;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-
-    .cart-item:hover {
-      transform: scale(1.01);
-    }
-
     .cart-item .info {
       flex-grow: 1;
     }
-
     .cart-item a {
-      color: #2980b9;
+      color: #4a90e2;
       text-decoration: none;
-      font-weight: 500;
       word-break: break-word;
     }
-
-    .cart-item p {
-      margin: 6px 0;
-      color: #34495e;
+    .cart-item button {
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
     }
+    #confirm-btn {
+    display: block;
+    margin: 20px auto 0;
+    padding: 14px 28px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(135deg, #4a90e2, #2ecc71);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+  }
 
-    @media (max-width: 600px) {
-      .cart-item {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-    }
+  #confirm-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+    background: linear-gradient(135deg, #2ecc71, #4a90e2);
+  }
+
+  #confirm-btn:disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
+    box-shadow: none;
+    color: #eee;
+  }
   </style>
 </head>
 <body>
   <div class="cart-container">
-    <h2>Заказ Украина!</h2>
+    <h2>КОРЗИНА</h2>
     <div id="cart-items"></div>
+    <button id="confirm-btn">✅ Подтвердить заказ</button>
   </div>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <!-- SheetJS для Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     // Инициализация Firebase
     const firebaseConfig = {
@@ -91,25 +105,95 @@
     firebase.initializeApp(firebaseConfig);
     const cartRef = firebase.database().ref('cart');
 
+    let currentItems = {};
+
     // Отображение корзины
     function renderCart() {
       cartRef.on('value', snapshot => {
         const items = snapshot.val();
+        currentItems = items || {};
         const container = document.getElementById('cart-items');
         container.innerHTML = '';
-        for (let id in items) {
-          const { link, quantity } = items[id];
+        for (let id in currentItems) {
+          const { link, quantity, price } = currentItems[id];
           container.innerHTML += `
             <div class="cart-item">
               <div class="info">
                 <p><strong>Ссылка:</strong> <a href="${link}" target="_blank">${link}</a></p>
                 <p><strong>Количество:</strong> ${quantity}</p>
+                
               </div>
+              <button onclick="copyToClipboard('${link}')">Скопировать ссылку</button>
             </div>
           `;
         }
       });
     }
+
+    // Копирование ссылки в буфер
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Ссылка скопирована в буфер!');
+      });
+    }
+
+    // Генерация Excel с датой
+    function exportToExcelWithDate(items) {
+      const data = [];
+      let totalItems = 0;
+      let totalPrice = 0;
+
+      for (let id in items) {
+        const { link, quantity, price } = items[id];
+        data.push({
+          Ссылка: link,
+          Количество: quantity,
+          Цена: price ? parseFloat(price).toFixed(2) : "",
+          Сумма: price ? (quantity * parseFloat(price)).toFixed(2) : ""
+        });
+        totalItems += quantity;
+        if (price) totalPrice += quantity * parseFloat(price);
+      }
+
+      data.push({
+        Ссылка: "ИТОГО",
+        Количество: totalItems,
+        Цена: "",
+        Сумма: totalPrice.toFixed(2)
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Заказ");
+
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0,19).replace(/[:T]/g, "-");
+      const filename = `zakaz_${dateStr}.xlsx`;
+
+      XLSX.writeFile(workbook, filename);
+    }
+
+    // Обработчик кнопки "Подтвердить"
+document.getElementById("confirm-btn").addEventListener("click", async () => {
+  if (!currentItems || Object.keys(currentItems).length === 0) {
+    alert("Нет товаров для подтверждения");
+    return;
+  }
+
+  // Диалог подтверждения
+  const isConfirmed = confirm("Вы подтверждаете заказ?");
+  if (!isConfirmed) return; // если нажали "Отмена" — выходим
+
+  exportToExcelWithDate(currentItems);
+
+  // Очистка корзины
+  await cartRef.remove();
+
+  // Меняем состояние кнопки
+  const btn = document.getElementById("confirm-btn");
+  btn.textContent = "Подтверждено";
+  btn.disabled = true;
+});
 
     renderCart();
   </script>
