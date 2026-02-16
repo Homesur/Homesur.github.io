@@ -1579,6 +1579,8 @@ const [editCaseData, setEditCaseData] = useState({});
 const [editingEvent, setEditingEvent] = useState(null);
 const [editEventData, setEditEventData] = useState({});
 const [selectedCaseForEvents, setSelectedCaseForEvents] = useState(null);
+const [files, setFiles] = useState([]);
+const [uploading, setUploading] = useState(false);
 
 const exportClientToExcel = (client, cases, events, tasks) => {
     const wb = XLSX.utils.book_new();
@@ -1636,6 +1638,61 @@ const exportClientToExcel = (client, cases, events, tasks) => {
 
     XLSX.writeFile(wb, `${client.name}_${new Date().toLocaleDateString('ru-RU')}.xlsx`);
 };
+
+const handleFileUpload = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    setUploading(true);
+    
+    selectedFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const fileData = {
+                id: Date.now() + Math.random(),
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                data: event.target.result,
+                uploadedAt: Date.now()
+            };
+            
+            // Сохраняем в localStorage (для демо)
+            const existingFiles = JSON.parse(localStorage.getItem(`files_${client.id}`) || '[]');
+            existingFiles.push(fileData);
+            localStorage.setItem(`files_${client.id}`, JSON.stringify(existingFiles));
+            
+            setFiles(existingFiles);
+            showToast(`Файл ${file.name} загружен`);
+        };
+        reader.readAsDataURL(file);
+    });
+    
+    setUploading(false);
+    e.target.value = '';
+};
+
+const deleteFile = (fileId, fileName) => {
+    if (!confirm(`Удалить файл "${fileName}"?`)) return;
+    
+    const existingFiles = JSON.parse(localStorage.getItem(`files_${client.id}`) || '[]');
+    const updatedFiles = existingFiles.filter(f => f.id !== fileId);
+    localStorage.setItem(`files_${client.id}`, JSON.stringify(updatedFiles));
+    
+    setFiles(updatedFiles);
+    showToast('Файл удалён');
+};
+
+const downloadFile = (file) => {
+    const link = document.createElement('a');
+    link.href = file.data;
+    link.download = file.name;
+    link.click();
+};
+
+// Загружаем файлы при открытии клиента
+React.useEffect(() => {
+    const existingFiles = JSON.parse(localStorage.getItem(`files_${client.id}`) || '[]');
+    setFiles(existingFiles);
+}, [client.id]);
 
 const exportClientToHTML = (client, cases, events, tasks) => {
     const totalCases = cases.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
@@ -2411,7 +2468,15 @@ const handleCancelEditEvent = () => {
                             onClick={() => setActiveTab('tasks')}
                         >
                             Напоминания ({tasks.length})
-                        </button>
+                        
+						</button>
+						<button 
+							className={`tab ${activeTab === 'files' ? 'active' : ''}`}
+							onClick={() => setActiveTab('files')}
+						>
+							Файлы
+						
+						</button>
                         <button 
                             className={`tab ${activeTab === 'finances' ? 'active' : ''}`}
                             onClick={() => setActiveTab('finances')}
@@ -2959,6 +3024,119 @@ const handleCancelEditEvent = () => {
                                 )}
                             </div>
                         )}
+						
+						{activeTab === 'files' && (
+    <div className="list-container">
+        <div style={{marginBottom: '2rem'}}>
+            <label style={{
+                display: 'inline-block',
+                padding: '1rem 2rem',
+                background: 'var(--primary)',
+                color: 'white',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                transition: 'all 0.3s ease'
+            }}>
+                📁 Загрузить файлы
+                <input 
+                    type="file" 
+                    multiple 
+                    onChange={handleFileUpload}
+                    style={{display: 'none'}}
+                    disabled={uploading}
+                />
+            </label>
+            {uploading && <span style={{marginLeft: '1rem', color: 'var(--text-light)'}}>Загрузка...</span>}
+        </div>
+        
+        {files.length > 0 ? (
+            <div style={{display: 'grid', gap: '1rem'}}>
+                {files.map(file => (
+                    <div key={file.id} style={{
+                        padding: '1.5rem',
+                        background: 'var(--bg)',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                    }}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '1rem', flex: 1}}>
+                            <div style={{
+                                width: '50px',
+                                height: '50px',
+                                background: 'var(--primary)',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '1.5rem'
+                            }}>
+                                {file.type.includes('image') ? '🖼️' :
+                                 file.type.includes('pdf') ? '📄' :
+                                 file.type.includes('word') ? '📝' :
+                                 file.type.includes('excel') || file.type.includes('spreadsheet') ? '📊' :
+                                 '📁'}
+                            </div>
+                            <div style={{flex: 1}}>
+                                <div style={{fontWeight: '600', marginBottom: '0.25rem'}}>
+                                    {file.name}
+                                </div>
+                                <div style={{fontSize: '0.85rem', color: 'var(--text-light)'}}>
+                                    {(file.size / 1024).toFixed(2)} KB • {new Date(file.uploadedAt).toLocaleDateString('ru-RU')} {new Date(file.uploadedAt).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{display: 'flex', gap: '0.5rem'}}>
+                            <button
+                                onClick={() => downloadFile(file)}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    background: 'rgba(74, 144, 226, 0.15)',
+                                    color: 'var(--info)',
+                                    border: 'none',
+                                    borderRadius: '20px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.85rem',
+                                    fontWeight: '600',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseOver={(e) => e.target.style.background = 'rgba(74, 144, 226, 0.25)'}
+                                onMouseOut={(e) => e.target.style.background = 'rgba(74, 144, 226, 0.15)'}
+                            >
+                                ⬇️ Скачать
+                            </button>
+                            <button
+                                onClick={() => deleteFile(file.id, file.name)}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    background: 'rgba(196, 92, 92, 0.15)',
+                                    color: 'var(--danger)',
+                                    border: 'none',
+                                    borderRadius: '20px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.85rem',
+                                    fontWeight: '600',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseOver={(e) => e.target.style.background = 'rgba(196, 92, 92, 0.25)'}
+                                onMouseOut={(e) => e.target.style.background = 'rgba(196, 92, 92, 0.15)'}
+                            >
+                                🗑️ Удалить
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        ) : (
+            <div className="empty-state">
+                <div className="empty-state-icon">📁</div>
+                <p>Файлы отсутствуют. Нажмите "Загрузить файлы" чтобы добавить документы клиента.</p>
+            </div>
+        )}
+    </div>
+)}
 
                         {activeTab === 'finances' && (
     <div>
@@ -2991,6 +3169,9 @@ const handleCancelEditEvent = () => {
                 </div>
             );
         }
+
+
+
 
         // Finance Details Component  
         function FinanceDetails({ cases, events }) {
@@ -4073,7 +4254,7 @@ eventsArray.filter(e => e.isPaid).forEach(e => {
                                 <h3>Добавить напоминание</h3>
                                 <form onSubmit={handleSubmit}>
                                     <div className="form-group">
-                                        <label>Название задачи *</label>
+                                        <label>Название напоминания *</label>
                                         <input
                                             type="text"
                                             required
