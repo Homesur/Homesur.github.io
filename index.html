@@ -1,0 +1,4117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal CRM - Система управления</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <!-- React -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    
+    <!-- Export libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a2332;
+            --primary-light: #2d3e50;
+            --accent: #d4a574;
+            --accent-dark: #b8935f;
+            --bg: #f8f6f3;
+            --card-bg: #ffffff;
+            --text: #2c2c2c;
+            --text-light: #6b6b6b;
+            --border: #e8e4df;
+            --success: #5a9f7e;
+            --warning: #e6a23c;
+            --danger: #c45c5c;
+            --info: #4a90e2;
+            --shadow: rgba(26, 35, 50, 0.08);
+        }
+
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 2rem 3rem;
+            box-shadow: 0 4px 20px var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(212, 165, 116, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.5px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-dot.disconnected {
+            background: var(--danger);
+            animation: none;
+        }
+
+        /* Main Layout */
+        .main-layout {
+            display: flex;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border);
+            padding: 2rem;
+            overflow-y: auto;
+            box-shadow: 4px 0 20px var(--shadow);
+        }
+
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+
+        .nav-section h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-light);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .nav-btn {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.5rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            font-weight: 400;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-btn:hover {
+            background: var(--bg);
+            border-color: var(--accent);
+            transform: translateX(4px);
+        }
+
+        .nav-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(26, 35, 50, 0.2);
+        }
+
+        .nav-btn .icon {
+            font-size: 1.25rem;
+        }
+
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem 3rem;
+            overflow-y: auto;
+        }
+
+        .content-header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .content-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .search-box {
+            padding: 0.75rem 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            width: 300px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1);
+        }
+
+        /* Calendar */
+        .calendar-container {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .calendar-header h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .calendar-nav button {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .calendar-nav button:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+        }
+
+        .calendar-day-header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .calendar-day {
+            background: var(--card-bg);
+            min-height: 120px;
+            padding: 0.75rem;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .calendar-day:hover {
+            background: var(--bg);
+        }
+
+        .calendar-day.other-month {
+            opacity: 0.4;
+        }
+
+        .calendar-day.today {
+            background: linear-gradient(135deg, rgba(212, 165, 116, 0.1) 0%, rgba(212, 165, 116, 0.05) 100%);
+        }
+
+        .day-number {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .calendar-day.today .day-number {
+            background: var(--accent);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .event-item {
+            background: var(--accent);
+            color: white;
+            padding: 0.35rem 0.5rem;
+            margin-bottom: 0.25rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .event-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(212, 165, 116, 0.4);
+        }
+
+        .event-item.status-new {
+            background: var(--success);
+        }
+
+        .event-item.status-in-progress {
+            background: var(--warning);
+        }
+
+        .event-item.status-completed {
+            background: var(--text-light);
+        }
+
+        /* Client List */
+        .client-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .client-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px var(--shadow);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .client-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(26, 35, 50, 0.15);
+        }
+
+        .client-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .client-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .client-phone {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .client-status {
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-active {
+            background: rgba(90, 159, 126, 0.15);
+            color: var(--success);
+        }
+
+        .status-pending {
+            background: rgba(230, 162, 60, 0.15);
+            color: var(--warning);
+        }
+
+        .client-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .info-row .label {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        /* Client Detail View */
+        .client-detail {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+
+        .client-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .back-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--text-light);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .back-btn:hover {
+            background: var(--text);
+            transform: translateY(-2px);
+        }
+
+        .client-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .action-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            text-align: center;
+        }
+
+        .action-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px var(--shadow);
+        }
+
+        .action-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .action-card .title {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .tab {
+            padding: 1rem 1.5rem;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-light);
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab:hover {
+            color: var(--primary);
+        }
+
+        /* Tasks & Cases List */
+        .list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .list-item {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--accent);
+            transition: all 0.3s ease;
+        }
+
+        .list-item:hover {
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .list-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .list-item-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--primary);
+        }
+
+        .list-item-status {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.list-item-status.status-new {
+    background: rgba(230, 162, 60, 0.15);
+    color: var(--warning);
+}
+
+.list-item-status.status-in-progress {
+    background: rgba(74, 144, 226, 0.15);
+    color: var(--info);
+}
+
+.list-item-status.status-completed {
+    background: rgba(90, 159, 126, 0.15);
+    color: var(--success);
+}
+
+        .list-item-content {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .list-item-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 35, 50, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2.5rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(26, 35, 50, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.75rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: 'Source Sans Pro', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.875rem 1.75rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 165, 116, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #a94442;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px var(--shadow);
+            border-left: 4px solid var(--accent);
+        }
+
+        .stat-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--text-light);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-light);
+        }
+
+        .loading-spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-dark);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--success);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px var(--shadow);
+            animation: slideInRight 0.3s ease;
+            z-index: 2000;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .toast.error {
+            background: var(--danger);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-light);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Firebase Configuration Component
+        function FirebaseConfig() {
+            const [config, setConfig] = useState({
+                apiKey: '',
+                authDomain: '',
+                databaseURL: '',
+                projectId: '',
+                storageBucket: '',
+                messagingSenderId: '',
+                appId: ''
+            });
+            const [showConfig, setShowConfig] = useState(false);
+
+            useEffect(() => {
+                const savedConfig = localStorage.getItem('firebaseConfig');
+                if (savedConfig) {
+                    try {
+                        setConfig(JSON.parse(savedConfig));
+                    } catch (e) {
+                        console.error('Failed to parse config:', e);
+                    }
+                } else {
+                    setShowConfig(true);
+                }
+            }, []);
+
+            const saveConfig = () => {
+                localStorage.setItem('firebaseConfig', JSON.stringify(config));
+                setShowConfig(false);
+                window.location.reload();
+            };
+
+            if (!showConfig && config.apiKey) {
+                return null;
+            }
+
+            return (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h3>Настройка Firebase</h3>
+                        <p style={{marginBottom: '1.5rem', color: 'var(--text-light)'}}>
+                            Введите данные вашего Firebase проекта
+                        </p>
+                        
+                        <div className="form-group">
+                            <label>API Key *</label>
+                            <input
+                                type="text"
+                                value={config.apiKey}
+                                onChange={(e) => setConfig({...config, apiKey: e.target.value})}
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Auth Domain *</label>
+                            <input
+                                type="text"
+                                value={config.authDomain}
+                                onChange={(e) => setConfig({...config, authDomain: e.target.value})}
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Database URL *</label>
+                            <input
+                                type="text"
+                                value={config.databaseURL}
+                                onChange={(e) => setConfig({...config, databaseURL: e.target.value})}
+                                placeholder="https://your-project.firebaseio.com"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Project ID *</label>
+                            <input
+                                type="text"
+                                value={config.projectId}
+                                onChange={(e) => setConfig({...config, projectId: e.target.value})}
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Storage Bucket</label>
+                            <input
+                                type="text"
+                                value={config.storageBucket}
+                                onChange={(e) => setConfig({...config, storageBucket: e.target.value})}
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Messaging Sender ID</label>
+                            <input
+                                type="text"
+                                value={config.messagingSenderId}
+                                onChange={(e) => setConfig({...config, messagingSenderId: e.target.value})}
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>App ID</label>
+                            <input
+                                type="text"
+                                value={config.appId}
+                                onChange={(e) => setConfig({...config, appId: e.target.value})}
+                            />
+                        </div>
+
+                        <button className="btn btn-primary" onClick={saveConfig}>
+                            Сохранить и подключиться
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // Main App Component
+        function App() {
+            const [database, setDatabase] = useState(null);
+            const [connected, setConnected] = useState(false);
+            const [activeView, setActiveView] = useState('calendar');
+            const [selectedClient, setSelectedClient] = useState(null);
+            const [clients, setClients] = useState({});
+            const [cases, setCases] = useState({});
+            const [events, setEvents] = useState({});
+            const [tasks, setTasks] = useState({});
+            const [activityLog, setActivityLog] = useState({});
+            const [showModal, setShowModal] = useState(false);
+            const [modalType, setModalType] = useState('');
+            const [currentDate, setCurrentDate] = useState(new Date());
+            const [searchTerm, setSearchTerm] = useState('');
+            const [loading, setLoading] = useState(true);
+            const [toast, setToast] = useState(null);
+
+            // Initialize Firebase
+            useEffect(() => {
+                const configStr = localStorage.getItem('firebaseConfig');
+                if (!configStr) {
+                    setLoading(false);
+                    return;
+                }
+
+                try {
+                    const config = JSON.parse(configStr);
+                    
+                    if (!firebase.apps.length) {
+                        firebase.initializeApp(config);
+                    }
+                    
+                    const db = firebase.database();
+                    setDatabase(db);
+
+                    const connectedRef = db.ref('.info/connected');
+                    connectedRef.on('value', (snap) => {
+                        setConnected(snap.val() === true);
+                    });
+
+                    db.ref('clients').on('value', (snapshot) => {
+                        setClients(snapshot.val() || {});
+                    });
+
+                    db.ref('cases').on('value', (snapshot) => {
+                        setCases(snapshot.val() || {});
+                    });
+
+                    db.ref('events').on('value', (snapshot) => {
+    setEvents(snapshot.val() || {});
+});
+
+                    db.ref('tasks').on('value', (snapshot) => {
+                        setTasks(snapshot.val() || {});
+                    });
+
+                    db.ref('activityLog').limitToLast(50).on('value', (snapshot) => {
+                        setActivityLog(snapshot.val() || {});
+                    });
+
+                    setLoading(false);
+                } catch (error) {
+                    console.error('Firebase initialization error:', error);
+                    showToast('Ошибка подключения к Firebase', 'error');
+                    setLoading(false);
+                }
+            }, []);
+
+            const showToast = (message, type = 'success') => {
+                setToast({ message, type });
+                setTimeout(() => setToast(null), 3000);
+            };
+
+            const logActivity = (action, details) => {
+                if (!database) return;
+                
+                const logEntry = {
+                    action,
+                    details,
+                    timestamp: Date.now(),
+                    date: new Date().toISOString()
+                };
+
+                database.ref('activityLog').push(logEntry);
+            };
+
+            const addClient = (clientData) => {
+                if (!database) return;
+
+                console.log('Saving client with status:', clientData.status); // <- ДОБАВЬТЕ ЭТО
+				const newClientRef = database.ref('clients').push();
+                newClientRef.set({
+                    ...clientData,
+                    id: newClientRef.key,
+                    createdAt: Date.now()
+                }).then(() => {
+                    logActivity('Добавлен клиент', `${clientData.name}`);
+                    showToast('Клиент успешно добавлен');
+                }).catch((error) => {
+                    console.error('Error adding client:', error);
+                    showToast('Ошибка при добавлении клиента', 'error');
+                });
+            };
+
+            const deleteClient = (clientId, clientName) => {
+                if (!database) return;
+                if (!confirm(`Удалить клиента "${clientName}"? Все связанные дела, события и задачи также будут удалены.`)) return;
+
+                // Delete client and all related data
+                const updates = {};
+                updates[`clients/${clientId}`] = null;
+                
+                // Delete related cases
+                Object.entries(cases).forEach(([caseId, caseData]) => {
+                    if (caseData.clientId === clientId) {
+                        updates[`cases/${caseId}`] = null;
+                    }
+                });
+
+                // Delete related events
+                Object.entries(events).forEach(([eventId, eventData]) => {
+                    if (eventData.clientId === clientId) {
+                        updates[`events/${eventId}`] = null;
+                    }
+                });
+
+                // Delete related tasks
+                Object.entries(tasks).forEach(([taskId, taskData]) => {
+                    if (taskData.clientId === clientId) {
+                        updates[`tasks/${taskId}`] = null;
+                    }
+                });
+
+                database.ref().update(updates)
+                    .then(() => {
+                        logActivity('Удален клиент', clientName);
+                        showToast('Клиент и все связанные данные удалены');
+                        setSelectedClient(null);
+                    })
+                    .catch((error) => {
+                        console.error('Error deleting client:', error);
+                        showToast('Ошибка при удалении', 'error');
+                    });
+            };
+
+            const addCase = (caseData) => {
+    if (!database || !selectedClient) return;
+
+    database.ref('cases').once('value', (snapshot) => {
+        const existingCases = snapshot.val() || {};
+        
+        let maxNumber = 0;
+        Object.values(existingCases).forEach(c => {
+            if (c.caseNumber) {
+                maxNumber = Math.max(maxNumber, c.caseNumber);
+            }
+        });
+        
+        const newCaseNumber = maxNumber + 1;
+        const caseTitle = `Dosar nr. ${String(newCaseNumber).padStart(5, '0')}`;
+        
+        const newCaseRef = database.ref('cases').push();
+        newCaseRef.set({
+            ...caseData,
+            id: newCaseRef.key,
+            caseNumber: newCaseNumber,
+            title: caseTitle,
+            paymentStatus: caseData.paymentStatus || 'Не оплачено',  // <- ДОБАВЬТЕ ЭТУ СТРОКУ
+            clientId: selectedClient.id,
+            clientName: selectedClient.name,
+            createdAt: Date.now()
+        }).then(() => {
+            logActivity('Добавлено дело', `${caseTitle} для ${selectedClient.name}`);
+            showToast('Дело успешно добавлено');
+        }).catch((error) => {
+            console.error('Error adding case:', error);
+            showToast('Ошибка при добавлении дела', 'error');
+        });
+    });
+};
+
+const updateCase = (caseId, updates) => {
+    if (!database) return;
+
+    // Фильтруем undefined значения
+    const cleanUpdates = {};
+    Object.keys(updates).forEach(key => {
+        if (updates[key] !== undefined) {
+            cleanUpdates[key] = updates[key];
+        }
+    });
+
+    database.ref(`cases/${caseId}`).update(cleanUpdates)
+        .then(() => {
+            logActivity('Обновлено дело', 'Дело обновлено');
+            showToast('Дело обновлено');
+        })
+        .catch((error) => {
+            console.error('Error updating case:', error);
+            showToast('Ошибка при обновлении дела', 'error');
+        });
+};
+
+const deleteCase = (caseId, caseTitle) => {
+    if (!database) return;
+    if (!confirm(`Удалить дело "${caseTitle}"? Все связанные события также будут удалены.`)) return;
+
+    const updates = {};
+    updates[`cases/${caseId}`] = null;
+    
+    // Удаляем связанные события
+    Object.entries(events).forEach(([eventId, eventData]) => {
+        if (eventData.caseId === caseId) {
+            updates[`events/${eventId}`] = null;
+        }
+    });
+
+    database.ref().update(updates)
+        .then(() => {
+            logActivity('Удалено дело', caseTitle);
+            showToast('Дело и связанные события удалены');
+        })
+        .catch((error) => {
+            console.error('Error deleting case:', error);
+            showToast('Ошибка при удалении', 'error');
+        });
+};
+
+const updateEvent = (eventId, updates) => {
+    if (!database) return;
+
+    // Фильтруем undefined значения
+    const cleanUpdates = {};
+    Object.keys(updates).forEach(key => {
+        if (updates[key] !== undefined) {
+            cleanUpdates[key] = updates[key];
+        }
+    });
+
+    database.ref(`events/${eventId}`).update(cleanUpdates)
+        .then(() => {
+            logActivity('Обновлено событие', 'Событие обновлено');
+            showToast('Событие обновлено');
+            // Firebase автоматически обновит данные через listener
+        })
+        .catch((error) => {
+            console.error('Error updating event:', error);
+            showToast('Ошибка при обновлении события', 'error');
+        });
+};
+
+const deleteEvent = (eventId, eventTitle) => {
+    if (!database) return;
+    if (!confirm(`Удалить событие "${eventTitle}"?`)) return;
+
+    database.ref(`events/${eventId}`).remove()
+        .then(() => {
+            logActivity('Удалено событие', eventTitle);
+            showToast('Событие удалено');
+        })
+        .catch((error) => {
+            console.error('Error deleting event:', error);
+            showToast('Ошибка при удалении', 'error');
+        });
+};
+
+            const addEvent = (eventData) => {
+    if (!database || !selectedClient) return;
+
+    const newEventRef = database.ref('events').push();
+    newEventRef.set({
+        ...eventData,
+        title: eventData.type, // <- ИЗМЕНИТЕ: используем тип как название
+        id: newEventRef.key,
+        clientId: selectedClient.id,
+        clientName: selectedClient.name,
+        caseId: eventData.caseId,
+        caseTitle: eventData.caseTitle,
+        isPaid: eventData.isPaid || false,
+        eventAmount: eventData.eventAmount || 0,
+        paymentStatus: eventData.isPaid ? (eventData.paymentStatus || 'Не оплачено') : 'Бесплатно',
+        createdAt: Date.now()
+    }).then(() => {
+        logActivity('Добавлено событие', `${eventData.type} - ${eventData.date}`);
+        showToast('Событие успешно добавлено');
+    }).catch((error) => {
+        console.error('Error adding event:', error);
+        showToast('Ошибка при добавлении события', 'error');
+    });
+};
+
+            const addTask = (taskData) => {
+                if (!database || !selectedClient) return;
+
+                const newTaskRef = database.ref('tasks').push();
+                newTaskRef.set({
+                    ...taskData,
+                    id: newTaskRef.key,
+                    clientId: selectedClient.id,
+                    clientName: selectedClient.name,
+                    completed: false,
+                    createdAt: Date.now()
+                }).then(() => {
+                    logActivity('Добавлена задача', `${taskData.title} для ${selectedClient.name}`);
+                    showToast('Задача успешно добавлена');
+                }).catch((error) => {
+                    console.error('Error adding task:', error);
+                    showToast('Ошибка при добавлении задачи', 'error');
+                });
+            };
+
+            const toggleTaskCompletion = (taskId, currentStatus) => {
+                if (!database) return;
+
+                database.ref(`tasks/${taskId}`).update({
+                    completed: !currentStatus
+                }).then(() => {
+                    showToast(!currentStatus ? 'Задача выполнена' : 'Задача помечена как невыполненная');
+                });
+            };
+
+            const updateClient = (clientId, updates) => {
+                if (!database) return;
+
+                database.ref(`clients/${clientId}`).update(updates)
+                    .then(() => {
+                        logActivity('Обновлен клиент', selectedClient.name);
+                        showToast('Данные клиента обновлены');
+                    })
+                    .catch((error) => {
+                        console.error('Error updating client:', error);
+                        showToast('Ошибка при обновлении', 'error');
+                    });
+            };
+
+            const exportToExcel = () => {
+                const clientsArray = Object.values(clients);
+                const casesArray = Object.values(cases);
+                const eventsArray = Object.values(events);
+
+                const wb = XLSX.utils.book_new();
+
+                const clientsWS = XLSX.utils.json_to_sheet(clientsArray.map(c => ({
+                    'ФИО': c.name,
+                    'Телефон': c.phone,
+                    'Email': c.email,
+                    'Адрес': c.address,
+                    'Статус': c.status,
+                    'Дата создания': new Date(c.createdAt).toLocaleDateString('ru-RU')
+                })));
+                XLSX.utils.book_append_sheet(wb, clientsWS, 'Клиенты');
+
+                const casesWS = XLSX.utils.json_to_sheet(casesArray.map(c => ({
+                    'Дело': c.title,
+                    'Клиент': c.clientName,
+                    'Статус': c.status,
+                    'Сумма (MDL)': c.amount,
+                    'Оплата': c.paymentStatus,
+                    'Дата создания': new Date(c.createdAt).toLocaleDateString('ru-RU')
+                })));
+                XLSX.utils.book_append_sheet(wb, casesWS, 'Дела');
+
+                const eventsWS = XLSX.utils.json_to_sheet(eventsArray.map(e => ({
+                    'Событие': e.title,
+                    'Клиент': e.clientName,
+                    'Дата': e.date,
+                    'Время': e.time,
+                    'Тип': e.type,
+                    'Статус': e.status
+                })));
+                XLSX.utils.book_append_sheet(wb, eventsWS, 'События');
+
+                XLSX.writeFile(wb, `Legal_CRM_${new Date().toLocaleDateString('ru-RU')}.xlsx`);
+                logActivity('Экспорт данных', 'Экспорт в Excel');
+                showToast('Данные экспортированы в Excel');
+            };
+
+            const exportToPDF = () => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                doc.setFontSize(18);
+                doc.text('Legal CRM - Отчет', 14, 20);
+                doc.setFontSize(11);
+                doc.text(`Дата: ${new Date().toLocaleDateString('ru-RU')}`, 14, 28);
+
+                const clientsArray = Object.values(clients);
+                if (clientsArray.length > 0) {
+                    doc.setFontSize(14);
+                    doc.text('Клиенты', 14, 40);
+                    doc.autoTable({
+                        startY: 45,
+                        head: [['ФИО', 'Телефон', 'Email', 'Статус']],
+                        body: clientsArray.map(c => [c.name, c.phone, c.email || '-', c.status])
+                    });
+                }
+
+                const casesArray = Object.values(cases);
+                if (casesArray.length > 0) {
+                    const finalY = doc.lastAutoTable.finalY || 45;
+                    doc.setFontSize(14);
+                    doc.text('Дела', 14, finalY + 15);
+                    doc.autoTable({
+                        startY: finalY + 20,
+                        head: [['Дело', 'Клиент', 'Статус', 'Сумма (MDL)']],
+                        body: casesArray.map(c => [c.title, c.clientName, c.status, `${c.amount || 0} MDL`])
+                    });
+                }
+
+                doc.save(`Legal_CRM_${new Date().toLocaleDateString('ru-RU')}.pdf`);
+                logActivity('Экспорт данных', 'Экспорт в PDF');
+                showToast('Данные экспортированы в PDF');
+            };
+
+            const openModal = (type) => {
+    setModalType(type);
+    setShowModal(true);
+};
+
+            if (loading) {
+                return (
+                    <div className="loading">
+                        <div className="loading-spinner"></div>
+                        <p>Подключение к базе данных...</p>
+                    </div>
+                );
+            }
+
+            const clientsArray = Object.values(clients);
+            const casesArray = Object.values(cases);
+            const eventsArray = Object.values(events);
+            const tasksArray = Object.values(tasks);
+
+            return (
+                <>
+                    <FirebaseConfig />
+                    <div className="app-container">
+                        <header className="header">
+                            <div className="header-content">
+                                <div>
+                                    <h1>⚖️ Legal CRM</h1>
+                                    <p>Система управления юридической практикой</p>
+                                </div>
+                                <div className="connection-status">
+                                    <div className={`status-dot ${!connected ? 'disconnected' : ''}`}></div>
+                                    <span>{connected ? 'Подключено' : 'Нет подключения'}</span>
+                                </div>
+                            </div>
+                        </header>
+
+                        <div className="main-layout">
+                            <aside className="sidebar">
+                                <div className="nav-section">
+                                    <h3>Навигация</h3>
+                                    <button 
+                                        className={`nav-btn ${activeView === 'clients' ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setActiveView('clients');
+                                            setSelectedClient(null);
+                                        }}
+                                    >
+                                        <span className="icon">👥</span>
+                                        Клиенты ({clientsArray.length})
+                                    </button>
+                                    <button 
+                                        className={`nav-btn ${activeView === 'calendar' ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setActiveView('calendar');
+                                            setSelectedClient(null);
+                                        }}
+                                    >
+                                        <span className="icon">📅</span>
+                                        Календарь
+                                    </button>
+                                    <button 
+                                        className={`nav-btn ${activeView === 'finances' ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setActiveView('finances');
+                                            setSelectedClient(null);
+                                        }}
+                                    >
+                                        <span className="icon">💰</span>
+                                        Финансы
+                                    </button>
+                                    <button className="nav-btn" onClick={() => openModal('client')}>
+                                        <span className="icon">➕</span>
+                                        Добавить клиента
+                                    </button>
+                                </div>
+
+                                <div className="nav-section">
+                                    <h3>Статистика</h3>
+                                    <div style={{padding: '1rem', background: 'var(--bg)', borderRadius: '8px'}}>
+                                        <div style={{marginBottom: '0.75rem'}}>
+                                            <strong>{clientsArray.length}</strong> клиентов
+                                        </div>
+                                        <div style={{marginBottom: '0.75rem'}}>
+                                            <strong>{casesArray.length}</strong> дел
+                                        </div>
+                                        <div>
+                                            <strong>{eventsArray.length}</strong> событий
+                                        </div>
+                                    </div>
+                                </div>
+                            </aside>
+
+                            <main className="main-content">
+                                {selectedClient ? (
+                                    <ClientDetailView 
+                                        client={selectedClient}
+    cases={casesArray.filter(c => c.clientId === selectedClient.id)}
+    events={eventsArray.filter(e => e.clientId === selectedClient.id)}
+    tasks={tasksArray.filter(t => t.clientId === selectedClient.id)}
+    onBack={() => setSelectedClient(null)}
+    onAddCase={() => openModal('case')}
+    onAddEvent={() => openModal('event')}
+    onAddTask={() => openModal('task')}
+    onToggleTask={toggleTaskCompletion}
+    onUpdateClient={updateClient}
+    onUpdateCase={updateCase}  // <- ДОБАВЬТЕ ЭТУ СТРОКУ
+	onUpdateEvent={updateEvent}  // <- ДОБАВЬТЕ
+    onDeleteEvent={deleteEvent}  // <- ДОБАВЬТЕ
+	onDeleteCase={deleteCase}  // <- ДОБАВЬТЕ ЭТУ СТРОКУ
+    onDeleteClient={deleteClient}
+                                    />
+                                ) : (
+                                    <>
+                                        {activeView === 'calendar' && (
+                                            <CalendarView 
+                                                events={eventsArray}
+                                                currentDate={currentDate}
+                                                setCurrentDate={setCurrentDate}
+                                            />
+                                        )}
+                                        {activeView === 'clients' && (
+                                            <ClientsView 
+                                                clients={clientsArray}
+                                                searchTerm={searchTerm}
+                                                setSearchTerm={setSearchTerm}
+                                                onSelectClient={setSelectedClient}
+                                            />
+                                        )}
+                                        {activeView === 'finances' && (
+                                            <FinancesView cases={casesArray} events={eventsArray} />
+                                        )}
+                                    
+									
+									
+									</>
+									
+                                )}
+                            </main>
+                        </div>
+
+                        {showModal && (
+    <Modal
+        type={modalType}
+        onClose={() => setShowModal(false)}
+        onSave={(data) => {
+            if (modalType === 'client') addClient(data);
+            if (modalType === 'case') addCase(data);
+            if (modalType === 'event') addEvent(data);
+            if (modalType === 'task') addTask(data);
+            setShowModal(false);
+        }}
+        client={selectedClient}
+        cases={casesArray}  // <- ИЗМЕНИТЕ на casesArray вместо cases
+    />
+)}
+
+                        {toast && (
+                            <div className={`toast ${toast.type}`}>
+                                {toast.message}
+                            </div>
+                        )}
+                    </div>
+                </>
+            );
+        }
+
+        // Client Detail View Component
+        function ClientDetailView({ client, cases, events, tasks, onBack, onAddCase, onAddEvent, onAddTask, onToggleTask, onUpdateClient, onUpdateCase, onUpdateEvent, onDeleteEvent, onDeleteCase, onDeleteClient }) {
+            const [activeTab, setActiveTab] = useState('cases');
+const [editMode, setEditMode] = useState(false);
+const [editData, setEditData] = useState(client);
+const [editingCase, setEditingCase] = useState(null);
+const [editCaseData, setEditCaseData] = useState({});
+const [editingEvent, setEditingEvent] = useState(null);
+const [editEventData, setEditEventData] = useState({});
+const [selectedCaseForEvents, setSelectedCaseForEvents] = useState(null);
+
+const exportClientToExcel = (client, cases, events, tasks) => {
+    const wb = XLSX.utils.book_new();
+
+    // Информация о клиенте
+    const clientInfo = [{
+        'ФИО': client.name,
+        'Телефон': client.phone,
+        'Email': client.email || '-',
+        'Адрес': client.address || '-',
+        'Статус': client.status,
+        'Дата добавления': new Date(client.createdAt).toLocaleDateString('ru-RU')
+    }];
+    const clientWS = XLSX.utils.json_to_sheet(clientInfo);
+    XLSX.utils.book_append_sheet(wb, clientWS, 'Информация о клиенте');
+
+    // Дела клиента
+    if (cases.length > 0) {
+        const casesWS = XLSX.utils.json_to_sheet(cases.map(c => ({
+            'Дело': c.title,
+            'Статус': c.status === 'new' ? 'Новое' : c.status === 'in-progress' ? 'В работе' : 'Завершено',
+            'Сумма (MDL)': c.amount,
+            'Оплата': c.paymentStatus,
+            'Описание': c.description || '-',
+            'Дата создания': new Date(c.createdAt).toLocaleDateString('ru-RU')
+        })));
+        XLSX.utils.book_append_sheet(wb, casesWS, 'Дела');
+    }
+
+    // События клиента
+    if (events.length > 0) {
+        const eventsWS = XLSX.utils.json_to_sheet(events.map(e => ({
+            'Событие': e.title,
+            'Дата': new Date(e.date).toLocaleDateString('ru-RU'),
+            'Время': e.time || '-',
+            'Тип': e.type,
+            'Статус': e.status === 'new' ? 'Новое' : e.status === 'in-progress' ? 'В процессе' : 'Завершено',
+            'Платное': e.isPaid ? 'Да' : 'Нет',
+            'Сумма (MDL)': e.isPaid ? e.eventAmount : 0,
+            'Оплата': e.paymentStatus
+        })));
+        XLSX.utils.book_append_sheet(wb, eventsWS, 'События');
+    }
+
+    // Задачи клиента
+    if (tasks.length > 0) {
+        const tasksWS = XLSX.utils.json_to_sheet(tasks.map(t => ({
+            'Задача': t.title,
+            'Описание': t.description || '-',
+            'Статус': t.completed ? 'Выполнено' : 'Не выполнено',
+            'Дата создания': new Date(t.createdAt).toLocaleDateString('ru-RU')
+        })));
+        XLSX.utils.book_append_sheet(wb, tasksWS, 'Задачи');
+    }
+
+    XLSX.writeFile(wb, `${client.name}_${new Date().toLocaleDateString('ru-RU')}.xlsx`);
+};
+
+const exportClientToHTML = (client, cases, events, tasks) => {
+    const totalCases = cases.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+    const totalEvents = events.filter(e => e.isPaid).reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+    const paidCases = cases.filter(c => c.paymentStatus === 'Оплачено').reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+    const paidEvents = events.filter(e => e.isPaid && e.paymentStatus === 'Оплачено').reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+    const total = totalCases + totalEvents;
+    const totalPaid = paidCases + paidEvents;
+    const totalPending = total - totalPaid;
+
+    // Группируем события по делам
+    const caseWithEvents = cases.map(c => ({
+        ...c,
+        events: events.filter(e => e.caseId === c.id).sort((a, b) => new Date(b.date) - new Date(a.date))
+    }));
+
+    const html = `
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отчёт - ${client.name}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 40px;
+            background: #f5f5f5;
+            color: #2c2c2c;
+        }
+        
+        .report-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            border-bottom: 3px solid #1a2332;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            color: #1a2332;
+            margin-bottom: 10px;
+        }
+        
+        .header .date {
+            color: #6b6b6b;
+            font-size: 14px;
+        }
+        
+        .section {
+            margin-bottom: 35px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            color: #1a2332;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #d4a574;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 12px;
+            background: #f8f6f3;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #1a2332;
+        }
+        
+        .info-value {
+            color: #2c2c2c;
+        }
+        
+        .case-block {
+            margin-bottom: 30px;
+            border: 1px solid #e8e4df;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .case-header {
+            background: #1a2332;
+            color: white;
+            padding: 15px 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .case-details {
+            padding: 20px;
+            background: #f8f6f3;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e8e4df;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .events-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #d4a574;
+        }
+        
+        .events-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a2332;
+            margin-bottom: 15px;
+        }
+        
+        .event-card {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #4a90e2;
+        }
+        
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .event-title {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        
+        .event-meta {
+            font-size: 13px;
+            color: #6b6b6b;
+            margin-bottom: 8px;
+        }
+        
+        .status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .status-new {
+            background: rgba(230, 162, 60, 0.15);
+            color: #e6a23c;
+        }
+        
+        .status-in-progress {
+            background: rgba(74, 144, 226, 0.15);
+            color: #4a90e2;
+        }
+        
+        .status-completed {
+            background: rgba(90, 159, 126, 0.15);
+            color: #5a9f7e;
+        }
+        
+        .status-paid {
+            background: rgba(90, 159, 126, 0.15);
+            color: #5a9f7e;
+        }
+        
+        .status-unpaid {
+            background: rgba(230, 162, 60, 0.15);
+            color: #e6a23c;
+        }
+        
+        .status-active {
+            background: rgba(90, 159, 126, 0.15);
+            color: #5a9f7e;
+        }
+        
+        .payment-info {
+            display: inline-block;
+            padding: 8px 12px;
+            background: rgba(212, 165, 116, 0.1);
+            border-radius: 6px;
+            margin-top: 8px;
+        }
+        
+        .payment-free {
+            display: inline-block;
+            padding: 8px 12px;
+            background: rgba(90, 159, 126, 0.1);
+            color: #5a9f7e;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-weight: 600;
+        }
+        
+        .finance-summary {
+            background: #1a2332;
+            color: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .finance-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .finance-row:last-child {
+            border-bottom: none;
+            margin-top: 10px;
+            padding-top: 15px;
+            border-top: 2px solid #d4a574;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .finance-label {
+            font-weight: 500;
+        }
+        
+        .finance-value {
+            font-weight: 700;
+            color: #d4a574;
+        }
+        
+        .task-list {
+            list-style: none;
+        }
+        
+        .task-item {
+            padding: 15px;
+            background: #f8f6f3;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #d4a574;
+        }
+        
+        .task-item.completed {
+            opacity: 0.6;
+            border-left-color: #5a9f7e;
+        }
+        
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .task-title.completed {
+            text-decoration: line-through;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #6b6b6b;
+            font-style: italic;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .report-container {
+                box-shadow: none;
+                padding: 20px;
+            }
+            .event-card, .case-block {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <div class="header">
+            <h1>📊 Отчёт по клиенту</h1>
+            <div class="date">Дата формирования: ${new Date().toLocaleDateString('ru-RU', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            })}</div>
+        </div>
+        
+        <!-- Информация о клиенте -->
+        <div class="section">
+            <h2 class="section-title">Информация о клиенте</h2>
+            <div class="info-grid">
+                <div class="info-label">ФИО:</div>
+                <div class="info-value">${client.name}</div>
+                
+                <div class="info-label">Телефон:</div>
+                <div class="info-value">${client.phone}</div>
+                
+                <div class="info-label">Email:</div>
+                <div class="info-value">${client.email || '-'}</div>
+                
+                <div class="info-label">Адрес:</div>
+                <div class="info-value">${client.address || '-'}</div>
+                
+                <div class="info-label">Статус:</div>
+                <div class="info-value">
+                    <span class="status ${client.status === 'Активный' ? 'status-active' : 'status-unpaid'}">
+                        ${client.status === 'Активный' ? '🟢 Активный' : '🔴 Закрыт'}
+                    </span>
+                </div>
+                
+                <div class="info-label">Дата добавления:</div>
+                <div class="info-value">${new Date(client.createdAt).toLocaleDateString('ru-RU')}</div>
+            </div>
+        </div>
+        
+        Вот исправленный код для HTML-отчёта с добавлением финансовой информации:
+javascript<!-- Дела с событиями -->
+        <div class="section">
+            <h2 class="section-title">Дела и события (${cases.length})</h2>
+            ${caseWithEvents.length > 0 ? caseWithEvents.map(c => {
+                const caseEventsTotal = c.events.filter(e => e.isPaid).reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+                const caseTotalAmount = (parseFloat(c.amount) || 0) + caseEventsTotal;
+                const paidCaseAmount = c.paymentStatus === 'Оплачено' ? (parseFloat(c.amount) || 0) : 0;
+                const paidEventsAmount = c.events.filter(e => e.isPaid && e.paymentStatus === 'Оплачено').reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+                const totalPaid = paidCaseAmount + paidEventsAmount;
+                const totalDebt = caseTotalAmount - totalPaid;
+                
+                return `
+                <div class="case-block">
+                    <div class="case-header">
+                        ${c.title}
+                    </div>
+                    <div class="case-details">
+                        <div class="detail-row">
+                            <span><strong>Статус дела:</strong></span>
+                            <span class="status status-${c.status}">
+                                ${c.status === 'new' ? 'Новое' : c.status === 'in-progress' ? 'В работе' : 'Завершено'}
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span><strong>Сумма по делу:</strong></span>
+                            <span><strong>${parseFloat(c.amount || 0).toLocaleString()} MDL</strong></span>
+                        </div>
+                        <div class="detail-row">
+                            <span><strong>Сумма по событиям:</strong></span>
+                            <span><strong>${caseEventsTotal.toLocaleString()} MDL</strong></span>
+                        </div>
+                        <div class="detail-row" style="border-top: 2px solid #d4a574; padding-top: 8px; margin-top: 8px;">
+                            <span><strong>ИТОГО:</strong></span>
+                            <span style="font-size: 18px; color: #1a2332;"><strong>${caseTotalAmount.toLocaleString()} MDL</strong></span>
+                        </div>
+                        <div class="detail-row">
+                            <span><strong>Выплачено:</strong></span>
+                            <span style="color: #5a9f7e; font-weight: 600;">${totalPaid.toLocaleString()} MDL</span>
+                        </div>
+                        <div class="detail-row">
+                            <span><strong>Задолженность:</strong></span>
+                            <span style="color: #c45c5c; font-weight: 600;">${totalDebt.toLocaleString()} MDL</span>
+                        </div>
+                        <div class="detail-row">
+                            <span><strong>Статус оплаты:</strong></span>
+                            <span class="status ${c.paymentStatus === 'Оплачено' ? 'status-paid' : 'status-unpaid'}">
+                                ${c.paymentStatus || 'Не оплачено'}
+                            </span>
+                        </div>
+                        ${c.description ? `
+                            <div class="detail-row">
+                                <span><strong>Описание:</strong></span>
+                                <span>${c.description}</span>
+                            </div>
+                        ` : ''}
+                        <div class="detail-row">
+                            <span><strong>Дата создания:</strong></span>
+                            <span>${new Date(c.createdAt).toLocaleDateString('ru-RU')}</span>
+                        </div>
+                        
+                        ${c.events.length > 0 ? `
+                            <div class="events-section">
+                                <div class="events-title">📅 События по делу (${c.events.length})</div>
+                                ${c.events.map(e => `
+                                    <div class="event-card">
+                                        <div class="event-header">
+                                            <div class="event-title">${e.type}</div>
+                                            <span class="status status-${e.status}">
+                                                ${e.status === 'new' ? 'Новое' : e.status === 'in-progress' ? 'В процессе' : 'Завершено'}
+                                            </span>
+                                        </div>
+                                        <div class="event-meta">
+                                            📅 ${new Date(e.date).toLocaleDateString('ru-RU')} ${e.time ? `• 🕐 ${e.time}` : ''}
+                                        </div>
+                                        ${e.description ? `<div style="margin: 8px 0; color: #2c2c2c;">${e.description}</div>` : ''}
+                                        ${e.isPaid ? `
+                                            <div class="payment-info">
+                                                <strong>💰 Платное событие:</strong> 
+                                                <strong style="font-size: 16px;">${parseFloat(e.eventAmount || 0).toLocaleString()} MDL</strong>
+                                                <span class="status ${e.paymentStatus === 'Оплачено' ? 'status-paid' : 'status-unpaid'}" style="margin-left: 8px;">
+                                                    ${e.paymentStatus}
+                                                </span>
+                                            </div>
+                                        ` : `
+                                            <div class="payment-free">
+                                                ✓ Входит в договор (бесплатно)
+                                            </div>
+                                        `}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <div class="events-section">
+                                <div class="empty-state">По этому делу событий нет</div>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;}).join('') : '<div class="empty-state">Дела отсутствуют</div>'}
+        </div>
+        
+        <!-- Задачи -->
+        <div class="section">
+            <h2 class="section-title">Задачи (${tasks.length})</h2>
+            ${tasks.length > 0 ? `
+                <ul class="task-list">
+                    ${tasks.map(t => `
+                        <li class="task-item ${t.completed ? 'completed' : ''}">
+                            <div class="task-title ${t.completed ? 'completed' : ''}">
+                                ${t.completed ? '✅' : '⬜'} ${t.title}
+                            </div>
+                            <div style="color: #6b6b6b; font-size: 14px; margin-top: 5px;">
+                                ${t.description || '-'}
+                            </div>
+                            <div style="color: #6b6b6b; font-size: 12px; margin-top: 5px;">
+                                ${new Date(t.createdAt).toLocaleDateString('ru-RU')}
+                            </div>
+                        </li>
+                    `).join('')}
+                </ul>
+            ` : '<div class="empty-state">Задачи отсутствуют</div>'}
+        </div>
+        
+        <!-- Финансовая сводка -->
+        <div class="section">
+            <h2 class="section-title">Финансовая сводка</h2>
+            <div class="finance-summary">
+                <div class="finance-row">
+                    <span class="finance-label">Дела - всего:</span>
+                    <span class="finance-value">${totalCases.toLocaleString()} MDL</span>
+                </div>
+                <div class="finance-row">
+                    <span class="finance-label">Дела - оплачено:</span>
+                    <span class="finance-value">${paidCases.toLocaleString()} MDL</span>
+                </div>
+                <div class="finance-row">
+                    <span class="finance-label">Дела - к получению:</span>
+                    <span class="finance-value">${(totalCases - paidCases).toLocaleString()} MDL</span>
+                </div>
+                <div class="finance-row">
+                    <span class="finance-label">События - всего:</span>
+                    <span class="finance-value">${totalEvents.toLocaleString()} MDL</span>
+                </div>
+                <div class="finance-row">
+                    <span class="finance-label">События - оплачено:</span>
+                    <span class="finance-value">${paidEvents.toLocaleString()} MDL</span>
+                </div>
+                <div class="finance-row">
+                    <span class="finance-label">События - к получению:</span>
+                    <span class="finance-value">${(totalEvents - paidEvents).toLocaleString()} MDL</span>
+                </div>
+                <div class="finance-row">
+                    <span class="finance-label">ИТОГО - всего:</span>
+                    <span class="finance-value">${total.toLocaleString()} MDL</span>
+                </div>
+                <div class="finance-row">
+                    <span class="finance-label">ИТОГО - оплачено:</span>
+                    <span class="finance-value">${totalPaid.toLocaleString()} MDL</span>
+                </div>
+                <div class="finance-row">
+                    <span class="finance-label">ИТОГО - к получению:</span>
+                    <span class="finance-value">${totalPending.toLocaleString()} MDL</span>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e8e4df; text-align: center; color: #6b6b6b; font-size: 12px;">
+            <p>Отчёт сформирован автоматически в Legal CRM</p>
+            <p style="margin-top: 5px;">Для сохранения в PDF: Ctrl+P → Сохранить как PDF</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+    // Создаём blob и открываем в новой вкладке
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    
+    // Альтернативно можно скачать файл
+    // const a = document.createElement('a');
+    // a.href = url;
+    // a.download = `${client.name}_${new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')}.html`;
+    // a.click();
+};
+
+            const totalAmount = cases.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+const paidAmount = cases.filter(c => c.paymentStatus === 'Оплачено')
+    .reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+const pendingAmount = totalAmount - paidAmount;
+
+// Добавляем расчёт для событий
+const totalEventAmount = events.filter(e => e.isPaid).reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+const paidEventAmount = events.filter(e => e.isPaid && e.paymentStatus === 'Оплачено')
+    .reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+const pendingEventAmount = totalEventAmount - paidEventAmount;
+
+// Общие суммы
+const grandTotal = totalAmount + totalEventAmount;
+const grandPaid = paidAmount + paidEventAmount;
+const grandPending = pendingAmount + pendingEventAmount;
+
+            const handleSaveEdit = () => {
+                onUpdateClient(client.id, editData);
+                setEditMode(false);
+            };
+
+const handleEditCase = (caseItem) => {
+    setEditingCase(caseItem.id);
+    setEditCaseData({
+        status: caseItem.status,
+        amount: caseItem.amount,
+        paymentStatus: caseItem.paymentStatus,
+        description: caseItem.description
+    });
+};
+
+const handleSaveCase = (caseId) => {
+    onUpdateCase(caseId, editCaseData);  // ИСПРАВЬТЕ ЭТУ СТРОКУ
+    setEditingCase(null);
+};
+
+const handleCancelEditCase = () => {
+    setEditingCase(null);
+    setEditCaseData({});
+};
+
+const handleEditEvent = (event) => {
+    setEditingEvent(event.id);
+    setEditEventData({
+        status: event.status,
+        isPaid: event.isPaid,
+        eventAmount: event.eventAmount,
+        paymentStatus: event.paymentStatus,
+        description: event.description
+    });
+};
+
+const handleSaveEvent = (eventId) => {
+    const updates = {};
+    if (editEventData.status !== undefined) updates.status = editEventData.status;
+    if (editEventData.isPaid !== undefined) {
+        updates.isPaid = editEventData.isPaid;
+        if (!editEventData.isPaid) {
+            updates.eventAmount = 0;
+            updates.paymentStatus = 'Бесплатно';
+        }
+    }
+    if (editEventData.eventAmount !== undefined) updates.eventAmount = editEventData.eventAmount;
+    if (editEventData.paymentStatus !== undefined) updates.paymentStatus = editEventData.paymentStatus;
+    if (editEventData.description !== undefined) updates.description = editEventData.description;
+    
+    onUpdateEvent(eventId, updates);
+    setEditingEvent(null);
+};
+
+const handleCancelEditEvent = () => {
+    setEditingEvent(null);
+    setEditEventData({});
+};
+
+            return (
+                <div className="client-detail">
+                    <div className="client-detail-header">
+    <div>
+        <button className="back-btn" onClick={onBack}>
+            ← Назад к списку
+        </button>
+    </div>
+    <div style={{display: 'flex', gap: '1rem'}}>
+                <button 
+    className="btn btn-secondary"
+    onClick={() => exportClientToHTML(client, cases, events, tasks)}
+    style={{background: 'var(--info)', color: 'white', border: 'none'}}
+>
+    📄 Отчёт
+</button>
+        <button 
+            className="btn btn-primary"
+            onClick={() => setEditMode(!editMode)}
+        >
+            {editMode ? 'Отменить' : 'Редактировать'}
+        </button>
+        <button 
+            className="btn btn-danger"
+            onClick={() => onDeleteClient(client.id, client.name)}
+        >
+            Удалить
+        </button>
+    </div>
+</div>
+
+                    {editMode ? (
+                        <div className="calendar-container" style={{marginBottom: '2rem'}}>
+                            <h3 style={{marginBottom: '1.5rem', fontFamily: 'Playfair Display, serif'}}>
+                                Редактирование клиента
+                            </h3>
+                            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem'}}>
+                                <div className="form-group">
+                                    <label>ФИО</label>
+                                    <input
+                                        type="text"
+                                        value={editData.name}
+                                        onChange={(e) => setEditData({...editData, name: e.target.value})}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Телефон</label>
+                                    <input
+                                        type="tel"
+                                        value={editData.phone}
+                                        onChange={(e) => setEditData({...editData, phone: e.target.value})}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Email</label>
+                                    <input
+                                        type="email"
+                                        value={editData.email || ''}
+                                        onChange={(e) => setEditData({...editData, email: e.target.value})}
+                                    />
+                                </div>
+                                <div className="form-group">
+    <label>Статус</label>
+    <select
+        value={editData.status}
+        onChange={(e) => setEditData({...editData, status: e.target.value})}
+    >
+        <option value="Активный">Активный</option>
+        <option value="Закрыт">Закрыт</option>
+    </select>
+</div>
+                                <div className="form-group" style={{gridColumn: '1 / -1'}}>
+                                    <label>Адрес</label>
+                                    <input
+                                        type="text"
+                                        value={editData.address || ''}
+                                        onChange={(e) => setEditData({...editData, address: e.target.value})}
+                                    />
+                                </div>
+                                <div className="form-group" style={{gridColumn: '1 / -1'}}>
+                                    <label>Заметки</label>
+                                    <textarea
+                                        value={editData.notes || ''}
+                                        onChange={(e) => setEditData({...editData, notes: e.target.value})}
+                                        rows="3"
+                                    />
+                                </div>
+                            </div>
+                            <button className="btn btn-primary" onClick={handleSaveEdit} style={{marginTop: '1rem'}}>
+                                Сохранить изменения
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="calendar-container" style={{marginBottom: '2rem'}}>
+                            <h2 style={{fontFamily: 'Playfair Display, serif', fontSize: '2rem', marginBottom: '1rem'}}>
+                                {client.name}
+                            </h2>
+                            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', color: 'var(--text-light)'}}>
+                                <div>
+                                    <strong>Телефон:</strong> {client.phone}
+                                </div>
+                                <div>
+                                    <strong>Email:</strong> {client.email || '-'}
+                                </div>
+                                <div>
+                                    <strong>Адрес:</strong> {client.address || '-'}
+                                </div>
+                                <div>
+                                    <strong>Статус:</strong> <span className={`client-status ${client.status === 'Активный' ? 'status-active' : 'status-pending'}`}>
+    {client.status === 'Активный' ? '🟢 Активный' : '🔴 Закрыт'}
+</span>
+                                </div>
+                            </div>
+                            {client.notes && (
+                                <div style={{marginTop: '1rem', padding: '1rem', background: 'var(--bg)', borderRadius: '8px'}}>
+                                    <strong>Заметки:</strong><br/>
+                                    {client.notes}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="stats-grid">
+    <div className="stat-card">
+        <div className="stat-value">{cases.length}</div>
+        <div className="stat-label">Всего дел</div>
+    </div>
+    <div className="stat-card">
+        <div className="stat-value">{events.length}</div>
+        <div className="stat-label">События</div>
+    </div>
+    <div className="stat-card">
+        <div className="stat-value">{tasks.length}</div>
+        <div className="stat-label">Задачи</div>
+    </div>
+    <div className="stat-card">
+        <div className="stat-value">{grandTotal.toLocaleString()} MDL</div>
+        <div className="stat-label">Общая сумма</div>
+    </div>
+</div>
+
+                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem'}}>
+                        <div className="action-card" onClick={onAddCase}>
+                            <div className="icon">📝</div>
+                            <div className="title">Добавить дело</div>
+                        </div>
+                        <div className="action-card" onClick={onAddEvent}>
+                            <div className="icon">✓</div>
+                            <div className="title">Добавить событие</div>
+                        </div>
+                        <div className="action-card" onClick={onAddTask}>
+                            <div className="icon">📅</div>
+                            <div className="title">Добавить напоминание</div>
+                        </div>
+                    </div>
+
+                    <div className="tabs">
+                        <button 
+                            className={`tab ${activeTab === 'overview' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('overview')}
+                        >
+                            Обзор
+                        </button>
+                        <button 
+                            className={`tab ${activeTab === 'cases' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('cases')}
+                        >
+                            Дела ({cases.length})
+                        </button>
+                        
+                        <button 
+                            className={`tab ${activeTab === 'tasks' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('tasks')}
+                        >
+                            Напоминания ({tasks.length})
+                        </button>
+                        <button 
+                            className={`tab ${activeTab === 'finances' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('finances')}
+                        >
+                            Финансы
+                        </button>
+                    </div>
+
+                    <div className="calendar-container">
+                        {activeTab === 'overview' && (
+                            <div>
+                                <h3 style={{marginBottom: '1.5rem', fontFamily: 'Playfair Display, serif'}}>
+                                    Последние действия
+                                </h3>
+                                <div className="list-container">
+                                    {cases.slice(0, 3).map(c => (
+                                        <div key={c.id} className="list-item">
+                                            <div className="list-item-header">
+                                                <div className="list-item-title">📝 {c.title}</div>
+                                                <span className={`list-item-status status-${c.status}`}>
+                                                    {c.status === 'new' ? 'Новое' : c.status === 'in-progress' ? 'В работе' : 'Завершено'}
+                                                </span>
+                                            </div>
+                                            <div className="list-item-content">
+                                                {c.description}
+                                            </div>
+                                            <div className="list-item-footer">
+                                                <span>{new Date(c.createdAt).toLocaleDateString('ru-RU')}</span>
+                                                <span><strong>{parseFloat(c.amount || 0).toLocaleString()} MDL</strong></span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {cases.length === 0 && (
+                                        <div className="empty-state">
+                                            <div className="empty-state-icon">📝</div>
+                                            <p>Дела отсутствуют</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'cases' && (
+    <div className="list-container">
+        {cases.map(c => {
+    const caseEvents = events
+    .filter(e => e.caseId === c.id)
+    .sort((a, b) => {
+        // Сначала по дате
+        const dateCompare = new Date(b.date + ' ' + (b.time || '00:00')) - new Date(a.date + ' ' + (a.time || '00:00'));
+        if (dateCompare !== 0) return dateCompare;
+        // Если даты одинаковые, по времени создания
+        return b.createdAt - a.createdAt;
+    });
+    const isExpanded = selectedCaseForEvents === c.id;
+    
+    return (
+        <div key={c.id}>
+                    <div className="list-item">
+                        {editingCase === c.id ? (
+                            // Режим редактирования (остается как было)
+                            <div>
+                                <div className="list-item-header">
+                                    <div className="list-item-title">{c.title}</div>
+                                </div>
+                                <div style={{marginTop: '1rem'}}>
+                                    <div className="form-group">
+                                        <label>Статус</label>
+                                        <select
+                                            value={editCaseData.status || c.status}
+                                            onChange={(e) => setEditCaseData({...editCaseData, status: e.target.value})}
+                                            style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}
+                                        >
+                                            <option value="new">Новое</option>
+                                            <option value="in-progress">В работе</option>
+                                            <option value="completed">Завершено</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Сумма (MDL)</label>
+                                        <input
+                                            type="number"
+                                            value={editCaseData.amount !== undefined ? editCaseData.amount : c.amount}
+                                            onChange={(e) => setEditCaseData({...editCaseData, amount: e.target.value})}
+                                            style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Статус оплаты</label>
+                                        <select
+                                            value={editCaseData.paymentStatus || c.paymentStatus}
+                                            onChange={(e) => setEditCaseData({...editCaseData, paymentStatus: e.target.value})}
+                                            style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}
+                                        >
+                                            <option>Не оплачено</option>
+                                            <option>Оплачено</option>
+                                            <option>Частично оплачено</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Описание</label>
+                                        <textarea
+                                            value={editCaseData.description !== undefined ? editCaseData.description : c.description}
+                                            onChange={(e) => setEditCaseData({...editCaseData, description: e.target.value})}
+                                            style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', minHeight: '80px'}}
+                                        />
+                                    </div>
+                                    <div style={{display: 'flex', gap: '0.5rem', marginTop: '1rem'}}>
+                                        <button 
+                                            className="btn btn-primary" 
+                                            onClick={() => handleSaveCase(c.id)}
+                                            style={{flex: 1}}
+                                        >
+                                            Сохранить
+                                        </button>
+                                        <button 
+                                            className="btn btn-secondary" 
+                                            onClick={handleCancelEditCase}
+                                            style={{flex: 1}}
+                                        >
+                                            Отмена
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            // Режим просмотра
+                            <>
+                                <div className="list-item-header">
+                                    <div className="list-item-title">{c.title}</div>
+                                    <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
+                                        <span className={`list-item-status status-${c.status}`}>
+                                            {c.status === 'new' ? 'Новое' : c.status === 'in-progress' ? 'В работе' : 'Завершено'}
+                                        </span>
+                                        <span style={{
+                                            padding: '0.4rem 0.9rem',
+                                            background: 'rgba(212, 165, 116, 0.15)',
+                                            color: 'var(--accent-dark)',
+                                            border: 'none',
+                                            borderRadius: '20px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: '600'
+                                        }}>
+                                            ✓ {caseEvents.length} {caseEvents.length === 1 ? 'событие' : 'событий'}
+                                        </span>
+                                        <button
+                                            onClick={() => setSelectedCaseForEvents(isExpanded ? null : c.id)}
+                                            style={{
+                                                padding: '0.4rem 0.9rem',
+                                                background: 'rgba(212, 165, 116, 0.15)',
+                                                color: 'var(--accent-dark)',
+                                                border: 'none',
+                                                borderRadius: '20px',
+                                                cursor: 'pointer',
+                                                fontSize: '0.75rem',
+                                                fontWeight: '600',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.5px',
+                                                transition: 'all 0.2s'
+                                            }}
+                                            onMouseOver={(ev) => ev.target.style.background = 'rgba(212, 165, 116, 0.25)'}
+                                            onMouseOut={(ev) => ev.target.style.background = 'rgba(212, 165, 116, 0.15)'}
+                                        >
+                                            {isExpanded ? '▲ Скрыть события' : '▼ Показать события'}
+                                        </button>
+                                        <button
+                                            onClick={() => handleEditCase(c)}
+                                            style={{
+                                                padding: '0.4rem 0.9rem',
+                                                background: 'rgba(74, 144, 226, 0.15)',
+                                                color: 'var(--info)',
+                                                border: 'none',
+                                                borderRadius: '20px',
+                                                cursor: 'pointer',
+                                                fontSize: '0.75rem',
+                                                fontWeight: '600',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.5px',
+                                                transition: 'all 0.2s'
+                                            }}
+                                            onMouseOver={(ev) => ev.target.style.background = 'rgba(74, 144, 226, 0.25)'}
+                                            onMouseOut={(ev) => ev.target.style.background = 'rgba(74, 144, 226, 0.15)'}
+                                        >
+                                            ✏️ Редактировать
+                                        </button>
+                                    
+									<button
+    onClick={() => onDeleteCase(c.id, c.title)}
+    style={{
+        padding: '0.4rem 0.9rem',
+        background: 'rgba(196, 92, 92, 0.15)',
+        color: 'var(--danger)',
+        border: 'none',
+        borderRadius: '20px',
+        cursor: 'pointer',
+        fontSize: '0.75rem',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+        transition: 'all 0.2s'
+    }}
+    onMouseOver={(ev) => ev.target.style.background = 'rgba(196, 92, 92, 0.25)'}
+    onMouseOut={(ev) => ev.target.style.background = 'rgba(196, 92, 92, 0.15)'}
+>
+    🗑️ Удалить
+</button>
+																		
+									</div>								
+								
+                                </div>
+                                <div className="list-item-content">
+                                    {c.description}
+                                </div>
+                                <div className="list-item-footer">
+    <div>
+        <span style={{marginRight: '1rem'}}>
+            {new Date(c.createdAt).toLocaleDateString('ru-RU')}
+        </span>
+        <span className={`client-status ${c.paymentStatus === 'Оплачено' ? 'status-active' : 'status-pending'}`}>
+            {c.paymentStatus || 'Не оплачено'}
+        </span>
+    </div>
+    <div style={{textAlign: 'right'}}>
+        {/* Сумма дела */}
+        <div style={{fontSize: '0.9rem', color: 'var(--text-light)'}}>
+            Дело: {parseFloat(c.amount || 0).toLocaleString()} MDL
+        </div>
+        
+        {/* Платные события */}
+        {caseEvents.filter(e => e.isPaid).length > 0 && (
+            <>
+                <div style={{fontSize: '0.9rem', color: 'var(--text-light)', marginTop: '0.25rem'}}>
+                    События: {caseEvents.filter(e => e.isPaid).reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0).toLocaleString()} MDL
+                </div>
+                <div style={{fontSize: '0.85rem', color: 'var(--success)', marginTop: '0.25rem'}}>
+                    Оплачено (события): {caseEvents.filter(e => e.isPaid && e.paymentStatus === 'Оплачено').reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0).toLocaleString()} MDL
+                </div>
+            </>
+        )}
+        
+        {/* Итого */}
+        <div style={{
+            fontSize: '1.1rem', 
+            fontWeight: '700', 
+            color: 'var(--primary)', 
+            marginTop: '0.5rem', 
+            paddingTop: '0.5rem', 
+            borderTop: '2px solid var(--accent)'
+        }}>
+            Итого: {(parseFloat(c.amount || 0) + caseEvents.filter(e => e.isPaid).reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0)).toLocaleString()} MDL
+        </div>
+        
+        {/* К получению */}
+        <div style={{fontSize: '0.85rem', color: 'var(--warning)', marginTop: '0.25rem'}}>
+            К получению: {(
+                (parseFloat(c.amount || 0) + caseEvents.filter(e => e.isPaid).reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0)) -
+                ((c.paymentStatus === 'Оплачено' ? parseFloat(c.amount || 0) : 0) + caseEvents.filter(e => e.isPaid && e.paymentStatus === 'Оплачено').reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0))
+            ).toLocaleString()} MDL
+        </div>
+    </div>
+</div>
+                            </>
+                        )}
+                    </div>
+                    
+                    {/* События дела */}
+                    {isExpanded && caseEvents.length > 0 && (
+                        <div style={{
+                            marginLeft: '2rem',
+                            marginTop: '1rem',
+                            marginBottom: '1rem',
+                            padding: '1rem',
+                            background: 'var(--bg)',
+                            borderRadius: '8px',
+                            borderLeft: '3px solid var(--accent)'
+                        }}>
+                            <h4 style={{marginBottom: '1rem', color: 'var(--text-light)', fontSize: '0.9rem'}}>
+                                События по делу:
+                            </h4>
+                            {caseEvents.sort((a, b) => new Date(b.date) - new Date(a.date)).map(e => (
+                                <div key={e.id} style={{
+                                    padding: '1rem',
+                                    background: 'white',
+                                    borderRadius: '6px',
+                                    marginBottom: '0.75rem',
+                                    border: '1px solid var(--border)'
+                                }}>
+                                    {editingEvent === e.id ? (
+                                        // Режим редактирования
+                                        <div>
+                                            <div style={{marginBottom: '1rem'}}>
+                                                <strong>{e.title}</strong>
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Статус</label>
+                                                <select
+                                                    value={editEventData.status !== undefined ? editEventData.status : e.status}
+                                                    onChange={(ev) => setEditEventData({...editEventData, status: ev.target.value})}
+                                                    style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}
+                                                >
+                                                    <option value="new">Новое</option>
+                                                    <option value="in-progress">В процессе</option>
+                                                    <option value="completed">Завершено</option>
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Оплата события</label>
+                                                <select
+                                                    value={(editEventData.isPaid !== undefined ? editEventData.isPaid : e.isPaid) ? 'paid' : 'free'}
+                                                    onChange={(ev) => {
+                                                        const isPaid = ev.target.value === 'paid';
+                                                        setEditEventData({
+                                                            ...editEventData, 
+                                                            isPaid: isPaid,
+                                                            eventAmount: isPaid ? (editEventData.eventAmount || e.eventAmount) : 0,
+                                                            paymentStatus: isPaid ? (editEventData.paymentStatus || e.paymentStatus) : 'Бесплатно'
+                                                        });
+                                                    }}
+                                                    style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}
+                                                >
+                                                    <option value="free">Бесплатно (входит в договор)</option>
+                                                    <option value="paid">Платное (оплачивается отдельно)</option>
+                                                </select>
+                                            </div>
+                                            {(editEventData.isPaid !== undefined ? editEventData.isPaid : e.isPaid) && (
+                                                <>
+                                                    <div className="form-group">
+                                                        <label>Сумма за событие (MDL)</label>
+                                                        <input
+                                                            type="number"
+                                                            value={editEventData.eventAmount !== undefined ? editEventData.eventAmount : e.eventAmount}
+                                                            onChange={(ev) => setEditEventData({...editEventData, eventAmount: ev.target.value})}
+                                                            style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}
+                                                        />
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label>Статус оплаты</label>
+                                                        <select
+                                                            value={editEventData.paymentStatus || e.paymentStatus}
+                                                            onChange={(ev) => setEditEventData({...editEventData, paymentStatus: ev.target.value})}
+                                                            style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}
+                                                        >
+                                                            <option>Не оплачено</option>
+                                                            <option>Оплачено</option>
+                                                        </select>
+                                                    </div>
+                                                </>
+                                            )}
+                                            <div className="form-group">
+                                                <label>Описание</label>
+                                                <textarea
+                                                    value={editEventData.description !== undefined ? editEventData.description : e.description}
+                                                    onChange={(ev) => setEditEventData({...editEventData, description: ev.target.value})}
+                                                    style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', minHeight: '60px'}}
+                                                />
+                                            </div>
+                                            <div style={{display: 'flex', gap: '0.5rem', marginTop: '1rem'}}>
+                                                <button 
+                                                    className="btn btn-primary" 
+                                                    onClick={() => handleSaveEvent(e.id)}
+                                                    style={{flex: 1, padding: '0.5rem'}}
+                                                >
+                                                    Сохранить
+                                                </button>
+                                                <button 
+                                                    className="btn btn-secondary" 
+                                                    onClick={handleCancelEditEvent}
+                                                    style={{flex: 1, padding: '0.5rem'}}
+                                                >
+                                                    Отмена
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        // Режим просмотра
+                                        <>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem'}}>
+                                                <div style={{flex: 1}}>
+                                                    <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'}}>
+                                                        <strong style={{fontSize: '1rem'}}>{e.title}</strong>
+                                                        <span className={`list-item-status status-${e.status}`}>
+                                                            {e.status === 'new' ? '🆕 Новое' : 
+                                                             e.status === 'in-progress' ? '🔵 В процессе' : 
+                                                             '✅ Завершено'}
+                                                        </span>
+                                                    </div>
+                                                    <div style={{fontSize: '0.85rem', color: 'var(--text-light)'}}>
+                                                        📋 {e.type} • 📅 {new Date(e.date).toLocaleDateString('ru-RU')} {e.time && `• 🕐 ${e.time}`}
+                                                    </div>
+                                                    {e.description && (
+                                                        <div style={{fontSize: '0.9rem', color: 'var(--text)', marginTop: '0.5rem'}}>
+                                                            {e.description}
+                                                        </div>
+                                                    )}
+                                                    <div style={{marginTop: '0.75rem'}}>
+                                                        {e.isPaid ? (
+                                                            <div style={{
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.5rem',
+                                                                padding: '0.5rem 0.75rem',
+                                                                background: 'rgba(212, 165, 116, 0.1)',
+                                                                borderRadius: '6px'
+                                                            }}>
+                                                                <span style={{fontWeight: '600', color: 'var(--accent-dark)'}}>
+                                                                    💰 Платное событие:
+                                                                </span>
+                                                                <span style={{fontWeight: '700', fontSize: '1.05rem', color: 'var(--primary)'}}>
+                                                                    {parseFloat(e.eventAmount || 0).toLocaleString()} MDL
+                                                                </span>
+                                                                <span className={`client-status ${e.paymentStatus === 'Оплачено' ? 'status-active' : 'status-pending'}`}>
+                                                                    {e.paymentStatus}
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <span style={{
+                                                                display: 'inline-block',
+                                                                padding: '0.5rem 0.75rem',
+                                                                background: 'rgba(90, 159, 126, 0.1)',
+                                                                borderRadius: '6px',
+                                                                fontSize: '0.9rem',
+                                                                color: 'var(--success)',
+                                                                fontWeight: '600'
+                                                            }}>
+                                                                ✓ Входит в договор (бесплатно)
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', marginLeft: '1rem'}}>
+                                                    <button
+                                                        onClick={() => handleEditEvent(e)}
+                                                        style={{
+                                                            padding: '0.4rem 0.9rem',
+                                                            background: 'rgba(74, 144, 226, 0.15)',
+                                                            color: 'var(--info)',
+                                                            border: 'none',
+                                                            borderRadius: '20px',
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: '600',
+                                                            textTransform: 'uppercase',
+                                                            letterSpacing: '0.5px',
+                                                            transition: 'all 0.2s',
+                                                            whiteSpace: 'nowrap'
+                                                        }}
+                                                        onMouseOver={(ev) => ev.target.style.background = 'rgba(74, 144, 226, 0.25)'}
+                                                        onMouseOut={(ev) => ev.target.style.background = 'rgba(74, 144, 226, 0.15)'}
+                                                    >
+                                                        ✏️ Редактировать
+                                                    </button>
+                                                    <button
+                                                        onClick={() => onDeleteEvent(e.id, e.title)}
+                                                        style={{
+                                                            padding: '0.4rem 0.9rem',
+                                                            background: 'rgba(196, 92, 92, 0.15)',
+                                                            color: 'var(--danger)',
+                                                            border: 'none',
+                                                            borderRadius: '20px',
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: '600',
+                                                            textTransform: 'uppercase',
+                                                            letterSpacing: '0.5px',
+                                                            transition: 'all 0.2s',
+                                                            whiteSpace: 'nowrap'
+                                                        }}
+                                                        onMouseOver={(ev) => ev.target.style.background = 'rgba(196, 92, 92, 0.25)'}
+                                                        onMouseOut={(ev) => ev.target.style.background = 'rgba(196, 92, 92, 0.15)'}
+                                                    >
+                                                        🗑️ Удалить
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    
+                    {isExpanded && caseEvents.length === 0 && (
+                        <div style={{
+                            marginLeft: '2rem',
+                            marginTop: '1rem',
+                            marginBottom: '1rem',
+                            padding: '1.5rem',
+                            background: 'var(--bg)',
+                            borderRadius: '8px',
+                            textAlign: 'center',
+                            color: 'var(--text-light)',
+                            fontStyle: 'italic'
+                        }}>
+                            По этому делу пока нет событий
+                        </div>
+                    )}
+                </div>
+            );
+        })}
+        {cases.length === 0 && (
+            <div className="empty-state">
+                <div className="empty-state-icon">📝</div>
+                <p>Дела отсутствуют. Нажмите "Добавить дело" чтобы создать первое дело.</p>
+            </div>
+        )}
+    </div>
+)}
+
+
+                        {activeTab === 'tasks' && (
+                            <div className="list-container">
+                                {tasks.map(t => (
+                                    <div key={t.id} className="list-item" style={{
+                                        opacity: t.completed ? 0.6 : 1,
+                                        borderLeftColor: t.completed ? 'var(--success)' : 'var(--accent)'
+                                    }}>
+                                        <div className="list-item-header">
+                                            <div className="list-item-title" style={{
+                                                textDecoration: t.completed ? 'line-through' : 'none'
+                                            }}>
+                                                {t.title}
+                                            </div>
+                                        </div>
+                                        <div className="list-item-content">
+                                            {t.description}
+                                        </div>
+                                        <div className="list-item-footer">
+                                            <label className="checkbox-label">
+                                                <input 
+                                                    type="checkbox"
+                                                    checked={t.completed}
+                                                    onChange={() => onToggleTask(t.id, t.completed)}
+                                                />
+                                                <span>{t.completed ? 'Выполнено' : 'Отметить как выполненное'}</span>
+                                            </label>
+                                            <span>{new Date(t.createdAt).toLocaleDateString('ru-RU')}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                                {tasks.length === 0 && (
+                                    <div className="empty-state">
+                                        <div className="empty-state-icon">✓</div>
+                                        <p>Напоминания отсутствуют. Нажмите "Добавить напоминание" чтобы создать первое напоминание.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'finances' && (
+    <div>
+        <div className="stats-grid" style={{marginBottom: '2rem'}}>
+            <div className="stat-card">
+                <div className="stat-value">{totalAmount.toLocaleString()} MDL</div>
+                <div className="stat-label">Всего по делам</div>
+            </div>
+            <div className="stat-card">
+                <div className="stat-value">{totalEventAmount.toLocaleString()} MDL</div>
+                <div className="stat-label">Платные события</div>
+            </div>
+            <div className="stat-card">
+                <div className="stat-value">{grandPaid.toLocaleString()} MDL</div>
+                <div className="stat-label">Оплачено (всего)</div>
+            </div>
+            <div className="stat-card">
+                <div className="stat-value">{grandPending.toLocaleString()} MDL</div>
+                <div className="stat-label">К получению</div>
+            </div>
+        </div>
+
+        <h3 style={{marginBottom: '1.5rem', fontFamily: 'Playfair Display, serif'}}>
+            Детализация платежей
+        </h3>
+        <FinanceDetails cases={cases} events={events} />
+    </div>
+)}
+                  </div>
+                </div>
+            );
+        }
+
+        // Finance Details Component  
+        function FinanceDetails({ cases, events }) {
+            const [expandedCases, setExpandedCases] = React.useState({});
+            
+            const toggleCase = (caseId) => {
+                setExpandedCases(prev => ({
+                    ...prev,
+                    [caseId]: !prev[caseId]
+                }));
+            };
+            
+            return (
+                <div className="list-container">
+                    {cases.map(c => {
+                        const isCaseFinanceExpanded = expandedCases[c.id] || false;
+                        const caseEventsForFinance = events.filter(e => e.caseId === c.id && e.isPaid);
+                        const eventsTotal = caseEventsForFinance.reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+                        const caseTotal = (parseFloat(c.amount) || 0) + eventsTotal;
+                        const casePaid = (c.paymentStatus === 'Оплачено' ? (parseFloat(c.amount) || 0) : 0) + 
+                                         caseEventsForFinance.filter(e => e.paymentStatus === 'Оплачено').reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+                        const caseDebt = caseTotal - casePaid;
+                        
+                        return (
+                            <div key={c.id} style={{marginBottom: '1rem'}}>
+                                <div 
+                                    onClick={() => toggleCase(c.id)}
+                                    style={{
+                                        padding: '1.5rem',
+                                        background: 'var(--primary)',
+                                        color: 'white',
+                                        borderRadius: isCaseFinanceExpanded ? '8px 8px 0 0' : '8px',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        borderLeft: '4px solid var(--accent)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--primary-light)'}
+                                    onMouseOut={(e) => e.currentTarget.style.background = 'var(--primary)'}
+                                >
+                                    <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
+                                        <span style={{fontSize: '1.2rem'}}>
+                                            {isCaseFinanceExpanded ? '▼' : '▶'}
+                                        </span>
+                                        <div>
+                                            <div style={{fontWeight: '600', marginBottom: '0.25rem'}}>{c.title}</div>
+                                            <div style={{fontSize: '0.85rem', opacity: 0.9}}>
+                                                {new Date(c.createdAt).toLocaleDateString('ru-RU')} • {caseEventsForFinance.length} платных событий
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style={{textAlign: 'right'}}>
+                                        <div style={{fontSize: '0.85rem', opacity: 0.9, marginBottom: '0.25rem'}}>
+                                            Дело: {parseFloat(c.amount || 0).toLocaleString()} MDL
+                                        </div>
+                                        {eventsTotal > 0 && (
+                                            <div style={{fontSize: '0.85rem', opacity: 0.9, marginBottom: '0.25rem'}}>
+                                                События: {eventsTotal.toLocaleString()} MDL
+                                            </div>
+                                        )}
+                                        <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#d4a574'}}>
+                                            {caseTotal.toLocaleString()} MDL
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {isCaseFinanceExpanded && (
+                                    <div style={{
+                                        background: 'white',
+                                        border: '1px solid var(--border)',
+                                        borderTop: 'none',
+                                        borderRadius: '0 0 8px 8px',
+                                        padding: '1.5rem'
+                                    }}>
+                                        <div style={{
+                                            background: 'var(--bg)',
+                                            padding: '1rem',
+                                            borderRadius: '8px',
+                                            marginBottom: '1rem'
+                                        }}>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border)'}}>
+                                                <span style={{fontWeight: '600'}}>Сумма по делу:</span>
+                                                <span style={{fontWeight: '600'}}>{parseFloat(c.amount || 0).toLocaleString()} MDL</span>
+                                            </div>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border)'}}>
+                                                <span style={{fontWeight: '600'}}>Сумма по событиям:</span>
+                                                <span style={{fontWeight: '600'}}>{eventsTotal.toLocaleString()} MDL</span>
+                                            </div>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', marginTop: '0.5rem', borderTop: '2px solid var(--accent)'}}>
+                                                <span style={{fontWeight: '700', fontSize: '1.1rem'}}>ИТОГО:</span>
+                                                <span style={{fontWeight: '700', fontSize: '1.1rem', color: 'var(--primary)'}}>{caseTotal.toLocaleString()} MDL</span>
+                                            </div>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0'}}>
+                                                <span style={{fontWeight: '600', color: 'var(--success)'}}>Выплачено:</span>
+                                                <span style={{fontWeight: '600', color: 'var(--success)'}}>{casePaid.toLocaleString()} MDL</span>
+                                            </div>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0'}}>
+                                                <span style={{fontWeight: '600', color: 'var(--danger)'}}>Задолженность:</span>
+                                                <span style={{fontWeight: '600', color: 'var(--danger)'}}>{caseDebt.toLocaleString()} MDL</span>
+                                            </div>
+                                        </div>
+                                        
+                                        {caseEventsForFinance.length > 0 && (
+                                            <>
+                                                <div style={{fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-light)', marginBottom: '0.75rem'}}>
+                                                    📅 Платные события:
+                                                </div>
+                                                {caseEventsForFinance.map(e => (
+                                                    <div key={e.id} style={{
+                                                        padding: '1rem',
+                                                        background: 'var(--bg)',
+                                                        borderRadius: '6px',
+                                                        marginBottom: '0.5rem',
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        border: '1px solid var(--border)'
+                                                    }}>
+                                                        <div>
+                                                            <div style={{fontWeight: '600', marginBottom: '0.25rem'}}>
+                                                                {e.type}
+                                                            </div>
+                                                            <div style={{fontSize: '0.85rem', color: 'var(--text-light)'}}>
+                                                                📅 {new Date(e.date).toLocaleDateString('ru-RU')} {e.time && `• 🕐 ${e.time}`}
+                                                            </div>
+                                                            {e.description && (
+                                                                <div style={{fontSize: '0.85rem', color: 'var(--text)', marginTop: '0.25rem'}}>
+                                                                    {e.description}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div style={{textAlign: 'right'}}>
+                                                            <div style={{fontWeight: '600', fontSize: '1.1rem', color: 'var(--primary)'}}>
+                                                                {parseFloat(e.eventAmount || 0).toLocaleString()} MDL
+                                                            </div>
+                                                            <div style={{
+                                                                fontSize: '0.75rem',
+                                                                padding: '0.25rem 0.5rem',
+                                                                borderRadius: '4px',
+                                                                marginTop: '0.5rem',
+                                                                background: e.paymentStatus === 'Оплачено' ? 'rgba(90, 159, 126, 0.15)' : 'rgba(230, 162, 60, 0.15)',
+                                                                color: e.paymentStatus === 'Оплачено' ? 'var(--success)' : 'var(--warning)',
+                                                                display: 'inline-block'
+                                                            }}>
+                                                                {e.paymentStatus}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        )}
+                                        
+                                        {caseEventsForFinance.length === 0 && (
+                                            <div style={{
+                                                textAlign: 'center',
+                                                padding: '1rem',
+                                                color: 'var(--text-light)',
+                                                fontStyle: 'italic'
+                                            }}>
+                                                По этому делу нет платных событий
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        }
+
+        
+		// Calendar View Component
+        function CalendarView({ events, currentDate, setCurrentDate }) {
+    const [selectedDay, setSelectedDay] = React.useState(null);
+    const [showDayModal, setShowDayModal] = React.useState(false);
+    
+    const daysOfWeek = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+            const getDaysInMonth = (date) => {
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                const daysInMonth = lastDay.getDate();
+                const startingDayOfWeek = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+
+                const days = [];
+                
+                const prevMonthDays = new Date(year, month, 0).getDate();
+                for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+                    days.push({
+                        date: new Date(year, month - 1, prevMonthDays - i),
+                        isCurrentMonth: false
+                    });
+                }
+
+                for (let i = 1; i <= daysInMonth; i++) {
+                    days.push({
+                        date: new Date(year, month, i),
+                        isCurrentMonth: true
+                    });
+                }
+
+                const remainingDays = 42 - days.length;
+                for (let i = 1; i <= remainingDays; i++) {
+                    days.push({
+                        date: new Date(year, month + 1, i),
+                        isCurrentMonth: false
+                    });
+                }
+
+                return days;
+            };
+
+            const getEventsForDay = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    return events.filter(event => event.date === dateStr);
+};
+
+            const isToday = (date) => {
+                const today = new Date();
+                return date.toDateString() === today.toDateString();
+            };
+
+            const prevMonth = () => {
+                setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+            };
+
+            const nextMonth = () => {
+                setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+            };
+			
+			const handleDayClick = (date, dayEvents) => {
+                if (dayEvents.length > 0) {
+                    setSelectedDay({ date, events: dayEvents });
+                    setShowDayModal(true);
+                }
+            };
+
+            const days = getDaysInMonth(currentDate);
+
+            return (
+                <>
+                    <div className="content-header">
+                        <h2>Календарь событий</h2>
+                    </div>
+
+                    <div className="calendar-container">
+                        <div className="calendar-header">
+                            <h3>{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</h3>
+                            <div className="calendar-nav">
+                                <button onClick={prevMonth}>← Назад</button>
+                                <button onClick={() => setCurrentDate(new Date())}>Сегодня</button>
+                                <button onClick={nextMonth}>Вперёд →</button>
+                            </div>
+                        </div>
+
+                        <div className="calendar-grid">
+                            {daysOfWeek.map(day => (
+                                <div key={day} className="calendar-day-header">
+                                    {day}
+                                </div>
+                            ))}
+                            {days.map((day, index) => {
+                                const dayEvents = getEventsForDay(day.date);
+                                return (
+                                    <div
+                                        key={index}
+                                        className={`calendar-day ${!day.isCurrentMonth ? 'other-month' : ''} ${isToday(day.date) ? 'today' : ''}`}
+                                        onClick={() => handleDayClick(day.date, dayEvents)}
+                                        style={{cursor: dayEvents.length > 0 ? 'pointer' : 'default'}}
+                                    >
+                                        <div className="day-number">{day.date.getDate()}</div>
+                                        {dayEvents.map(event => (
+                                            <div 
+                                                key={event.id} 
+                                                className={`event-item status-${event.status || 'new'}`}
+                                            >
+                                                {event.title}
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Модальное окно с событиями дня */}
+                    {showDayModal && selectedDay && (
+                        <div className="modal-overlay" onClick={() => setShowDayModal(false)}>
+                            <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '700px'}}>
+                                <h3 style={{marginBottom: '1.5rem'}}>
+                                    События на {selectedDay.date.toLocaleDateString('ru-RU', {
+                                        day: 'numeric',
+                                        month: 'long',
+                                        year: 'numeric'
+                                    })}
+                                </h3>
+                                
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                                    {selectedDay.events.map(event => (
+                                        <div key={event.id} style={{
+                                            padding: '1.5rem',
+                                            background: 'var(--bg)',
+                                            borderRadius: '8px',
+                                            borderLeft: `4px solid ${
+                                                event.status === 'completed' ? 'var(--success)' : 
+                                                event.status === 'in-progress' ? 'var(--info)' : 
+                                                'var(--warning)'
+                                            }`
+                                        }}>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem'}}>
+                                                <div>
+                                                    <h4 style={{fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.5rem'}}>
+                                                        {event.title}
+                                                    </h4>
+                                                    <div style={{fontSize: '0.9rem', color: 'var(--text-light)'}}>
+                                                        👤 <strong>Клиент:</strong> {event.clientName}
+                                                    </div>
+                                                </div>
+                                                <span className={`list-item-status status-${event.status}`}>
+                                                    {event.status === 'new' ? '🆕 Новое' : 
+                                                     event.status === 'in-progress' ? '🔵 В процессе' : 
+                                                     '✅ Завершено'}
+                                                </span>
+                                            </div>
+                                            
+                                            <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem'}}>
+                                                <div>
+                                                    <strong>📋 Тип:</strong> {event.type}
+                                                </div>
+                                                {event.time && (
+                                                    <div>
+                                                        <strong>🕐 Время:</strong> {event.time}
+                                                    </div>
+                                                )}
+                                                {event.description && (
+                                                    <div>
+                                                        <strong>📝 Описание:</strong> {event.description}
+                                                    </div>
+                                                )}
+                                                {event.isPaid && (
+                                                    <div style={{
+                                                        marginTop: '0.5rem',
+                                                        padding: '0.75rem',
+                                                        background: 'var(--card-bg)',
+                                                        borderRadius: '6px',
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center'
+                                                    }}>
+                                                        <div>
+                                                            <strong>💰 Платное событие</strong>
+                                                        </div>
+                                                        <div style={{textAlign: 'right'}}>
+                                                            <div style={{fontWeight: '600', fontSize: '1.1rem', color: 'var(--primary)'}}>
+                                                                {parseFloat(event.eventAmount || 0).toLocaleString()} MDL
+                                                            </div>
+                                                            <div style={{
+                                                                fontSize: '0.75rem',
+                                                                padding: '0.25rem 0.5rem',
+                                                                borderRadius: '10px',
+                                                                marginTop: '0.25rem',
+                                                                background: event.paymentStatus === 'Оплачено' ? 
+                                                                    'rgba(90, 159, 126, 0.15)' : 'rgba(230, 162, 60, 0.15)',
+                                                                color: event.paymentStatus === 'Оплачено' ? 
+                                                                    'var(--success)' : 'var(--warning)',
+                                                                fontWeight: '600'
+                                                            }}>
+                                                                {event.paymentStatus}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {!event.isPaid && (
+                                                    <div style={{
+                                                        marginTop: '0.5rem',
+                                                        padding: '0.5rem',
+                                                        background: 'rgba(90, 159, 126, 0.1)',
+                                                        borderRadius: '6px',
+                                                        fontSize: '0.85rem',
+                                                        color: 'var(--success)',
+                                                        fontWeight: '600'
+                                                    }}>
+                                                        ✓ Входит в договор (бесплатно)
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                <button 
+                                    className="btn btn-secondary" 
+                                    onClick={() => setShowDayModal(false)}
+                                    style={{marginTop: '1.5rem', width: '100%'}}
+                                >
+                                    Закрыть
+                                </button>
+                            </div>
+                        </div>
+                    )}
+				</>
+            );
+        }
+
+        // Clients View Component
+        function ClientsView({ clients, searchTerm, setSearchTerm, onSelectClient }) {
+            const filteredClients = clients.filter(client =>
+                client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                client.email?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            return (
+                <>
+                    <div className="content-header">
+                        <h2>Клиенты</h2>
+                        <input
+                            type="text"
+                            className="search-box"
+                            placeholder="Поиск клиентов..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="client-grid">
+                        {filteredClients.map(client => (
+                            <div key={client.id} className="client-card" onClick={() => onSelectClient(client)}>
+                                <div className="client-header">
+                                    <div>
+                                        <div className="client-name">{client.name}</div>
+                                        <div className="client-phone">{client.phone}</div>
+                                    </div>
+                                    <span className={`client-status ${client.status === 'Активный' ? 'status-active' : 'status-pending'}`}>
+                                        {client.status}
+                                    </span>
+                                </div>
+                                <div className="client-info">
+                                    <div className="info-row">
+                                        <span className="label">Email:</span>
+                                        <span>{client.email || '-'}</span>
+                                    </div>
+                                    {client.address && (
+                                        <div className="info-row">
+                                            <span className="label">Адрес:</span>
+                                            <span>{client.address}</span>
+                                        </div>
+                                    )}
+                                    <div className="info-row">
+                                        <span className="label">Добавлен:</span>
+                                        <span>{new Date(client.createdAt).toLocaleDateString('ru-RU')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {filteredClients.length === 0 && (
+                        <div className="empty-state">
+                            <div className="empty-state-icon">👥</div>
+                            <p>Клиенты не найдены</p>
+                        </div>
+                    )}
+                </>
+            );
+        }
+
+        // Finances View Component
+        function FinancesView({ cases, events }) {
+            const totalRevenue = cases.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+const paidAmount = cases.filter(c => c.paymentStatus === 'Оплачено')
+    .reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+const pendingAmount = totalRevenue - paidAmount;
+
+// Добавляем события
+const eventsArray = Object.values(events);
+const totalEventAmount = eventsArray.filter(e => e.isPaid).reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+const paidEventAmount = eventsArray.filter(e => e.isPaid && e.paymentStatus === 'Оплачено')
+    .reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+const pendingEventAmount = totalEventAmount - paidEventAmount;
+
+// Общие суммы
+const grandTotal = totalRevenue + totalEventAmount;
+const grandPaid = paidAmount + paidEventAmount;
+const grandPending = pendingAmount + pendingEventAmount;
+
+            const casesByClient = {};
+
+// Группируем дела по клиентам
+cases.forEach(c => {
+    if (!casesByClient[c.clientName]) {
+        casesByClient[c.clientName] = {
+            total: 0,
+            paid: 0,
+            cases: [],
+            events: []
+        };
+    }
+    casesByClient[c.clientName].total += parseFloat(c.amount) || 0;
+    if (c.paymentStatus === 'Оплачено') {
+        casesByClient[c.clientName].paid += parseFloat(c.amount) || 0;
+    }
+    casesByClient[c.clientName].cases.push(c);
+});
+
+// Добавляем платные события к клиентам
+eventsArray.filter(e => e.isPaid).forEach(e => {
+    if (!casesByClient[e.clientName]) {
+        casesByClient[e.clientName] = {
+            total: 0,
+            paid: 0,
+            cases: [],
+            events: []
+        };
+    }
+    casesByClient[e.clientName].total += parseFloat(e.eventAmount) || 0;
+    if (e.paymentStatus === 'Оплачено') {
+        casesByClient[e.clientName].paid += parseFloat(e.eventAmount) || 0;
+    }
+    casesByClient[e.clientName].events.push(e);
+});
+
+            return (
+                <>
+                    <div className="content-header">
+                        <h2>Финансы</h2>
+                    </div>
+
+                    <div className="stats-grid">
+    <div className="stat-card">
+        <div className="stat-value">{totalRevenue.toLocaleString()} MDL</div>
+        <div className="stat-label">Дела</div>
+    </div>
+    <div className="stat-card">
+        <div className="stat-value">{totalEventAmount.toLocaleString()} MDL</div>
+        <div className="stat-label">Платные события</div>
+    </div>
+    <div className="stat-card">
+        <div className="stat-value">{grandPaid.toLocaleString()} MDL</div>
+        <div className="stat-label">Оплачено</div>
+    </div>
+    <div className="stat-card">
+        <div className="stat-value">{grandPending.toLocaleString()} MDL</div>
+        <div className="stat-label">К получению</div>
+    </div>
+</div>
+
+                    <div className="calendar-container">
+                        <h3 style={{marginBottom: '1.5rem', fontFamily: 'Playfair Display, serif'}}>
+    Финансы по клиентам
+</h3>
+{Object.entries(casesByClient).map(([clientName, data]) => {
+    const [isClientExpanded, setIsClientExpanded] = React.useState(false);
+    const [expandedCase, setExpandedCase] = React.useState(null);
+    
+    return (
+        <div key={clientName} style={{marginBottom: '2rem'}}>
+            <div 
+                onClick={() => setIsClientExpanded(!isClientExpanded)}
+                style={{
+                    padding: '1.5rem',
+                    background: 'var(--primary)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'var(--primary-light)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'var(--primary)'}
+            >
+                <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
+                    <span style={{fontSize: '1.5rem'}}>
+                        {isClientExpanded ? '▼' : '▶'}
+                    </span>
+                    <h4 style={{fontSize: '1.25rem'}}>{clientName}</h4>
+                </div>
+                <div style={{textAlign: 'right'}}>
+                    <div style={{fontSize: '1.5rem', fontWeight: '700'}}>
+                        {data.total.toLocaleString()} MDL
+                    </div>
+                    <div style={{fontSize: '0.9rem', opacity: 0.9}}>
+                        Оплачено: {data.paid.toLocaleString()} MDL
+                    </div>
+                </div>
+            </div>
+            
+            {isClientExpanded && (
+                <div style={{
+                    border: '1px solid var(--border)', 
+                    borderTop: 'none', 
+                    borderRadius: '0 0 8px 8px',
+                    overflow: 'hidden',
+                    background: 'var(--bg)'
+                }}>
+                    {data.cases.map(c => {
+                        const caseEvents = data.events.filter(e => e.caseId === c.id);
+                        const caseEventsTotal = caseEvents.reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+                        const caseTotalAmount = (parseFloat(c.amount) || 0) + caseEventsTotal;
+                        const isCaseExpanded = expandedCase === c.id;
+                        
+                        return (
+                            <div key={c.id} style={{
+                                margin: '1rem',
+                                background: 'white',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                border: '1px solid var(--border)'
+                            }}>
+                                <div
+                                    onClick={() => setExpandedCase(isCaseExpanded ? null : c.id)}
+                                    style={{
+                                        padding: '1.25rem',
+                                        background: 'var(--bg)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        borderBottom: isCaseExpanded ? '2px solid var(--accent)' : 'none'
+                                    }}
+                                >
+                                    <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
+                                        <span style={{fontSize: '1.2rem', color: 'var(--accent)'}}>
+                                            {isCaseExpanded ? '▼' : '▶'}
+                                        </span>
+                                        <div>
+                                            <div style={{fontWeight: '600', fontSize: '1.05rem', marginBottom: '0.25rem'}}>
+                                                {c.title}
+                                            </div>
+                                            <div style={{fontSize: '0.85rem', color: 'var(--text-light)'}}>
+                                                {new Date(c.createdAt).toLocaleDateString('ru-RU')} • {caseEvents.length} событий
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style={{textAlign: 'right'}}>
+                                        <div style={{fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: '0.25rem'}}>
+                                            Дело: {parseFloat(c.amount || 0).toLocaleString()} MDL
+                                        </div>
+                                        {caseEventsTotal > 0 && (
+                                            <div style={{fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: '0.25rem'}}>
+                                                События: {caseEventsTotal.toLocaleString()} MDL
+                                            </div>
+                                        )}
+                                        <div style={{
+                                            fontWeight: '700',
+                                            fontSize: '1.15rem',
+                                            color: 'var(--primary)',
+                                            paddingTop: '0.25rem',
+                                            borderTop: '1px solid var(--border)'
+                                        }}>
+                                            {caseTotalAmount.toLocaleString()} MDL
+                                        </div>
+                                        <div style={{
+                                            fontSize: '0.75rem',
+                                            padding: '0.25rem 0.5rem',
+                                            borderRadius: '4px',
+                                            marginTop: '0.5rem',
+                                            background: c.paymentStatus === 'Оплачено' ? 'rgba(90, 159, 126, 0.15)' : 'rgba(230, 162, 60, 0.15)',
+                                            color: c.paymentStatus === 'Оплачено' ? 'var(--success)' : 'var(--warning)',
+                                            display: 'inline-block'
+                                        }}>
+                                            {c.paymentStatus || 'Не оплачено'}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* События дела */}
+                                {isCaseExpanded && caseEvents.length > 0 && (
+                                    <div style={{padding: '1rem', background: 'white'}}>
+                                        <div style={{
+                                            fontSize: '0.9rem',
+                                            fontWeight: '600',
+                                            color: 'var(--text-light)',
+                                            marginBottom: '0.75rem'
+                                        }}>
+                                            📅 События по делу:
+                                        </div>
+                                        {caseEvents.map(e => (
+                                            <div key={e.id} style={{
+                                                padding: '1rem',
+                                                background: 'var(--bg)',
+                                                borderRadius: '6px',
+                                                marginBottom: '0.5rem',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                border: '1px solid var(--border)'
+                                            }}>
+                                                <div>
+                                                    <div style={{fontWeight: '600', marginBottom: '0.25rem'}}>
+                                                        {e.type}
+                                                    </div>
+                                                    <div style={{fontSize: '0.85rem', color: 'var(--text-light)'}}>
+                                                        📅 {new Date(e.date).toLocaleDateString('ru-RU')} {e.time && `• 🕐 ${e.time}`}
+                                                    </div>
+                                                    {e.description && (
+                                                        <div style={{fontSize: '0.85rem', color: 'var(--text)', marginTop: '0.25rem'}}>
+                                                            {e.description}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div style={{textAlign: 'right'}}>
+                                                    <div style={{fontWeight: '600', fontSize: '1.1rem', color: 'var(--primary)'}}>
+                                                        {parseFloat(e.eventAmount || 0).toLocaleString()} MDL
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: '0.75rem',
+                                                        padding: '0.25rem 0.5rem',
+                                                        borderRadius: '4px',
+                                                        marginTop: '0.5rem',
+                                                        background: e.paymentStatus === 'Оплачено' ? 'rgba(90, 159, 126, 0.15)' : 'rgba(230, 162, 60, 0.15)',
+                                                        color: e.paymentStatus === 'Оплачено' ? 'var(--success)' : 'var(--warning)',
+                                                        display: 'inline-block'
+                                                    }}>
+                                                        {e.paymentStatus}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        
+                                        {/* Итого по событиям */}
+                                        <div style={{
+                                            marginTop: '1rem',
+                                            padding: '0.75rem',
+                                            background: 'var(--accent)',
+                                            color: 'white',
+                                            borderRadius: '6px',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            fontWeight: '600'
+                                        }}>
+                                            <span>Всего по событиям:</span>
+                                            <span>{caseEventsTotal.toLocaleString()} MDL</span>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {isCaseExpanded && caseEvents.length === 0 && (
+                                    <div style={{
+                                        padding: '1.5rem',
+                                        textAlign: 'center',
+                                        color: 'var(--text-light)',
+                                        fontStyle: 'italic',
+                                        background: 'white'
+                                    }}>
+                                        По этому делу нет платных событий
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+})}
+                    </div>
+                </>
+            );
+        }
+
+        // Modal Component
+        function Modal({ type, onClose, onSave, client, cases }) {
+    const [formData, setFormData] = useState({
+        status: 'Активный',  // Дефолтный статус для клиентов
+        type: 'Встреча с клиентом',  // Дефолтный тип для событий
+        isPaid: false,
+        paymentStatus: 'Бесплатно'
+    });
+    
+    // Сбрасываем форму при смене типа модального окна
+    React.useEffect(() => {
+    if (type === 'client') {
+        setFormData({ status: 'Активный' });
+    } else if (type === 'case') {
+        setFormData({
+            status: 'new',
+            paymentStatus: 'Не оплачено'  // <- ДОБАВЬТЕ
+        });
+    } else if (type === 'event') {
+        setFormData({
+            type: 'Встреча с клиентом',
+            status: 'new',
+            isPaid: false,
+            paymentStatus: 'Бесплатно'
+        });
+    } else {
+        setFormData({});
+    }
+}, [type]);
+
+            const handleChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+            };
+
+            const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log('Form data before save:', formData); // <- ДОБАВЬТЕ
+    onSave(formData);
+};
+
+            const renderForm = () => {
+                switch(type) {
+                    case 'client':
+                        return (
+                            <>
+                                <h3>Добавить клиента</h3>
+                                <form onSubmit={handleSubmit}>
+                                    <div className="form-group">
+                                        <label>ФИО *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.name || ''}
+                                            onChange={(e) => handleChange('name', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Телефон *</label>
+                                        <input
+                                            type="tel"
+                                            required
+                                            value={formData.phone || ''}
+                                            onChange={(e) => handleChange('phone', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Email</label>
+                                        <input
+                                            type="email"
+                                            value={formData.email || ''}
+                                            onChange={(e) => handleChange('email', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Адрес</label>
+                                        <input
+                                            type="text"
+                                            value={formData.address || ''}
+                                            onChange={(e) => handleChange('address', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+    <label>Статус</label>
+    <select
+        value={formData.status || 'Активный'}
+        onChange={(e) => handleChange('status', e.target.value)}
+    >
+        <option value="Активный">Активный</option>
+        <option value="Закрыт">Закрыт</option>
+    </select>
+</div>
+                                    <div className="form-group">
+                                        <label>Заметки</label>
+                                        <textarea
+                                            value={formData.notes || ''}
+                                            onChange={(e) => handleChange('notes', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-actions">
+                                        <button type="button" className="btn btn-secondary" onClick={onClose}>
+                                            Отмена
+                                        </button>
+                                        <button type="submit" className="btn btn-primary">
+                                            Сохранить
+                                        </button>
+                                    </div>
+                                </form>
+                            </>
+                        );
+
+                    case 'case':
+    return (
+        <>
+            <h3>Добавить дело</h3>
+            <p style={{marginBottom: '1.5rem', color: 'var(--text-light)', fontSize: '0.9rem'}}>
+                Номер дела будет присвоен автоматически
+            </p>
+            <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                    <label>Статус</label>
+                    <select
+                        value={formData.status || 'new'}
+                        onChange={(e) => handleChange('status', e.target.value)}
+                    >
+                        <option value="new">Новое</option>
+                        <option value="in-progress">В работе</option>
+                        <option value="completed">Завершено</option>
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label>Сумма (MDL)</label>
+                    <input
+                        type="number"
+                        value={formData.amount || ''}
+                        onChange={(e) => handleChange('amount', e.target.value)}
+                    />
+                </div>
+                <div className="form-group">
+                    <label>Статус оплаты</label>
+                    <select
+                        value={formData.paymentStatus || 'Не оплачено'}
+                        onChange={(e) => handleChange('paymentStatus', e.target.value)}
+                    >
+                        <option>Не оплачено</option>
+                        <option>Оплачено</option>
+                        <option>Частично оплачено</option>
+						<option>Бесплатно</option>
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label>Описание</label>
+                    <textarea
+                        value={formData.description || ''}
+                        onChange={(e) => handleChange('description', e.target.value)}
+                    />
+                </div>
+                <div className="form-actions">
+                    <button type="button" className="btn btn-secondary" onClick={onClose}>
+                        Отмена
+                    </button>
+                    <button type="submit" className="btn btn-primary">
+                        Сохранить
+                    </button>
+                </div>
+            </form>
+        </>
+    );
+
+                    case 'event':
+    return (
+        <>
+            <h3>Добавить событие</h3>
+            <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                    <label>Выберите дело *</label>
+                    <select
+                        required
+                        value={formData.caseId || ''}
+                        onChange={(e) => {
+                            const selectedCase = client ? 
+                                Object.values(cases).find(c => c.clientId === client.id && c.id === e.target.value) : 
+                                null;
+                            handleChange('caseId', e.target.value);
+                            handleChange('caseTitle', selectedCase ? selectedCase.title : '');
+                        }}
+                    >
+                        <option value="">-- Выберите дело --</option>
+{client && cases && cases.filter(c => c.clientId === client.id).map(c => (
+    <option key={c.id} value={c.id}>
+        {c.title}
+    </option>
+))}
+                    </select>
+                </div>
+                
+                
+                <div className="form-group">
+                    <label>Дата *</label>
+                    <input
+                        type="date"
+                        required
+                        value={formData.date || ''}
+                        onChange={(e) => handleChange('date', e.target.value)}
+                    />
+                </div>
+                <div className="form-group">
+                    <label>Время</label>
+                    <input
+                        type="time"
+                        value={formData.time || ''}
+                        onChange={(e) => handleChange('time', e.target.value)}
+                    />
+                </div>
+                <div className="form-group">
+    <label>Тип события</label>
+    <select
+        value={formData.type || 'Встреча с клиентом'}
+        onChange={(e) => handleChange('type', e.target.value)}
+    >
+        <option value="Встреча с клиентом">Встреча с клиентом</option>
+        <option value="Судебное заседание">Судебное заседание</option>
+        <option value="Консультация">Консультация</option>
+        <option value="Ознакомление с материалами">Ознакомление с материалами</option>
+        <option value="Подготовка заявления">Подготовка заявления</option>
+        <option value="Подготовка искового заявления">Подготовка искового заявления</option>
+        <option value="Подготовка жалобы">Подготовка жалобы</option>
+        <option value="Подготовка ходатайства">Подготовка ходатайства</option>
+        <option value="Подача искового заявления">Подача искового заявления</option>
+        <option value="Подача жалоб">Подача жалоб</option>
+        <option value="Подача заявлений">Подача заявлений</option>
+		<option value="Подача ходатайства">Подача ходатайства</option>
+        <option value="Личное присутствие в гос.органах">Личное присутствие в гос.органах</option>
+    </select>
+</div>
+                <div className="form-group">
+                    <label>Оплата события</label>
+                    <select
+                        value={formData.isPaid ? 'paid' : 'free'}
+                        onChange={(e) => {
+                            const isPaid = e.target.value === 'paid';
+                            handleChange('isPaid', isPaid);
+                            if (!isPaid) {
+                                handleChange('eventAmount', 0);
+                                handleChange('paymentStatus', 'Бесплатно');
+                            }
+                        }}
+                    >
+                        <option value="free">Бесплатно (входит в договор)</option>
+                        <option value="paid">Платное (оплачивается отдельно)</option>
+                    </select>
+                </div>
+                {formData.isPaid && (
+                    <>
+                        <div className="form-group">
+                            <label>Сумма за событие (MDL)</label>
+                            <input
+                                type="number"
+                                value={formData.eventAmount || ''}
+                                onChange={(e) => handleChange('eventAmount', e.target.value)}
+                                placeholder="0"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Статус оплаты</label>
+                            <select
+                                value={formData.paymentStatus || 'Не оплачено'}
+                                onChange={(e) => handleChange('paymentStatus', e.target.value)}
+                            >
+                                <option>Не оплачено</option>
+                                <option>Оплачено</option>
+                            </select>
+                        </div>
+                    </>
+                )}
+                <div className="form-group">
+                    <label>Статус</label>
+                    <select
+                        value={formData.status || 'new'}
+                        onChange={(e) => handleChange('status', e.target.value)}
+                    >
+                        <option value="new">Новое</option>
+                        <option value="in-progress">В процессе</option>
+                        <option value="completed">Завершено</option>
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label>Описание</label>
+                    <textarea
+                        value={formData.description || ''}
+                        onChange={(e) => handleChange('description', e.target.value)}
+                    />
+                </div>
+                <div className="form-actions">
+                    <button type="button" className="btn btn-secondary" onClick={onClose}>
+                        Отмена
+                    </button>
+                    <button type="submit" className="btn btn-primary">
+                        Сохранить
+                    </button>
+                </div>
+            </form>
+        </>
+    );
+
+                    case 'task':
+                        return (
+                            <>
+                                <h3>Добавить напоминание</h3>
+                                <form onSubmit={handleSubmit}>
+                                    <div className="form-group">
+                                        <label>Название задачи *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.title || ''}
+                                            onChange={(e) => handleChange('title', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Описание</label>
+                                        <textarea
+                                            value={formData.description || ''}
+                                            onChange={(e) => handleChange('description', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-actions">
+                                        <button type="button" className="btn btn-secondary" onClick={onClose}>
+                                            Отмена
+                                        </button>
+                                        <button type="submit" className="btn btn-primary">
+                                            Сохранить
+                                        </button>
+                                    </div>
+                                </form>
+                            </>
+                        );
+                }
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        {renderForm()}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
