@@ -1005,6 +1005,20 @@
             const [searchTerm, setSearchTerm] = useState('');
             const [loading, setLoading] = useState(true);
             const [toast, setToast] = useState(null);
+			
+			  // hourlyRate состояние
+    const [hourlyRate, setHourlyRate] = useState(() => {
+        const saved = localStorage.getItem('hourlyRate');
+        return saved ? parseFloat(saved) : 500;
+    });
+
+    // Функция для сохранения ставки
+    const saveHourlyRate = (rate) => {
+        setHourlyRate(rate);
+        localStorage.setItem('hourlyRate', rate.toString());
+    };
+			
+			
 
             // Initialize Firebase
             useEffect(() => {
@@ -1150,16 +1164,27 @@
         const newCaseNumber = maxNumber + 1;
         const caseTitle = `Dosar nr. ${String(newCaseNumber).padStart(5, '0')}`;
         
+        // Используем указанную дату или текущую
+        let createdAt;
+        if (caseData.caseDate) {
+            // Если указана дата, создаем timestamp на 12:00 этого дня
+            const dateObj = new Date(caseData.caseDate + 'T12:00:00');
+            createdAt = dateObj.getTime();
+        } else {
+            createdAt = Date.now();
+        }
+        
         const newCaseRef = database.ref('cases').push();
         newCaseRef.set({
             ...caseData,
             id: newCaseRef.key,
             caseNumber: newCaseNumber,
             title: caseTitle,
-            paymentStatus: caseData.paymentStatus || 'Не оплачено',  // <- ДОБАВЬТЕ ЭТУ СТРОКУ
+            paymentStatus: caseData.paymentStatus || 'Не оплачено',
             clientId: selectedClient.id,
             clientName: selectedClient.name,
-            createdAt: Date.now()
+            createdAt: createdAt, // Используем указанную дату
+            createdAtDisplay: caseData.caseDate || new Date().toISOString().split('T')[0] // Для отладки
         }).then(() => {
             logActivity('Добавлено дело', `${caseTitle} для ${selectedClient.name}`);
             showToast('Дело успешно добавлено');
@@ -1220,7 +1245,6 @@ const deleteCase = (caseId, caseTitle) => {
 const updateEvent = (eventId, updates) => {
     if (!database) return;
 
-    // Фильтруем undefined значения
     const cleanUpdates = {};
     Object.keys(updates).forEach(key => {
         if (updates[key] !== undefined) {
@@ -1228,11 +1252,18 @@ const updateEvent = (eventId, updates) => {
         }
     });
 
+    // ВАЖНО: Проверяем согласованность isPaid и paymentStatus
+    if (cleanUpdates.isPaid === false) {
+        cleanUpdates.paymentStatus = 'Бесплатно';
+        cleanUpdates.eventAmount = 0;
+    } else if (cleanUpdates.isPaid === true && cleanUpdates.paymentStatus === 'Бесплатно') {
+        cleanUpdates.paymentStatus = 'Не оплачено';
+    }
+
     database.ref(`events/${eventId}`).update(cleanUpdates)
         .then(() => {
             logActivity('Обновлено событие', 'Событие обновлено');
             showToast('Событие обновлено');
-            // Firebase автоматически обновит данные через listener
         })
         .catch((error) => {
             console.error('Error updating event:', error);
@@ -1259,25 +1290,78 @@ const deleteEvent = (eventId, eventTitle) => {
     if (!database || !selectedClient) return;
 
     const newEventRef = database.ref('events').push();
-    newEventRef.set({
-        ...eventData,
-        title: eventData.type, // <- ИЗМЕНИТЕ: используем тип как название
-        id: newEventRef.key,
+    
+    const isPaidValue = eventData.isPaid === true || 
+                        eventData.isPaid === 'true' || 
+                        eventData.isPaid === 'paid' || 
+                        eventData.isPaid === 1 ||
+                        eventData.isPaid === 'on';
+    
+    // ВАЖНО: Правильно устанавливаем paymentStatus
+    let paymentStatus = 'Бесплатно';
+    if (isPaidValue) {
+        paymentStatus = eventData.paymentStatus || 'Не оплачено';
+        // Если paymentStatus почему-то "Бесплатно" при isPaid=true, исправляем
+        if (paymentStatus === 'Бесплатно') {
+            paymentStatus = 'Не оплачено';
+        }
+    }
+    
+    const eventToSave = {
+        type: eventData.type,
+        date: eventData.date,
+        timeStart: eventData.timeStart || '',
+        timeEnd: eventData.timeEnd || '',
+        duration: calculateDuration(eventData.timeStart, eventData.timeEnd),
+        status: eventData.status || 'new',
+        description: eventData.description || '',
         clientId: selectedClient.id,
         clientName: selectedClient.name,
         caseId: eventData.caseId,
         caseTitle: eventData.caseTitle,
-        isPaid: eventData.isPaid || false,
-        eventAmount: eventData.eventAmount || 0,
-        paymentStatus: eventData.isPaid ? (eventData.paymentStatus || 'Не оплачено') : 'Бесплатно',
+        isPaid: isPaidValue,
+        eventAmount: isPaidValue ? (parseFloat(eventData.eventAmount) || 0) : 0,
+        paymentStatus: paymentStatus, // Исправлено!
+        id: newEventRef.key,
         createdAt: Date.now()
-    }).then(() => {
-        logActivity('Добавлено событие', `${eventData.type} - ${eventData.date}`);
-        showToast('Событие успешно добавлено');
-    }).catch((error) => {
-        console.error('Error adding event:', error);
-        showToast('Ошибка при добавлении события', 'error');
-    });
+    };
+
+    console.log('Saving event:', eventToSave);
+
+    newEventRef.set(eventToSave)
+        .then(() => {
+            logActivity('Добавлено событие', `${eventData.type} - ${eventData.date}`);
+            showToast('Событие успешно добавлено');
+        })
+        .catch((error) => {
+            console.error('Error adding event:', error);
+            showToast('Ошибка при добавлении события', 'error');
+        });
+};
+
+// Функция для расчета длительности
+const calculateDuration = (start, end) => {
+    if (!start || !end) return null;
+    
+    const [startHours, startMinutes] = start.split(':').map(Number);
+    const [endHours, endMinutes] = end.split(':').map(Number);
+    
+    const startTotal = startHours * 60 + startMinutes;
+    const endTotal = endHours * 60 + endMinutes;
+    
+    const diffMinutes = endTotal - startTotal;
+    
+    if (diffMinutes < 0) return null; // Если время окончания раньше начала
+    
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+    
+    return {
+        hours,
+        minutes,
+        totalMinutes: diffMinutes,
+        formatted: hours > 0 ? `${hours} ч ${minutes} мин` : `${minutes} мин`
+    };
 };
 
             const addTask = (taskData) => {
@@ -1475,8 +1559,19 @@ const deleteEvent = (eventId, eventTitle) => {
                                     </button>
                                     <button className="nav-btn" onClick={() => openModal('client')}>
                                         <span className="icon">➕</span>
-                                        Добавить клиента
+                                    >   Добавить клиента
                                     </button>
+									<button 
+											className={`nav-btn ${activeView === 'documents' ? 'active' : ''}`}
+											onClick={() => {
+											setActiveView('documents');
+											setSelectedClient(null);
+										}}
+									>
+									<span className="icon">📚</span>
+										Документы
+									</button>
+									
                                 </div>
 
                                 <div className="nav-section">
@@ -1535,6 +1630,8 @@ const deleteEvent = (eventId, eventTitle) => {
                                             <FinancesView cases={casesArray} events={eventsArray} />
                                         )}
                                     
+                                        {activeView === 'documents' && ( <DocumentsView />
+                                        )}
 									
 									
 									</>
@@ -1555,7 +1652,9 @@ const deleteEvent = (eventId, eventTitle) => {
             setShowModal(false);
         }}
         client={selectedClient}
-        cases={casesArray}  // <- ИЗМЕНИТЕ на casesArray вместо cases
+        cases={casesArray}
+        hourlyRate={hourlyRate} // ДОБАВЬТЕ ЭТУ СТРОКУ
+        calculateDuration={calculateDuration} // И ЭТУ, если нужно
     />
 )}
 
@@ -1570,146 +1669,241 @@ const deleteEvent = (eventId, eventTitle) => {
         }
 
         // Client Detail View Component
-        function ClientDetailView({ client, cases, events, tasks, onBack, onAddCase, onAddEvent, onAddTask, onToggleTask, onUpdateClient, onUpdateCase, onUpdateEvent, onDeleteEvent, onDeleteCase, onDeleteClient }) {
-            const [activeTab, setActiveTab] = useState('cases');
-const [editMode, setEditMode] = useState(false);
-const [editData, setEditData] = useState(client);
-const [editingCase, setEditingCase] = useState(null);
-const [editCaseData, setEditCaseData] = useState({});
-const [editingEvent, setEditingEvent] = useState(null);
-const [editEventData, setEditEventData] = useState({});
-const [selectedCaseForEvents, setSelectedCaseForEvents] = useState(null);
-const [files, setFiles] = useState([]);
-const [uploading, setUploading] = useState(false);
-
-const exportClientToExcel = (client, cases, events, tasks) => {
-    const wb = XLSX.utils.book_new();
-
-    // Информация о клиенте
-    const clientInfo = [{
-        'ФИО': client.name,
-        'Телефон': client.phone,
-        'Email': client.email || '-',
-        'Адрес': client.address || '-',
-        'Статус': client.status,
-        'Дата добавления': new Date(client.createdAt).toLocaleDateString('ru-RU')
-    }];
-    const clientWS = XLSX.utils.json_to_sheet(clientInfo);
-    XLSX.utils.book_append_sheet(wb, clientWS, 'Информация о клиенте');
-
-    // Дела клиента
-    if (cases.length > 0) {
-        const casesWS = XLSX.utils.json_to_sheet(cases.map(c => ({
-            'Дело': c.title,
-            'Статус': c.status === 'new' ? 'Новое' : c.status === 'in-progress' ? 'В работе' : 'Завершено',
-            'Сумма (MDL)': c.amount,
-            'Оплата': c.paymentStatus,
-            'Описание': c.description || '-',
-            'Дата создания': new Date(c.createdAt).toLocaleDateString('ru-RU')
-        })));
-        XLSX.utils.book_append_sheet(wb, casesWS, 'Дела');
-    }
-
-    // События клиента
-    if (events.length > 0) {
-        const eventsWS = XLSX.utils.json_to_sheet(events.map(e => ({
-            'Событие': e.title,
-            'Дата': new Date(e.date).toLocaleDateString('ru-RU'),
-            'Время': e.time || '-',
-            'Тип': e.type,
-            'Статус': e.status === 'new' ? 'Новое' : e.status === 'in-progress' ? 'В процессе' : 'Завершено',
-            'Платное': e.isPaid ? 'Да' : 'Нет',
-            'Сумма (MDL)': e.isPaid ? e.eventAmount : 0,
-            'Оплата': e.paymentStatus
-        })));
-        XLSX.utils.book_append_sheet(wb, eventsWS, 'События');
-    }
-
-    // Задачи клиента
-    if (tasks.length > 0) {
-        const tasksWS = XLSX.utils.json_to_sheet(tasks.map(t => ({
-            'Задача': t.title,
-            'Описание': t.description || '-',
-            'Статус': t.completed ? 'Выполнено' : 'Не выполнено',
-            'Дата создания': new Date(t.createdAt).toLocaleDateString('ru-RU')
-        })));
-        XLSX.utils.book_append_sheet(wb, tasksWS, 'Задачи');
-    }
-
-    XLSX.writeFile(wb, `${client.name}_${new Date().toLocaleDateString('ru-RU')}.xlsx`);
-};
-
-const handleFileUpload = (e) => {
-    const selectedFiles = Array.from(e.target.files);
-    setUploading(true);
-    
-    selectedFiles.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const fileData = {
-                id: Date.now() + Math.random(),
-                name: file.name,
-                size: file.size,
-                type: file.type,
-                data: event.target.result,
-                uploadedAt: Date.now()
-            };
-            
-            // Сохраняем в localStorage (для демо)
-            const existingFiles = JSON.parse(localStorage.getItem(`files_${client.id}`) || '[]');
-            existingFiles.push(fileData);
-            localStorage.setItem(`files_${client.id}`, JSON.stringify(existingFiles));
-            
-            setFiles(existingFiles);
-            showToast(`Файл ${file.name} загружен`);
-        };
-        reader.readAsDataURL(file);
+function ClientDetailView({ client, cases, events, tasks, onBack, onAddCase, onAddEvent, onAddTask, onToggleTask, onUpdateClient, onUpdateCase, onUpdateEvent, onDeleteEvent, onDeleteCase, onDeleteClient }) {
+    const [activeTab, setActiveTab] = useState('cases');
+    const [editMode, setEditMode] = useState(false);
+    const [editData, setEditData] = useState(client);
+    const [editingCase, setEditingCase] = useState(null);
+    const [editCaseData, setEditCaseData] = useState({});
+    const [editingEvent, setEditingEvent] = useState(null);
+    const [editEventData, setEditEventData] = useState({});
+    const [selectedCaseForEvents, setSelectedCaseForEvents] = useState(null);
+    const [files, setFiles] = useState([]);
+    const [uploading, setUploading] = useState(false);
+    const [hourlyRate, setHourlyRate] = useState(() => {
+        const saved = localStorage.getItem('hourlyRate');
+        return saved ? parseFloat(saved) : 500; // По умолчанию 500 MDL
     });
+
+    // Функция для расчета длительности
+    const calculateDuration = (start, end) => {
+        if (!start || !end) return null;
+        
+        const [startHours, startMinutes] = start.split(':').map(Number);
+        const [endHours, endMinutes] = end.split(':').map(Number);
+        
+        const startTotal = startHours * 60 + startMinutes;
+        const endTotal = endHours * 60 + endMinutes;
+        
+        const diffMinutes = endTotal - startTotal;
+        
+        if (diffMinutes < 0) return null; // Если время окончания раньше начала
+        
+        const hours = Math.floor(diffMinutes / 60);
+        const minutes = diffMinutes % 60;
+        
+        return {
+            hours,
+            minutes,
+            totalMinutes: diffMinutes,
+            formatted: hours > 0 ? `${hours} ч ${minutes} мин` : `${minutes} мин`
+        };
+    };
+
+    // Функция для расчета стоимости на основе времени и почасовой ставки
+const calculateCostFromTime = (timeStart, timeEnd, hourlyRate) => {
+    if (!timeStart || !timeEnd || !hourlyRate) return null;
     
-    setUploading(false);
-    e.target.value = '';
+    const duration = calculateDuration(timeStart, timeEnd);
+    if (!duration) return null;
+    
+    const hoursDecimal = duration.totalMinutes / 60;
+    const cost = hoursDecimal * hourlyRate;
+    
+    return {
+        hours: duration.formatted,
+        hoursDecimal: hoursDecimal,
+        cost: Math.round(cost * 100) / 100,
+        costRounded: Math.round(cost), // Округленный для отображения
+        formatted: `${duration.formatted} (${Math.round(cost)} MDL)`
+    };
 };
 
-const deleteFile = (fileId, fileName) => {
-    if (!confirm(`Удалить файл "${fileName}"?`)) return;
-    
-    const existingFiles = JSON.parse(localStorage.getItem(`files_${client.id}`) || '[]');
-    const updatedFiles = existingFiles.filter(f => f.id !== fileId);
-    localStorage.setItem(`files_${client.id}`, JSON.stringify(updatedFiles));
-    
-    setFiles(updatedFiles);
-    showToast('Файл удалён');
-};
 
-const downloadFile = (file) => {
-    const link = document.createElement('a');
-    link.href = file.data;
-    link.download = file.name;
-    link.click();
-};
+    // Функция для сохранения ставки
+    const saveHourlyRate = (rate) => {
+        setHourlyRate(rate);
+        localStorage.setItem('hourlyRate', rate.toString());
+    };
 
-// Загружаем файлы при открытии клиента
-React.useEffect(() => {
-    const existingFiles = JSON.parse(localStorage.getItem(`files_${client.id}`) || '[]');
-    setFiles(existingFiles);
-}, [client.id]);
+    const exportClientToExcel = (client, cases, events, tasks) => {
+        const wb = XLSX.utils.book_new();
 
-const exportClientToHTML = (client, cases, events, tasks) => {
-    const totalCases = cases.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
-    const totalEvents = events.filter(e => e.isPaid).reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
-    const paidCases = cases.filter(c => c.paymentStatus === 'Оплачено').reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
-    const paidEvents = events.filter(e => e.isPaid && e.paymentStatus === 'Оплачено').reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
-    const total = totalCases + totalEvents;
-    const totalPaid = paidCases + paidEvents;
-    const totalPending = total - totalPaid;
+        // Информация о клиенте
+        const clientInfo = [{
+            'ФИО': client.name,
+            'Телефон': client.phone,
+            'Email': client.email || '-',
+            'Адрес': client.address || '-',
+            'Статус': client.status,
+            'Дата добавления': new Date(client.createdAt).toLocaleDateString('ru-RU')
+        }];
+        const clientWS = XLSX.utils.json_to_sheet(clientInfo);
+        XLSX.utils.book_append_sheet(wb, clientWS, 'Информация о клиенте');
 
-    // Группируем события по делам
-    const caseWithEvents = cases.map(c => ({
-        ...c,
-        events: events.filter(e => e.caseId === c.id).sort((a, b) => new Date(b.date) - new Date(a.date))
-    }));
+        // Дела клиента
+        if (cases.length > 0) {
+            const casesWS = XLSX.utils.json_to_sheet(cases.map(c => ({
+                'Дело': c.title,
+                'Статус': c.status === 'new' ? 'Новое' : c.status === 'in-progress' ? 'В работе' : 'Завершено',
+                'Сумма (MDL)': c.amount,
+                'Оплата': c.paymentStatus,
+                'Описание': c.description || '-',
+                'Дата создания': new Date(c.createdAt).toLocaleDateString('ru-RU')
+            })));
+            XLSX.utils.book_append_sheet(wb, casesWS, 'Дела');
+        }
 
-    const html = `
+        // События клиента - ОБНОВЛЕНО с временем начала/окончания
+        if (events.length > 0) {
+            const eventsWS = XLSX.utils.json_to_sheet(events.map(e => {
+                // Рассчитываем стоимость времени для события
+                let timeCost = '';
+                if (e.timeStart && e.timeEnd) {
+                    const duration = calculateDuration(e.timeStart, e.timeEnd);
+                    if (duration) {
+                        const cost = (duration.totalMinutes / 60) * hourlyRate;
+                        timeCost = `${Math.round(cost)} MDL`;
+                    }
+                }
+                
+                return {
+                    'Событие': e.type,
+                    'Дата': new Date(e.date).toLocaleDateString('ru-RU'),
+                    'Время начала': e.timeStart || '-',
+                    'Время окончания': e.timeEnd || '-',
+                    'Длительность': e.timeStart && e.timeEnd ? calculateDuration(e.timeStart, e.timeEnd)?.formatted || '-' : '-',
+                    'Стоимость времени': timeCost,
+                    'Тип': e.type,
+                    'Статус': e.status === 'new' ? 'Новое' : e.status === 'in-progress' ? 'В процессе' : 'Завершено',
+                    'Платное': e.isPaid ? 'Да' : 'Нет',
+                    'Сумма (MDL)': e.isPaid ? e.eventAmount : 0,
+                    'Оплата': e.paymentStatus
+                };
+            }));
+            XLSX.utils.book_append_sheet(wb, eventsWS, 'События');
+        }
+
+        // Задачи клиента
+        if (tasks.length > 0) {
+            const tasksWS = XLSX.utils.json_to_sheet(tasks.map(t => ({
+                'Задача': t.title,
+                'Описание': t.description || '-',
+                'Статус': t.completed ? 'Выполнено' : 'Не выполнено',
+                'Дата создания': new Date(t.createdAt).toLocaleDateString('ru-RU')
+            })));
+            XLSX.utils.book_append_sheet(wb, tasksWS, 'Задачи');
+        }
+
+        XLSX.writeFile(wb, `${client.name}_${new Date().toLocaleDateString('ru-RU')}.xlsx`);
+    };
+
+    const handleFileUpload = (e) => {
+        const selectedFiles = Array.from(e.target.files);
+        setUploading(true);
+        
+        selectedFiles.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const fileData = {
+                    id: Date.now() + Math.random(),
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    data: event.target.result,
+                    uploadedAt: Date.now()
+                };
+                
+                const existingFiles = JSON.parse(localStorage.getItem(`files_${client.id}`) || '[]');
+                existingFiles.push(fileData);
+                localStorage.setItem(`files_${client.id}`, JSON.stringify(existingFiles));
+                
+                setFiles(existingFiles);
+                if (typeof showToast === 'function') showToast(`Файл ${file.name} загружен`);
+            };
+            reader.readAsDataURL(file);
+        });
+        
+        setUploading(false);
+        e.target.value = '';
+    };
+
+    const deleteFile = (fileId, fileName) => {
+        if (!confirm(`Удалить файл "${fileName}"?`)) return;
+        
+        const existingFiles = JSON.parse(localStorage.getItem(`files_${client.id}`) || '[]');
+        const updatedFiles = existingFiles.filter(f => f.id !== fileId);
+        localStorage.setItem(`files_${client.id}`, JSON.stringify(updatedFiles));
+        
+        setFiles(updatedFiles);
+        if (typeof showToast === 'function') showToast('Файл удалён');
+    };
+
+    const downloadFile = (file) => {
+        const link = document.createElement('a');
+        link.href = file.data;
+        link.download = file.name;
+        link.click();
+    };
+
+    // Загружаем файлы при открытии клиента
+    React.useEffect(() => {
+        const existingFiles = JSON.parse(localStorage.getItem(`files_${client.id}`) || '[]');
+        setFiles(existingFiles);
+    }, [client.id]);
+
+    const exportClientToHTML = (client, cases, events, tasks) => {
+        // ИСПРАВЛЕНО: используем состояние hourlyRate вместо константы
+        const currentRate = hourlyRate;
+        
+        // Расчет статистики по времени
+        let totalMinutesSpent = 0;
+        let totalCostFromTime = 0;
+        let eventsWithDuration = 0;
+        
+        events.forEach(event => {
+            if (event.timeStart && event.timeEnd) {
+                const duration = calculateDuration(event.timeStart, event.timeEnd);
+                if (duration) {
+                    totalMinutesSpent += duration.totalMinutes;
+                    if (event.isPaid) {
+                        const hoursDecimal = duration.totalMinutes / 60;
+                        totalCostFromTime += hoursDecimal * currentRate;
+                    }
+                    eventsWithDuration++;
+                }
+            }
+        });
+        
+        const totalHoursSpent = Math.floor(totalMinutesSpent / 60);
+        const totalMinutesRemainder = totalMinutesSpent % 60;
+        
+        // Расчет финансов
+        const totalCases = cases.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+        const totalEvents = events.filter(e => e.isPaid).reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+        const paidCases = cases.filter(c => c.paymentStatus === 'Оплачено').reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+        const paidEvents = events.filter(e => e.isPaid && e.paymentStatus === 'Оплачено').reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+        const total = totalCases + totalEvents;
+        const totalPaid = paidCases + paidEvents;
+        const totalPending = total - totalPaid;
+
+        // Группируем события по делам
+        const caseWithEvents = cases.map(c => ({
+            ...c,
+            events: events.filter(e => e.caseId === c.id).sort((a, b) => new Date(b.date) - new Date(a.date))
+        }));
+
+        const html = `
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -1731,7 +1925,7 @@ const exportClientToHTML = (client, cases, events, tasks) => {
         }
         
         .report-container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
             padding: 40px;
@@ -1742,6 +1936,9 @@ const exportClientToHTML = (client, cases, events, tasks) => {
             border-bottom: 3px solid #1a2332;
             padding-bottom: 20px;
             margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
         }
         
         .header h1 {
@@ -1753,6 +1950,38 @@ const exportClientToHTML = (client, cases, events, tasks) => {
         .header .date {
             color: #6b6b6b;
             font-size: 14px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 35px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #1a2332 0%, #2d3e50 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card .label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .stat-card .sub-value {
+            font-size: 14px;
+            opacity: 0.8;
         }
         
         .section {
@@ -1798,6 +2027,16 @@ const exportClientToHTML = (client, cases, events, tasks) => {
             padding: 15px 20px;
             font-size: 18px;
             font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .case-time-stats {
+            font-size: 14px;
+            background: rgba(212, 165, 116, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
         }
         
         .case-details {
@@ -1853,6 +2092,26 @@ const exportClientToHTML = (client, cases, events, tasks) => {
             font-size: 13px;
             color: #6b6b6b;
             margin-bottom: 8px;
+        }
+        
+        .event-time-detail {
+            background: #f0f0f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .duration-badge {
+            background: #d4a574;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
         }
         
         .status {
@@ -1977,6 +2236,32 @@ const exportClientToHTML = (client, cases, events, tasks) => {
             font-style: italic;
         }
         
+        .time-summary {
+            background: linear-gradient(135deg, #d4a574 0%, #b8935f 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            text-align: center;
+        }
+        
+        .time-item .number {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .time-item .label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
         @media print {
             body {
                 background: white;
@@ -1995,12 +2280,36 @@ const exportClientToHTML = (client, cases, events, tasks) => {
 <body>
     <div class="report-container">
         <div class="header">
-            <h1>📊 Отчёт по клиенту</h1>
-            <div class="date">Дата формирования: ${new Date().toLocaleDateString('ru-RU', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-            })}</div>
+            <div>
+                <h1>📊 Отчёт по клиенту</h1>
+                <div class="date">Дата формирования: ${new Date().toLocaleDateString('ru-RU', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                })}</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 16px; font-weight: 600;">Почасовая ставка:</div>
+                <div style="font-size: 24px; color: #d4a574;">${currentRate} MDL/час</div>
+            </div>
+        </div>
+        
+        <!-- Статистика по времени -->
+        <div class="time-summary">
+            <div class="time-grid">
+                <div class="time-item">
+                    <div class="number">${totalHoursSpent} ч ${totalMinutesRemainder} мин</div>
+                    <div class="label">Всего затрачено времени</div>
+                </div>
+                <div class="time-item">
+                    <div class="number">${eventsWithDuration}</div>
+                    <div class="label">Событий с учётом времени</div>
+                </div>
+                <div class="time-item">
+                    <div class="number">${Math.round(totalCostFromTime).toLocaleString()} MDL</div>
+                    <div class="label">Стоимость времени (по ставке)</div>
+                </div>
+            </div>
         </div>
         
         <!-- Информация о клиенте -->
@@ -2031,107 +2340,173 @@ const exportClientToHTML = (client, cases, events, tasks) => {
             </div>
         </div>
         
-        Вот исправленный код для HTML-отчёта с добавлением финансовой информации:
-javascript<!-- Дела с событиями -->
-        <div class="section">
-            <h2 class="section-title">Дела и события (${cases.length})</h2>
-            ${caseWithEvents.length > 0 ? caseWithEvents.map(c => {
-                const caseEventsTotal = c.events.filter(e => e.isPaid).reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
-                const caseTotalAmount = (parseFloat(c.amount) || 0) + caseEventsTotal;
-                const paidCaseAmount = c.paymentStatus === 'Оплачено' ? (parseFloat(c.amount) || 0) : 0;
-                const paidEventsAmount = c.events.filter(e => e.isPaid && e.paymentStatus === 'Оплачено').reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
-                const totalPaid = paidCaseAmount + paidEventsAmount;
-                const totalDebt = caseTotalAmount - totalPaid;
+        <!-- Дела с событиями -->
+<div class="section">
+    <h2 class="section-title">Дела и события (${cases.length})</h2>
+    ${caseWithEvents.length > 0 ? caseWithEvents.map(c => {
+        const caseEvents = events.filter(e => e.caseId === c.id);
+        const caseEventsTotal = caseEvents.filter(e => e.isPaid).reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+        const caseTotalAmount = (parseFloat(c.amount) || 0) + caseEventsTotal;
+        
+        // НОВЫЕ РАСЧЕТЫ: Оплаченные и неоплаченные суммы
+        const paidCaseAmount = c.paymentStatus === 'Оплачено' ? (parseFloat(c.amount) || 0) : 0;
+        const paidEventsAmount = caseEvents
+            .filter(e => e.isPaid && e.paymentStatus === 'Оплачено')
+            .reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+        const totalPaid = paidCaseAmount + paidEventsAmount;
+        
+        const unpaidCaseAmount = c.paymentStatus !== 'Оплачено' ? (parseFloat(c.amount) || 0) : 0;
+        const unpaidEventsAmount = caseEvents
+            .filter(e => e.isPaid && e.paymentStatus !== 'Оплачено')
+            .reduce((sum, e) => sum + (parseFloat(e.eventAmount) || 0), 0);
+        const totalUnpaid = unpaidCaseAmount + unpaidEventsAmount;
+        
+        const debtAmount = caseTotalAmount - totalPaid;
+        
+        // Статистика по времени для дела
+        let caseMinutes = 0;
+        caseEvents.forEach(e => {
+            if (e.timeStart && e.timeEnd) {
+                const duration = calculateDuration(e.timeStart, e.timeEnd);
+                if (duration) caseMinutes += duration.totalMinutes;
+            }
+        });
+        const caseHours = Math.floor(caseMinutes / 60);
+        const caseMins = caseMinutes % 60;
+        const caseTimeStr = caseMinutes > 0 ? `${caseHours} ч ${caseMins} мин` : '0 мин';
+        
+        return `
+        <div class="case-block">
+            <div class="case-header">
+                <span>${c.title}</span>
+                <span class="case-time-stats">⏱️ Затрачено времени: ${caseTimeStr}</span>
+            </div>
+            <div class="case-details">
+                <div class="detail-row">
+                    <span><strong>Статус дела:</strong></span>
+                    <span class="status status-${c.status}">
+                        ${c.status === 'new' ? 'Новое' : c.status === 'in-progress' ? 'В работе' : 'Завершено'}
+                    </span>
+                </div>
                 
-                return `
-                <div class="case-block">
-                    <div class="case-header">
-                        ${c.title}
-                    </div>
-                    <div class="case-details">
-                        <div class="detail-row">
-                            <span><strong>Статус дела:</strong></span>
-                            <span class="status status-${c.status}">
-                                ${c.status === 'new' ? 'Новое' : c.status === 'in-progress' ? 'В работе' : 'Завершено'}
-                            </span>
-                        </div>
-                        <div class="detail-row">
-                            <span><strong>Сумма по делу:</strong></span>
-                            <span><strong>${parseFloat(c.amount || 0).toLocaleString()} MDL</strong></span>
-                        </div>
-                        <div class="detail-row">
-                            <span><strong>Сумма по событиям:</strong></span>
-                            <span><strong>${caseEventsTotal.toLocaleString()} MDL</strong></span>
-                        </div>
-                        <div class="detail-row" style="border-top: 2px solid #d4a574; padding-top: 8px; margin-top: 8px;">
-                            <span><strong>ИТОГО:</strong></span>
-                            <span style="font-size: 18px; color: #1a2332;"><strong>${caseTotalAmount.toLocaleString()} MDL</strong></span>
-                        </div>
-                        <div class="detail-row">
-                            <span><strong>Выплачено:</strong></span>
-                            <span style="color: #5a9f7e; font-weight: 600;">${totalPaid.toLocaleString()} MDL</span>
-                        </div>
-                        <div class="detail-row">
-                            <span><strong>Задолженность:</strong></span>
-                            <span style="color: #c45c5c; font-weight: 600;">${totalDebt.toLocaleString()} MDL</span>
-                        </div>
-                        <div class="detail-row">
-                            <span><strong>Статус оплаты:</strong></span>
-                            <span class="status ${c.paymentStatus === 'Оплачено' ? 'status-paid' : 'status-unpaid'}">
-                                ${c.paymentStatus || 'Не оплачено'}
-                            </span>
-                        </div>
-                        ${c.description ? `
-                            <div class="detail-row">
-                                <span><strong>Описание:</strong></span>
-                                <span>${c.description}</span>
+                <!-- ДОБАВЛЕНО: Детализация оплаты по делу -->
+                <div style="background: #f0f0f0; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <!-- Оплаченная часть -->
+                        <div>
+                            <div style="font-size: 14px; color: #5a9f7e; margin-bottom: 5px;">✓ ОПЛАЧЕНО</div>
+                            <div class="detail-row" style="border-bottom-color: #5a9f7e;">
+                                <span>Договор:</span>
+                                <span style="color: #5a9f7e; font-weight: 600;">${paidCaseAmount.toLocaleString()} MDL</span>
                             </div>
-                        ` : ''}
-                        <div class="detail-row">
-                            <span><strong>Дата создания:</strong></span>
-                            <span>${new Date(c.createdAt).toLocaleDateString('ru-RU')}</span>
+                            <div class="detail-row" style="border-bottom-color: #5a9f7e;">
+                                <span>События:</span>
+                                <span style="color: #5a9f7e; font-weight: 600;">${paidEventsAmount.toLocaleString()} MDL</span>
+                            </div>
+                            <div class="detail-row" style="border-bottom: 2px solid #5a9f7e; font-weight: 700;">
+                                <span>ИТОГО оплачено:</span>
+                                <span style="color: #5a9f7e;">${totalPaid.toLocaleString()} MDL</span>
+                            </div>
                         </div>
                         
-                        ${c.events.length > 0 ? `
-                            <div class="events-section">
-                                <div class="events-title">📅 События по делу (${c.events.length})</div>
-                                ${c.events.map(e => `
-                                    <div class="event-card">
-                                        <div class="event-header">
-                                            <div class="event-title">${e.type}</div>
-                                            <span class="status status-${e.status}">
-                                                ${e.status === 'new' ? 'Новое' : e.status === 'in-progress' ? 'В процессе' : 'Завершено'}
-                                            </span>
-                                        </div>
-                                        <div class="event-meta">
-                                            📅 ${new Date(e.date).toLocaleDateString('ru-RU')} ${e.time ? `• 🕐 ${e.time}` : ''}
-                                        </div>
-                                        ${e.description ? `<div style="margin: 8px 0; color: #2c2c2c;">${e.description}</div>` : ''}
-                                        ${e.isPaid ? `
-                                            <div class="payment-info">
-                                                <strong>💰 Платное событие:</strong> 
-                                                <strong style="font-size: 16px;">${parseFloat(e.eventAmount || 0).toLocaleString()} MDL</strong>
-                                                <span class="status ${e.paymentStatus === 'Оплачено' ? 'status-paid' : 'status-unpaid'}" style="margin-left: 8px;">
-                                                    ${e.paymentStatus}
-                                                </span>
-                                            </div>
-                                        ` : `
-                                            <div class="payment-free">
-                                                ✓ Входит в договор (бесплатно)
-                                            </div>
-                                        `}
-                                    </div>
-                                `).join('')}
+                        <!-- Неоплаченная часть (долг) -->
+                        <div>
+                            <div style="font-size: 14px; color: #c45c5c; margin-bottom: 5px;">⚠️ ДОЛГ</div>
+                            <div class="detail-row" style="border-bottom-color: #c45c5c;">
+                                <span>Договор:</span>
+                                <span style="color: #c45c5c; font-weight: 600;">${unpaidCaseAmount.toLocaleString()} MDL</span>
                             </div>
-                        ` : `
-                            <div class="events-section">
-                                <div class="empty-state">По этому делу событий нет</div>
+                            <div class="detail-row" style="border-bottom-color: #c45c5c;">
+                                <span>События:</span>
+                                <span style="color: #c45c5c; font-weight: 600;">${unpaidEventsAmount.toLocaleString()} MDL</span>
                             </div>
-                        `}
+                            <div class="detail-row" style="border-bottom: 2px solid #c45c5c; font-weight: 700;">
+                                <span>ИТОГО долг:</span>
+                                <span style="color: #c45c5c;">${debtAmount.toLocaleString()} MDL</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            `;}).join('') : '<div class="empty-state">Дела отсутствуют</div>'}
+                
+                <!-- Основные суммы (для справки) -->
+                <div class="detail-row">
+                    <span><strong>Сумма по делу:</strong></span>
+                    <span><strong>${parseFloat(c.amount || 0).toLocaleString()} MDL</strong></span>
+                </div>
+                <div class="detail-row">
+                    <span><strong>Сумма по событиям:</strong></span>
+                    <span><strong>${caseEventsTotal.toLocaleString()} MDL</strong></span>
+                </div>
+                <div class="detail-row" style="border-top: 2px solid #d4a574; padding-top: 8px; margin-top: 8px;">
+                    <span><strong>ВСЕГО ПО ДЕЛУ:</strong></span>
+                    <span style="font-size: 18px; color: #1a2332;"><strong>${caseTotalAmount.toLocaleString()} MDL</strong></span>
+                </div>
+                
+                ${c.events.length > 0 ? `
+                    <div class="events-section">
+                        <div class="events-title">📅 События по делу (${c.events.length})</div>
+                        ${c.events.map(e => {
+                            // Расчет стоимости по времени для события
+                            let timeCostHtml = '';
+                            if (e.timeStart && e.timeEnd) {
+                                const duration = calculateDuration(e.timeStart, e.timeEnd);
+                                if (duration) {
+                                    const hoursDecimal = duration.totalMinutes / 60;
+                                    const costFromTime = hoursDecimal * currentRate;
+                                    timeCostHtml = `
+                                        <div class="event-time-detail">
+                                            <span>
+                                                <strong>⏱️ Время:</strong> ${e.timeStart} – ${e.timeEnd} 
+                                                (${duration.formatted})
+                                            </span>
+                                            <span class="duration-badge">
+                                                💰 ${Math.round(costFromTime).toLocaleString()} MDL
+                                            </span>
+                                        </div>
+                                    `;
+                                }
+                            }
+                            
+                            return `
+                            <div class="event-card" style="border-left-color: ${e.paymentStatus === 'Оплачено' ? '#5a9f7e' : e.paymentStatus === 'Не оплачено' ? '#e6a23c' : '#d4a574'}">
+                                <div class="event-header">
+                                    <div class="event-title">${e.type}</div>
+                                    <span class="status status-${e.status}">
+                                        ${e.status === 'new' ? 'Новое' : e.status === 'in-progress' ? 'В процессе' : 'Завершено'}
+                                    </span>
+                                </div>
+                                <div class="event-meta">
+                                    📅 ${new Date(e.date).toLocaleDateString('ru-RU')} 
+                                    ${e.timeStart ? `• 🕐 ${e.timeStart}` : ''}
+                                    ${e.timeEnd ? `– ${e.timeEnd}` : ''}
+                                </div>
+                                ${timeCostHtml}
+                                ${e.description ? `<div style="margin: 8px 0; color: #2c2c2c;">${e.description}</div>` : ''}
+                                ${e.isPaid ? `
+                                    <div class="payment-info" style="background: ${e.paymentStatus === 'Оплачено' ? 'rgba(90, 159, 126, 0.1)' : 'rgba(230, 162, 60, 0.1)'}">
+                                        <strong>💰 Платное событие:</strong> 
+                                        <strong style="font-size: 16px;">${parseFloat(e.eventAmount || 0).toLocaleString()} MDL</strong>
+                                        <span class="status ${e.paymentStatus === 'Оплачено' ? 'status-paid' : 'status-unpaid'}" style="margin-left: 8px;">
+                                            ${e.paymentStatus}
+                                        </span>
+                                    </div>
+                                ` : `
+                                    <div class="payment-free">
+                                        ✓ Входит в договор (бесплатно)
+                                    </div>
+                                `}
+                            </div>
+                        `}).join('')}
+                    </div>
+                ` : `
+                    <div class="events-section">
+                        <div class="empty-state">По этому делу событий нет</div>
+                    </div>
+                `}
+            </div>
         </div>
+    `}).join('') : '<div class="empty-state">Дела отсутствуют</div>'}
+</div>
         
         <!-- Задачи -->
         <div class="section">
@@ -2156,47 +2531,67 @@ javascript<!-- Дела с событиями -->
         </div>
         
         <!-- Финансовая сводка -->
-        <div class="section">
-            <h2 class="section-title">Финансовая сводка</h2>
-            <div class="finance-summary">
-                <div class="finance-row">
-                    <span class="finance-label">Дела - всего:</span>
-                    <span class="finance-value">${totalCases.toLocaleString()} MDL</span>
-                </div>
-                <div class="finance-row">
-                    <span class="finance-label">Дела - оплачено:</span>
-                    <span class="finance-value">${paidCases.toLocaleString()} MDL</span>
-                </div>
-                <div class="finance-row">
-                    <span class="finance-label">Дела - к получению:</span>
-                    <span class="finance-value">${(totalCases - paidCases).toLocaleString()} MDL</span>
-                </div>
-                <div class="finance-row">
-                    <span class="finance-label">События - всего:</span>
-                    <span class="finance-value">${totalEvents.toLocaleString()} MDL</span>
-                </div>
-                <div class="finance-row">
-                    <span class="finance-label">События - оплачено:</span>
-                    <span class="finance-value">${paidEvents.toLocaleString()} MDL</span>
-                </div>
-                <div class="finance-row">
-                    <span class="finance-label">События - к получению:</span>
-                    <span class="finance-value">${(totalEvents - paidEvents).toLocaleString()} MDL</span>
-                </div>
-                <div class="finance-row">
-                    <span class="finance-label">ИТОГО - всего:</span>
-                    <span class="finance-value">${total.toLocaleString()} MDL</span>
-                </div>
-                <div class="finance-row">
-                    <span class="finance-label">ИТОГО - оплачено:</span>
-                    <span class="finance-value">${totalPaid.toLocaleString()} MDL</span>
-                </div>
-                <div class="finance-row">
-                    <span class="finance-label">ИТОГО - к получению:</span>
-                    <span class="finance-value">${totalPending.toLocaleString()} MDL</span>
-                </div>
-            </div>
+<div class="section">
+    <h2 class="section-title">Финансовая сводка</h2>
+    <div class="finance-summary">
+        <!-- Дела -->
+        <div class="finance-row">
+            <span class="finance-label">Дела - всего:</span>
+            <span class="finance-value">${totalCases.toLocaleString()} MDL</span>
         </div>
+        <div class="finance-row" style="color: #5a9f7e;">
+            <span class="finance-label">✓ Дела - оплачено:</span>
+            <span class="finance-value">${paidCases.toLocaleString()} MDL</span>
+        </div>
+        <div class="finance-row" style="color: #c45c5c;">
+            <span class="finance-label">⚠️ Дела - долг:</span>
+            <span class="finance-value">${(totalCases - paidCases).toLocaleString()} MDL</span>
+        </div>
+        
+        <!-- События -->
+        <div class="finance-row">
+            <span class="finance-label">События - всего:</span>
+            <span class="finance-value">${totalEvents.toLocaleString()} MDL</span>
+        </div>
+        <div class="finance-row" style="color: #5a9f7e;">
+            <span class="finance-label">✓ События - оплачено:</span>
+            <span class="finance-value">${paidEvents.toLocaleString()} MDL</span>
+        </div>
+        <div class="finance-row" style="color: #c45c5c;">
+            <span class="finance-label">⚠️ События - долг:</span>
+            <span class="finance-value">${(totalEvents - paidEvents).toLocaleString()} MDL</span>
+        </div>
+        
+        <!-- Стоимость времени -->
+        <div class="finance-row">
+            <span class="finance-label">Стоимость времени (по ставке ${currentRate} MDL/час):</span>
+            <span class="finance-value">${Math.round(totalCostFromTime).toLocaleString()} MDL</span>
+        </div>
+        
+        <!-- Разделитель -->
+        <div style="border-top: 2px solid #d4a574; margin: 15px 0;"></div>
+        
+        <!-- ИТОГО по категориям -->
+        <div class="finance-row" style="font-size: 16px;">
+            <span class="finance-label">ИТОГО - всего:</span>
+            <span class="finance-value">${total.toLocaleString()} MDL</span>
+        </div>
+        <div class="finance-row" style="color: #5a9f7e; font-size: 16px;">
+            <span class="finance-label">✓ ИТОГО - оплачено:</span>
+            <span class="finance-value">${totalPaid.toLocaleString()} MDL</span>
+        </div>
+        <div class="finance-row" style="color: #c45c5c; font-size: 16px; border-bottom: 2px solid #c45c5c;">
+            <span class="finance-label">⚠️ ИТОГО - долг:</span>
+            <span class="finance-value">${totalPending.toLocaleString()} MDL</span>
+        </div>
+        
+        <!-- Общий итог с учетом времени -->
+        <div class="finance-row" style="margin-top: 15px; border-top: 2px solid #d4a574;">
+            <span class="finance-label">ВСЕГО (включая стоимость времени):</span>
+            <span class="finance-value">${(total + Math.round(totalCostFromTime)).toLocaleString()} MDL</span>
+        </div>
+    </div>
+</div>
         
         <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e8e4df; text-align: center; color: #6b6b6b; font-size: 12px;">
             <p>Отчёт сформирован автоматически в Legal CRM</p>
@@ -2206,17 +2601,11 @@ javascript<!-- Дела с событиями -->
 </body>
 </html>`;
 
-    // Создаём blob и открываем в новой вкладке
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
-    
-    // Альтернативно можно скачать файл
-    // const a = document.createElement('a');
-    // a.href = url;
-    // a.download = `${client.name}_${new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')}.html`;
-    // a.click();
-};
+        // Создаём blob и открываем в новой вкладке
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+    };
 
             const totalAmount = cases.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
 const paidAmount = cases.filter(c => c.paymentStatus === 'Оплачено')
@@ -2266,26 +2655,84 @@ const handleEditEvent = (event) => {
         isPaid: event.isPaid,
         eventAmount: event.eventAmount,
         paymentStatus: event.paymentStatus,
-        description: event.description
+        description: event.description,
+        timeStart: event.timeStart || '',
+        timeEnd: event.timeEnd || ''
     });
 };
 
 const handleSaveEvent = (eventId) => {
     const updates = {};
+    
     if (editEventData.status !== undefined) updates.status = editEventData.status;
+    
+    // ВАЖНО: Правильная обработка оплаты
     if (editEventData.isPaid !== undefined) {
         updates.isPaid = editEventData.isPaid;
+        
         if (!editEventData.isPaid) {
+            // Если событие стало бесплатным
             updates.eventAmount = 0;
             updates.paymentStatus = 'Бесплатно';
+        } else {
+            // Если событие стало платным, но paymentStatus не должен быть "Бесплатно"
+            if (editEventData.paymentStatus === 'Бесплатно') {
+                updates.paymentStatus = 'Не оплачено';
+            } else {
+                updates.paymentStatus = editEventData.paymentStatus;
+            }
         }
     }
-    if (editEventData.eventAmount !== undefined) updates.eventAmount = editEventData.eventAmount;
-    if (editEventData.paymentStatus !== undefined) updates.paymentStatus = editEventData.paymentStatus;
-    if (editEventData.description !== undefined) updates.description = editEventData.description;
     
+    if (editEventData.eventAmount !== undefined) updates.eventAmount = editEventData.eventAmount;
+    if (editEventData.paymentStatus !== undefined && editEventData.isPaid !== false) {
+        updates.paymentStatus = editEventData.paymentStatus;
+    }
+    
+    if (editEventData.description !== undefined) updates.description = editEventData.description;
+    if (editEventData.timeStart !== undefined) updates.timeStart = editEventData.timeStart;
+    if (editEventData.timeEnd !== undefined) updates.timeEnd = editEventData.timeEnd;
+    
+    // Пересчитываем длительность и стоимость
+    if (editEventData.timeStart && editEventData.timeEnd) {
+        updates.duration = calculateDuration(editEventData.timeStart, editEventData.timeEnd);
+        
+        // Если событие платное, автоматически пересчитываем сумму
+        if (editEventData.isPaid) {
+            const cost = calculateCostFromTime(
+                editEventData.timeStart, 
+                editEventData.timeEnd, 
+                hourlyRate
+            );
+            if (cost) {
+                updates.eventAmount = cost.costRounded;
+            }
+        }
+    }
+    
+    console.log('Saving event updates:', updates); // Для отладки
     onUpdateEvent(eventId, updates);
     setEditingEvent(null);
+    setEditEventData({});
+};
+
+const suggestTimeForEventType = (type) => {
+    const now = new Date();
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+    
+    // Предложения времени для разных типов событий
+    const suggestions = {
+        'Судебное заседание': { start: '10:00', end: '11:00' },
+        'Встреча с клиентом': { start: '14:00', end: '15:00' },
+        'Консультация': { start: '16:00', end: '17:00' },
+        'default': { 
+            start: `${String(currentHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`,
+            end: `${String(currentHours + 1).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`
+        }
+    };
+    
+    return suggestions[type] || suggestions.default;
 };
 
 const handleCancelEditEvent = () => {
@@ -2294,37 +2741,76 @@ const handleCancelEditEvent = () => {
 };
 
             return (
-                <div className="client-detail">
-                    <div className="client-detail-header">
-    <div>
-        <button className="back-btn" onClick={onBack}>
-            ← Назад к списку
-        </button>
-    </div>
-    <div style={{display: 'flex', gap: '1rem'}}>
+    <div className="client-detail">
+        <div className="client-detail-header">
+            <div>
+                <button className="back-btn" onClick={onBack}>
+                    ← Назад к списку
+                </button>
+            </div>
+            <div style={{display: 'flex', gap: '1rem'}}>
                 <button 
-    className="btn btn-secondary"
-    onClick={() => exportClientToHTML(client, cases, events, tasks)}
-    style={{background: 'var(--info)', color: 'white', border: 'none'}}
->
-    📄 Отчёт
-</button>
-        <button 
-            className="btn btn-primary"
-            onClick={() => setEditMode(!editMode)}
-        >
-            {editMode ? 'Отменить' : 'Редактировать'}
-        </button>
-        <button 
-            className="btn btn-danger"
-            onClick={() => onDeleteClient(client.id, client.name)}
-        >
-            Удалить
-        </button>
-    </div>
-</div>
+                    className="btn btn-secondary"
+                    onClick={() => exportClientToHTML(client, cases, events, tasks)}
+                    style={{background: 'var(--info)', color: 'white', border: 'none'}}
+                >
+                    📄 Отчёт
+                </button>
+                <button 
+                    className="btn btn-primary"
+                    onClick={() => setEditMode(!editMode)}
+                >
+                    {editMode ? 'Отменить' : 'Редактировать'}
+                </button>
+                <button 
+                    className="btn btn-danger"
+                    onClick={() => onDeleteClient(client.id, client.name)}
+                >
+                    Удалить
+                </button>
+            </div>
+        </div>
 
-                    {editMode ? (
+        {/* ДОБАВЬТЕ ЭТОТ БЛОК ЗДЕСЬ - после header и перед информацией о клиенте */}
+        <div style={{
+            background: 'linear-gradient(135deg, #d4a574 0%, #b8935f 100%)',
+            padding: '1rem 2rem',
+            borderRadius: '12px',
+            marginBottom: '2rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            color: 'white'
+        }}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
+                <span style={{fontSize: '1.2rem'}}>⏱️</span>
+                <div>
+                    <div style={{fontSize: '0.9rem', opacity: 0.9}}>Почасовая ставка адвоката</div>
+                    <div style={{fontSize: '1.5rem', fontWeight: '700'}}>{hourlyRate} MDL/час</div>
+                </div>
+            </div>
+            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                <input
+                    type="number"
+                    value={hourlyRate}
+                    onChange={(e) => saveHourlyRate(parseFloat(e.target.value) || 0)}
+                    style={{
+                        width: '120px',
+                        padding: '0.75rem',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '1rem',
+                        fontWeight: '600',
+                        textAlign: 'center'
+                    }}
+                    min="0"
+                    step="50"
+                />
+                <span style={{fontSize: '1.1rem', fontWeight: '600'}}>MDL</span>
+            </div>
+        </div>
+
+        {editMode ? (
                         <div className="calendar-container" style={{marginBottom: '2rem'}}>
                             <h3 style={{marginBottom: '1.5rem', fontFamily: 'Playfair Display, serif'}}>
                                 Редактирование клиента
@@ -2765,194 +3251,345 @@ const handleCancelEditEvent = () => {
                                     border: '1px solid var(--border)'
                                 }}>
                                     {editingEvent === e.id ? (
-                                        // Режим редактирования
-                                        <div>
-                                            <div style={{marginBottom: '1rem'}}>
-                                                <strong>{e.title}</strong>
-                                            </div>
-                                            <div className="form-group">
-                                                <label>Статус</label>
-                                                <select
-                                                    value={editEventData.status !== undefined ? editEventData.status : e.status}
-                                                    onChange={(ev) => setEditEventData({...editEventData, status: ev.target.value})}
-                                                    style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}
-                                                >
-                                                    <option value="new">Новое</option>
-                                                    <option value="in-progress">В процессе</option>
-                                                    <option value="completed">Завершено</option>
-                                                </select>
-                                            </div>
-                                            <div className="form-group">
-                                                <label>Оплата события</label>
-                                                <select
-                                                    value={(editEventData.isPaid !== undefined ? editEventData.isPaid : e.isPaid) ? 'paid' : 'free'}
-                                                    onChange={(ev) => {
-                                                        const isPaid = ev.target.value === 'paid';
-                                                        setEditEventData({
-                                                            ...editEventData, 
-                                                            isPaid: isPaid,
-                                                            eventAmount: isPaid ? (editEventData.eventAmount || e.eventAmount) : 0,
-                                                            paymentStatus: isPaid ? (editEventData.paymentStatus || e.paymentStatus) : 'Бесплатно'
-                                                        });
-                                                    }}
-                                                    style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}
-                                                >
-                                                    <option value="free">Бесплатно (входит в договор)</option>
-                                                    <option value="paid">Платное (оплачивается отдельно)</option>
-                                                </select>
-                                            </div>
-                                            {(editEventData.isPaid !== undefined ? editEventData.isPaid : e.isPaid) && (
-                                                <>
-                                                    <div className="form-group">
-                                                        <label>Сумма за событие (MDL)</label>
-                                                        <input
-                                                            type="number"
-                                                            value={editEventData.eventAmount !== undefined ? editEventData.eventAmount : e.eventAmount}
-                                                            onChange={(ev) => setEditEventData({...editEventData, eventAmount: ev.target.value})}
-                                                            style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}
-                                                        />
-                                                    </div>
-                                                    <div className="form-group">
-                                                        <label>Статус оплаты</label>
-                                                        <select
-                                                            value={editEventData.paymentStatus || e.paymentStatus}
-                                                            onChange={(ev) => setEditEventData({...editEventData, paymentStatus: ev.target.value})}
-                                                            style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}
-                                                        >
-                                                            <option>Не оплачено</option>
-                                                            <option>Оплачено</option>
-                                                        </select>
-                                                    </div>
-                                                </>
-                                            )}
-                                            <div className="form-group">
-                                                <label>Описание</label>
-                                                <textarea
-                                                    value={editEventData.description !== undefined ? editEventData.description : e.description}
-                                                    onChange={(ev) => setEditEventData({...editEventData, description: ev.target.value})}
-                                                    style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', minHeight: '60px'}}
-                                                />
-                                            </div>
-                                            <div style={{display: 'flex', gap: '0.5rem', marginTop: '1rem'}}>
-                                                <button 
-                                                    className="btn btn-primary" 
-                                                    onClick={() => handleSaveEvent(e.id)}
-                                                    style={{flex: 1, padding: '0.5rem'}}
-                                                >
-                                                    Сохранить
-                                                </button>
-                                                <button 
-                                                    className="btn btn-secondary" 
-                                                    onClick={handleCancelEditEvent}
-                                                    style={{flex: 1, padding: '0.5rem'}}
-                                                >
-                                                    Отмена
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        // Режим просмотра
-                                        <>
-                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem'}}>
-                                                <div style={{flex: 1}}>
-                                                    <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'}}>
-                                                        <strong style={{fontSize: '1rem'}}>{e.title}</strong>
-                                                        <span className={`list-item-status status-${e.status}`}>
-                                                            {e.status === 'new' ? '🆕 Новое' : 
-                                                             e.status === 'in-progress' ? '🔵 В процессе' : 
-                                                             '✅ Завершено'}
-                                                        </span>
-                                                    </div>
-                                                    <div style={{fontSize: '0.85rem', color: 'var(--text-light)'}}>
-                                                        📋 {e.type} • 📅 {new Date(e.date).toLocaleDateString('ru-RU')} {e.time && `• 🕐 ${e.time}`}
-                                                    </div>
-                                                    {e.description && (
-                                                        <div style={{fontSize: '0.9rem', color: 'var(--text)', marginTop: '0.5rem'}}>
-                                                            {e.description}
-                                                        </div>
-                                                    )}
-                                                    <div style={{marginTop: '0.75rem'}}>
-                                                        {e.isPaid ? (
-                                                            <div style={{
-                                                                display: 'inline-flex',
-                                                                alignItems: 'center',
-                                                                gap: '0.5rem',
-                                                                padding: '0.5rem 0.75rem',
-                                                                background: 'rgba(212, 165, 116, 0.1)',
-                                                                borderRadius: '6px'
-                                                            }}>
-                                                                <span style={{fontWeight: '600', color: 'var(--accent-dark)'}}>
-                                                                    💰 Платное событие:
-                                                                </span>
-                                                                <span style={{fontWeight: '700', fontSize: '1.05rem', color: 'var(--primary)'}}>
-                                                                    {parseFloat(e.eventAmount || 0).toLocaleString()} MDL
-                                                                </span>
-                                                                <span className={`client-status ${e.paymentStatus === 'Оплачено' ? 'status-active' : 'status-pending'}`}>
-                                                                    {e.paymentStatus}
-                                                                </span>
-                                                            </div>
-                                                        ) : (
-                                                            <span style={{
-                                                                display: 'inline-block',
-                                                                padding: '0.5rem 0.75rem',
-                                                                background: 'rgba(90, 159, 126, 0.1)',
-                                                                borderRadius: '6px',
-                                                                fontSize: '0.9rem',
-                                                                color: 'var(--success)',
-                                                                fontWeight: '600'
-                                                            }}>
-                                                                ✓ Входит в договор (бесплатно)
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', marginLeft: '1rem'}}>
-                                                    <button
-                                                        onClick={() => handleEditEvent(e)}
-                                                        style={{
-                                                            padding: '0.4rem 0.9rem',
-                                                            background: 'rgba(74, 144, 226, 0.15)',
-                                                            color: 'var(--info)',
-                                                            border: 'none',
-                                                            borderRadius: '20px',
-                                                            cursor: 'pointer',
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: '600',
-                                                            textTransform: 'uppercase',
-                                                            letterSpacing: '0.5px',
-                                                            transition: 'all 0.2s',
-                                                            whiteSpace: 'nowrap'
-                                                        }}
-                                                        onMouseOver={(ev) => ev.target.style.background = 'rgba(74, 144, 226, 0.25)'}
-                                                        onMouseOut={(ev) => ev.target.style.background = 'rgba(74, 144, 226, 0.15)'}
-                                                    >
-                                                        ✏️ Редактировать
-                                                    </button>
-                                                    <button
-                                                        onClick={() => onDeleteEvent(e.id, e.title)}
-                                                        style={{
-                                                            padding: '0.4rem 0.9rem',
-                                                            background: 'rgba(196, 92, 92, 0.15)',
-                                                            color: 'var(--danger)',
-                                                            border: 'none',
-                                                            borderRadius: '20px',
-                                                            cursor: 'pointer',
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: '600',
-                                                            textTransform: 'uppercase',
-                                                            letterSpacing: '0.5px',
-                                                            transition: 'all 0.2s',
-                                                            whiteSpace: 'nowrap'
-                                                        }}
-                                                        onMouseOver={(ev) => ev.target.style.background = 'rgba(196, 92, 92, 0.25)'}
-                                                        onMouseOut={(ev) => ev.target.style.background = 'rgba(196, 92, 92, 0.15)'}
-                                                    >
-                                                        🗑️ Удалить
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
+    <div>
+        <div style={{marginBottom: '1rem'}}>
+            <strong>{e.type}</strong>
+        </div>
+        
+        {/* Время начала и окончания */}
+        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem'}}>
+            <div className="form-group">
+                <label>Время начала</label>
+                <input
+                    type="time"
+                    value={editEventData.timeStart || ''}
+                    onChange={(ev) => {
+                        const newTimeStart = ev.target.value;
+                        setEditEventData({...editEventData, timeStart: newTimeStart});
+                        
+                        // Автоматически пересчитываем стоимость
+                        if (newTimeStart && editEventData.timeEnd && editEventData.isPaid) {
+                            const cost = calculateCostFromTime(
+                                newTimeStart, 
+                                editEventData.timeEnd, 
+                                hourlyRate
+                            );
+                            if (cost) {
+                                setEditEventData(prev => ({
+                                    ...prev, 
+                                    eventAmount: cost.costRounded
+                                }));
+                            }
+                        }
+                    }}
+                    style={{width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border)'}}
+                />
+            </div>
+            <div className="form-group">
+                <label>Время окончания</label>
+                <input
+                    type="time"
+                    value={editEventData.timeEnd || ''}
+                    onChange={(ev) => {
+                        const newTimeEnd = ev.target.value;
+                        setEditEventData({...editEventData, timeEnd: newTimeEnd});
+                        
+                        // Автоматически пересчитываем стоимость
+                        if (editEventData.timeStart && newTimeEnd && editEventData.isPaid) {
+                            const cost = calculateCostFromTime(
+                                editEventData.timeStart, 
+                                newTimeEnd, 
+                                hourlyRate
+                            );
+                            if (cost) {
+                                setEditEventData(prev => ({
+                                    ...prev, 
+                                    eventAmount: cost.costRounded
+                                }));
+                            }
+                        }
+                    }}
+                    style={{width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border)'}}
+                />
+            </div>
+        </div>
+        
+        {/* Отображение длительности и стоимости */}
+        {editEventData.timeStart && editEventData.timeEnd && editEventData.isPaid && (
+            <div style={{
+                padding: '0.75rem',
+                background: 'rgba(212, 165, 116, 0.1)',
+                borderRadius: '6px',
+                marginBottom: '1rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+            }}>
+                {(() => {
+                    const cost = calculateCostFromTime(
+                        editEventData.timeStart, 
+                        editEventData.timeEnd, 
+                        hourlyRate
+                    );
+                    return cost ? (
+                        <>
+                            <span><strong>⏱️ Длительность:</strong> {cost.hours}</span>
+                            <span style={{fontWeight: '700', color: 'var(--accent-dark)'}}>
+                                = {cost.costRounded} MDL
+                            </span>
+                        </>
+                    ) : null;
+                })()}
+            </div>
+        )}
+        
+        <div className="form-group">
+            <label>Статус</label>
+            <select
+                value={editEventData.status !== undefined ? editEventData.status : e.status}
+                onChange={(ev) => setEditEventData({...editEventData, status: ev.target.value})}
+                style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}
+            >
+                <option value="new">Новое</option>
+                <option value="in-progress">В процессе</option>
+                <option value="completed">Завершено</option>
+            </select>
+        </div>
+        
+        <div className="form-group">
+            <label>Оплата события</label>
+            <select
+                value={editEventData.isPaid ? 'paid' : 'free'}
+                onChange={(ev) => {
+                    const isPaid = ev.target.value === 'paid';
+                    setEditEventData(prev => ({...prev, isPaid}));
+                    
+                    if (isPaid) {
+                        // Если выбрано платное, пересчитываем стоимость
+                        if (prev.timeStart && prev.timeEnd) {
+                            const cost = calculateCostFromTime(
+                                prev.timeStart, 
+                                prev.timeEnd, 
+                                hourlyRate
+                            );
+                            if (cost) {
+                                setEditEventData(prev => ({
+                                    ...prev, 
+                                    eventAmount: cost.costRounded,
+                                    paymentStatus: 'Не оплачено'
+                                }));
+                            }
+                        }
+                    } else {
+                        setEditEventData(prev => ({
+                            ...prev, 
+                            eventAmount: 0,
+                            paymentStatus: 'Бесплатно'
+                        }));
+                    }
+                }}
+                style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}
+            >
+                <option value="free">Бесплатно (входит в договор)</option>
+                <option value="paid">Платное (оплачивается отдельно)</option>
+            </select>
+        </div>
+        
+        {editEventData.isPaid && (
+            <>
+                <div className="form-group">
+                    <label>Сумма за событие (MDL)</label>
+                    <input
+                        type="number"
+                        value={editEventData.eventAmount || 0}
+                        onChange={(ev) => setEditEventData({...editEventData, eventAmount: ev.target.value})}
+                        style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border)',
+                            background: 'var(--bg)',
+                            fontWeight: '600'
+                        }}
+                        readOnly // Делаем только для чтения, так как рассчитывается автоматически
+                    />
+                    <small style={{color: 'var(--text-light)'}}>
+                        * Рассчитано автоматически: {hourlyRate} MDL/час
+                    </small>
+                </div>
+                <div className="form-group">
+                    <label>Статус оплаты</label>
+                    <select
+                        value={editEventData.paymentStatus || 'Не оплачено'}
+                        onChange={(ev) => setEditEventData({...editEventData, paymentStatus: ev.target.value})}
+                        style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)'}}
+                    >
+                        <option>Не оплачено</option>
+                        <option>Оплачено</option>
+                    </select>
+                </div>
+            </>
+        )}
+        
+        <div className="form-group">
+            <label>Описание</label>
+            <textarea
+                value={editEventData.description !== undefined ? editEventData.description : e.description}
+                onChange={(ev) => setEditEventData({...editEventData, description: ev.target.value})}
+                style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', minHeight: '60px'}}
+            />
+        </div>
+        
+        <div style={{display: 'flex', gap: '0.5rem', marginTop: '1rem'}}>
+            <button 
+                className="btn btn-primary" 
+                onClick={() => handleSaveEvent(e.id)}
+                style={{flex: 1, padding: '0.5rem'}}
+            >
+                Сохранить
+            </button>
+            <button 
+                className="btn btn-secondary" 
+                onClick={handleCancelEditEvent}
+                style={{flex: 1, padding: '0.5rem'}}
+            >
+                Отмена
+            </button>
+        </div>
+    </div>
+) : (
+    // Режим просмотра
+    <>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem'}}>
+            <div style={{flex: 1}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'}}>
+                    <strong style={{fontSize: '1rem'}}>{e.type}</strong>
+                    <span className={`list-item-status status-${e.status}`}>
+                        {e.status === 'new' ? '🆕 Новое' : 
+                         e.status === 'in-progress' ? '🔵 В процессе' : 
+                         '✅ Завершено'}
+                    </span>
+                </div>
+                
+                {/* ОБНОВЛЕНО: отображение времени с началом и концом */}
+                <div style={{fontSize: '0.85rem', color: 'var(--text-light)'}}>
+                    📅 {new Date(e.date).toLocaleDateString('ru-RU')} 
+                    {e.timeStart && ` • 🕐 ${e.timeStart}`}
+                    {e.timeEnd && ` – ${e.timeEnd}`}
+                    {e.duration && e.duration.formatted && (
+                        <span style={{
+                            marginLeft: '0.5rem',
+                            padding: '0.2rem 0.5rem',
+                            background: 'rgba(212, 165, 116, 0.1)',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            color: 'var(--accent-dark)',
+                            fontWeight: '600'
+                        }}>
+                            ⏱️ {e.duration.formatted}
+                        </span>
+                    )}
+                </div>
+                
+                {e.description && (
+                    <div style={{fontSize: '0.9rem', color: 'var(--text)', marginTop: '0.5rem'}}>
+                        {e.description}
+                    </div>
+                )}
+                
+                {/* Информация об оплате */}
+                <div style={{marginTop: '0.75rem'}}>
+                    {e.isPaid ? (
+    <div style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        padding: '0.5rem 0.75rem',
+        background: e.paymentStatus === 'Оплачено' 
+            ? 'rgba(90, 159, 126, 0.1)' 
+            : 'rgba(212, 165, 116, 0.1)',
+        borderRadius: '6px'
+    }}>
+        <span style={{fontWeight: '600', color: 'var(--accent-dark)'}}>
+            💰 Платное событие:
+        </span>
+        <span style={{fontWeight: '700', fontSize: '1.05rem', color: 'var(--primary)'}}>
+            {parseFloat(e.eventAmount || 0).toLocaleString()} MDL
+        </span>
+        <span className={`client-status ${
+            e.paymentStatus === 'Оплачено' 
+                ? 'status-active' 
+                : e.paymentStatus === 'Не оплачено'
+                    ? 'status-pending'
+                    : 'status-inactive'
+        }`}>
+            {e.paymentStatus}
+        </span>
+    </div>
+) : (
+    <span style={{
+        display: 'inline-block',
+        padding: '0.5rem 0.75rem',
+        background: 'rgba(90, 159, 126, 0.1)',
+        borderRadius: '6px',
+        fontSize: '0.9rem',
+        color: 'var(--success)',
+        fontWeight: '600'
+    }}>
+        ✓ Входит в договор (бесплатно)
+    </span>
+)}
+                </div>
+            </div>
+            
+            {/* Кнопки редактирования/удаления */}
+            <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', marginLeft: '1rem'}}>
+                <button
+                    onClick={() => handleEditEvent(e)}
+                    style={{
+                        padding: '0.4rem 0.9rem',
+                        background: 'rgba(74, 144, 226, 0.15)',
+                        color: 'var(--info)',
+                        border: 'none',
+                        borderRadius: '20px',
+                        cursor: 'pointer',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap'
+                    }}
+                    onMouseOver={(ev) => ev.target.style.background = 'rgba(74, 144, 226, 0.25)'}
+                    onMouseOut={(ev) => ev.target.style.background = 'rgba(74, 144, 226, 0.15)'}
+                >
+                    ✏️ Редактировать
+                </button>
+                <button
+                    onClick={() => onDeleteEvent(e.id, e.type)}
+                    style={{
+                        padding: '0.4rem 0.9rem',
+                        background: 'rgba(196, 92, 92, 0.15)',
+                        color: 'var(--danger)',
+                        border: 'none',
+                        borderRadius: '20px',
+                        cursor: 'pointer',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap'
+                    }}
+                    onMouseOver={(ev) => ev.target.style.background = 'rgba(196, 92, 92, 0.25)'}
+                    onMouseOut={(ev) => ev.target.style.background = 'rgba(196, 92, 92, 0.15)'}
+                >
+                    🗑️ Удалить
+                </button>
+            </div>
+        </div>
+    </>
+)}
                                 </div>
                             ))}
                         </div>
@@ -3345,9 +3982,333 @@ const handleCancelEditEvent = () => {
             );
         }
 
-        
+// Documents View Component
+function DocumentsView() {
+    const [documents, setDocuments] = React.useState([]);
+    const [showAddModal, setShowAddModal] = React.useState(false);
+    const [editingDoc, setEditingDoc] = React.useState(null);
+    const [draggedItem, setDraggedItem] = React.useState(null);
+    const [searchTerm, setSearchTerm] = React.useState('');
+
+    // Загрузка документов из localStorage
+    React.useEffect(() => {
+        const saved = localStorage.getItem('legal_documents');
+        if (saved) {
+            setDocuments(JSON.parse(saved));
+        }
+    }, []);
+
+    // Сохранение в localStorage
+    const saveDocuments = (docs) => {
+        setDocuments(docs);
+        localStorage.setItem('legal_documents', JSON.stringify(docs));
+    };
+
+    // Добавление документа
+    const addDocument = (docData) => {
+        const newDoc = {
+            id: Date.now(),
+            ...docData,
+            order: documents.length
+        };
+        saveDocuments([...documents, newDoc]);
+        setShowAddModal(false);
+    };
+
+    // Редактирование документа
+    const updateDocument = (docData) => {
+        const updated = documents.map(d => 
+            d.id === editingDoc.id ? { ...d, ...docData } : d
+        );
+        saveDocuments(updated);
+        setEditingDoc(null);
+    };
+
+    // Удаление документа
+    const deleteDocument = (id) => {
+        if (!confirm('Удалить этот документ?')) return;
+        saveDocuments(documents.filter(d => d.id !== id));
+    };
+
+    // Drag and Drop
+    const handleDragStart = (e, doc) => {
+        setDraggedItem(doc);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = (e, targetDoc) => {
+        e.preventDefault();
+        if (!draggedItem || draggedItem.id === targetDoc.id) return;
+
+        const draggedIndex = documents.findIndex(d => d.id === draggedItem.id);
+        const targetIndex = documents.findIndex(d => d.id === targetDoc.id);
+
+        const newDocs = [...documents];
+        newDocs.splice(draggedIndex, 1);
+        newDocs.splice(targetIndex, 0, draggedItem);
+
+        // Обновляем order
+        const reordered = newDocs.map((doc, index) => ({ ...doc, order: index }));
+        saveDocuments(reordered);
+        setDraggedItem(null);
+    };
+
+    const filteredDocs = documents
+        .filter(doc => doc.title.toLowerCase().includes(searchTerm.toLowerCase()))
+        .sort((a, b) => a.order - b.order);
+
+    return (
+        <>
+            <div className="content-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+    <h2>📚 База законодательства</h2>
+    <div>
+        <button 
+            className="btn btn-primary"
+            onClick={() => setShowAddModal(true)}
+        >
+            ➕ Добавить документ
+        </button>
+    </div>
+</div>
+
+            {/* Поиск */}
+            <div style={{marginBottom: '2rem'}}>
+                <input
+                    type="text"
+                    placeholder="🔍 Поиск документов..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{
+                        width: '100%',
+                        padding: '1rem',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        fontSize: '1rem'
+                    }}
+                />
+            </div>
+
+            {/* Сетка документов 3 колонки */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '1.5rem'
+            }}>
+                {filteredDocs.map(doc => (
+                    <div
+                        key={doc.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, doc)}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, doc)}
+                        style={{
+                            background: 'white',
+                            padding: '1.5rem',
+                            borderRadius: '8px',
+                            boxShadow: draggedItem?.id === doc.id ? '0 8px 24px rgba(0,0,0,0.2)' : '0 2px 8px var(--shadow)',
+                            border: '2px solid var(--border)',
+                            cursor: 'move',
+                            transition: 'all 0.3s',
+                            opacity: draggedItem?.id === doc.id ? 0.5 : 1,
+                            transform: draggedItem?.id === doc.id ? 'scale(1.05)' : 'scale(1)'
+                        }}
+                    >
+                        <div style={{marginBottom: '1rem'}}>
+                            <h3 style={{
+                                fontSize: '1.1rem',
+                                fontWeight: '600',
+                                color: 'var(--primary)',
+                                marginBottom: '1rem',
+                                minHeight: '3rem'
+                            }}>
+                                {doc.title}
+                            </h3>
+                        </div>
+
+                        {/* Кнопки языков */}
+<div style={{display: 'flex', gap: '0.5rem', marginBottom: '1rem'}}>
+    <a 
+        href={doc?.link_ru || '#'}  // Добавил ?. для безопасности
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+            flex: 1,
+            padding: '0.75rem',
+            background: 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+            color: 'white',
+            textAlign: 'center',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            fontWeight: '600',
+            fontSize: '0.9rem',
+            transition: 'all 0.3s'
+        }}
+        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}  // currentTarget вместо target
+        onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+    >
+        RU
+    </a>
+    
+    <a 
+        href={doc?.link_ro || '#'}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+            flex: 1,
+            padding: '0.75rem',
+            background: 'linear-gradient(135deg, #e6a23c 0%, #c98a2e 100%)',
+            color: 'white',
+            textAlign: 'center',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            fontWeight: '600',
+            fontSize: '0.9rem',
+            transition: 'all 0.3s'
+        }}
+        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+        onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+    >
+        MD
+    </a>
+</div>
+
+                        {/* Кнопки управления */}
+                        <div style={{display: 'flex', gap: '0.5rem'}}>
+                            <button
+                                onClick={() => setEditingDoc(doc)}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.5rem',
+                                    background: 'rgba(74, 144, 226, 0.15)',
+                                    color: 'var(--info)',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.85rem',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                ✏️ Изменить
+                            </button>
+                            <button
+                                onClick={() => deleteDocument(doc.id)}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.5rem',
+                                    background: 'rgba(196, 92, 92, 0.15)',
+                                    color: 'var(--danger)',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.85rem',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                🗑️ Удалить
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {filteredDocs.length === 0 && (
+                <div style={{
+                    textAlign: 'center',
+                    padding: '4rem',
+                    color: 'var(--text-light)'
+                }}>
+                    <div style={{fontSize: '4rem', marginBottom: '1rem'}}>📚</div>
+                    <h3 style={{marginBottom: '0.5rem'}}>Документы отсутствуют</h3>
+                    <p>Нажмите "Добавить документ" чтобы создать первую карточку</p>
+                </div>
+            )}
+
+            {/* Модальное окно добавления/редактирования */}
+            {(showAddModal || editingDoc) && (
+                <DocumentModal
+                    doc={editingDoc}
+                    onSave={editingDoc ? updateDocument : addDocument}
+                    onClose={() => {
+                        setShowAddModal(false);
+                        setEditingDoc(null);
+                    }}
+                />
+            )}
+        </>
+    );
+}
+
+// Modal Component for Document
+function DocumentModal({ doc, onSave, onClose }) {
+    const [formData, setFormData] = React.useState(doc || {
+        title: '',
+        link_ru: '',
+        link_ro: ''
+    });
+
+    const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log('Form data before save:', formData);
+    console.log('isPaid value:', formData.isPaid, 'type:', typeof formData.isPaid);
+    onSave(formData);
+};
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '600px'}}>
+                <h3>{doc ? 'Редактировать документ' : 'Добавить документ'}</h3>
+                <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label>Название документа *</label>
+                        <input
+                            type="text"
+                            required
+                            value={formData.title}
+                            onChange={(e) => setFormData({...formData, title: e.target.value})}
+                            placeholder="Например: Гражданский кодекс РМ"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Ссылка на русском (RU) *</label>
+                        <input
+                            type="url"
+                            required
+                            value={formData.link_ru}
+                            onChange={(e) => setFormData({...formData, link_ru: e.target.value})}
+                            placeholder="https://..."
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Ссылка на румынском (RO) *</label>
+                        <input
+                            type="url"
+                            required
+                            value={formData.link_ro}
+                            onChange={(e) => setFormData({...formData, link_ro: e.target.value})}
+                            placeholder="https://..."
+                        />
+                    </div>
+                    <div className="form-actions">
+                        <button type="button" className="btn btn-secondary" onClick={onClose}>
+                            Отмена
+                        </button>
+                        <button type="submit" className="btn btn-primary">
+                            {doc ? 'Сохранить' : 'Добавить'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+  
 		// Calendar View Component
-        function CalendarView({ events, currentDate, setCurrentDate }) {
+function CalendarView({ events, currentDate, setCurrentDate }) {
     const [selectedDay, setSelectedDay] = React.useState(null);
     const [showDayModal, setShowDayModal] = React.useState(false);
     
@@ -3355,236 +4316,316 @@ const handleCancelEditEvent = () => {
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
                       'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
-            const getDaysInMonth = (date) => {
-                const year = date.getFullYear();
-                const month = date.getMonth();
-                const firstDay = new Date(year, month, 1);
-                const lastDay = new Date(year, month + 1, 0);
-                const daysInMonth = lastDay.getDate();
-                const startingDayOfWeek = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+    const getDaysInMonth = (date) => {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const startingDayOfWeek = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
 
-                const days = [];
-                
-                const prevMonthDays = new Date(year, month, 0).getDate();
-                for (let i = startingDayOfWeek - 1; i >= 0; i--) {
-                    days.push({
-                        date: new Date(year, month - 1, prevMonthDays - i),
-                        isCurrentMonth: false
-                    });
-                }
+        const days = [];
+        
+        const prevMonthDays = new Date(year, month, 0).getDate();
+        for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+            days.push({
+                date: new Date(year, month - 1, prevMonthDays - i),
+                isCurrentMonth: false
+            });
+        }
 
-                for (let i = 1; i <= daysInMonth; i++) {
-                    days.push({
-                        date: new Date(year, month, i),
-                        isCurrentMonth: true
-                    });
-                }
+        for (let i = 1; i <= daysInMonth; i++) {
+            days.push({
+                date: new Date(year, month, i),
+                isCurrentMonth: true
+            });
+        }
 
-                const remainingDays = 42 - days.length;
-                for (let i = 1; i <= remainingDays; i++) {
-                    days.push({
-                        date: new Date(year, month + 1, i),
-                        isCurrentMonth: false
-                    });
-                }
+        const remainingDays = 42 - days.length;
+        for (let i = 1; i <= remainingDays; i++) {
+            days.push({
+                date: new Date(year, month + 1, i),
+                isCurrentMonth: false
+            });
+        }
 
-                return days;
-            };
+        return days;
+    };
 
-            const getEventsForDay = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
-    return events.filter(event => event.date === dateStr);
-};
+    const getEventsForDay = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        return events.filter(event => event.date === dateStr);
+    };
 
-            const isToday = (date) => {
-                const today = new Date();
-                return date.toDateString() === today.toDateString();
-            };
+    const isToday = (date) => {
+        const today = new Date();
+        return date.toDateString() === today.toDateString();
+    };
 
-            const prevMonth = () => {
-                setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
-            };
+    const prevMonth = () => {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+    };
 
-            const nextMonth = () => {
-                setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
-            };
-			
-			const handleDayClick = (date, dayEvents) => {
-                if (dayEvents.length > 0) {
-                    setSelectedDay({ date, events: dayEvents });
-                    setShowDayModal(true);
-                }
-            };
+    const nextMonth = () => {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+    };
+    
+    const handleDayClick = (date, dayEvents) => {
+        if (dayEvents.length > 0) {
+            setSelectedDay({ date, events: dayEvents });
+            setShowDayModal(true);
+        }
+    };
 
-            const days = getDaysInMonth(currentDate);
+    const days = getDaysInMonth(currentDate);
 
-            return (
-                <>
-                    <div className="content-header">
-                        <h2>Календарь событий</h2>
+    return (
+        <>
+            <div className="content-header">
+                <h2>Календарь событий</h2>
+            </div>
+
+            <div className="calendar-container">
+                <div className="calendar-header">
+                    <h3>{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</h3>
+                    <div className="calendar-nav">
+                        <button onClick={prevMonth}>← Назад</button>
+                        <button onClick={() => setCurrentDate(new Date())}>Сегодня</button>
+                        <button onClick={nextMonth}>Вперёд →</button>
                     </div>
+                </div>
 
-                    <div className="calendar-container">
-                        <div className="calendar-header">
-                            <h3>{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</h3>
-                            <div className="calendar-nav">
-                                <button onClick={prevMonth}>← Назад</button>
-                                <button onClick={() => setCurrentDate(new Date())}>Сегодня</button>
-                                <button onClick={nextMonth}>Вперёд →</button>
-                            </div>
+                <div className="calendar-grid">
+                    {daysOfWeek.map(day => (
+                        <div key={day} className="calendar-day-header">
+                            {day}
                         </div>
-
-                        <div className="calendar-grid">
-                            {daysOfWeek.map(day => (
-                                <div key={day} className="calendar-day-header">
-                                    {day}
-                                </div>
-                            ))}
-                            {days.map((day, index) => {
-                                const dayEvents = getEventsForDay(day.date);
-                                return (
-                                    <div
-                                        key={index}
-                                        className={`calendar-day ${!day.isCurrentMonth ? 'other-month' : ''} ${isToday(day.date) ? 'today' : ''}`}
-                                        onClick={() => handleDayClick(day.date, dayEvents)}
-                                        style={{cursor: dayEvents.length > 0 ? 'pointer' : 'default'}}
-                                    >
-                                        <div className="day-number">{day.date.getDate()}</div>
-                                        {dayEvents.map(event => (
-                                            <div 
-                                                key={event.id} 
-                                                className={`event-item status-${event.status || 'new'}`}
-                                            >
-                                                {event.title}
-                                            </div>
-                                        ))}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Модальное окно с событиями дня */}
-                    {showDayModal && selectedDay && (
-                        <div className="modal-overlay" onClick={() => setShowDayModal(false)}>
-                            <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '700px'}}>
-                                <h3 style={{marginBottom: '1.5rem'}}>
-                                    События на {selectedDay.date.toLocaleDateString('ru-RU', {
-                                        day: 'numeric',
-                                        month: 'long',
-                                        year: 'numeric'
-                                    })}
-                                </h3>
+                    ))}
+                    {days.map((day, index) => {
+                        const dayEvents = getEventsForDay(day.date);
+                        const eventCount = dayEvents.length;
+                        
+                        return (
+                            <div
+                                key={index}
+                                className={`calendar-day ${!day.isCurrentMonth ? 'other-month' : ''} ${isToday(day.date) ? 'today' : ''}`}
+                                onClick={() => handleDayClick(day.date, dayEvents)}
+                                style={{
+                                    cursor: eventCount > 0 ? 'pointer' : 'default',
+                                    position: 'relative',
+                                    minHeight: '100px',
+                                    display: 'flex',
+                                    flexDirection: 'column'
+                                }}
+                            >
+                                <div className="day-number" style={{marginBottom: '4px'}}>{day.date.getDate()}</div>
                                 
-                                <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-                                    {selectedDay.events.map(event => (
-                                        <div key={event.id} style={{
-                                            padding: '1.5rem',
-                                            background: 'var(--bg)',
-                                            borderRadius: '8px',
-                                            borderLeft: `4px solid ${
-                                                event.status === 'completed' ? 'var(--success)' : 
-                                                event.status === 'in-progress' ? 'var(--info)' : 
-                                                'var(--warning)'
-                                            }`
-                                        }}>
-                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem'}}>
-                                                <div>
-                                                    <h4 style={{fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.5rem'}}>
-                                                        {event.title}
-                                                    </h4>
-                                                    <div style={{fontSize: '0.9rem', color: 'var(--text-light)'}}>
-                                                        👤 <strong>Клиент:</strong> {event.clientName}
-                                                    </div>
-                                                </div>
-                                                <span className={`list-item-status status-${event.status}`}>
-                                                    {event.status === 'new' ? '🆕 Новое' : 
-                                                     event.status === 'in-progress' ? '🔵 В процессе' : 
-                                                     '✅ Завершено'}
-                                                </span>
-                                            </div>
+                                {/* Сетка для кружков */}
+                                {eventCount > 0 && (
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(4, 1fr)',
+                                        gap: '4px',
+                                        padding: '2px',
+                                        flex: 1,
+                                        alignContent: 'start'
+                                    }}>
+                                        {dayEvents.map((event, i) => {
+                                            let bgColor = 'var(--accent)';
+                                            if (event.status === 'completed') bgColor = 'var(--success)';
+                                            else if (event.status === 'in-progress') bgColor = 'var(--info)';
+                                            else if (event.status === 'new') bgColor = 'var(--warning)';
                                             
-                                            <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem'}}>
-                                                <div>
-                                                    <strong>📋 Тип:</strong> {event.type}
+                                            return (
+                                                <div
+                                                    key={i}
+                                                    style={{
+                                                        width: '100%',
+                                                        aspectRatio: '1/1',
+                                                        borderRadius: '4px',
+                                                        background: bgColor,
+                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                                                        transition: 'all 0.2s',
+                                                        cursor: 'pointer',
+                                                        opacity: 0.9
+                                                    }}
+                                                    title={`${event.type}\n👤 ${event.clientName}${event.caseTitle ? `\n📋 ${event.caseTitle}` : ''}`}
+                                                    onMouseOver={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1.1)';
+                                                        e.currentTarget.style.opacity = '1';
+                                                        e.currentTarget.style.boxShadow = '0 3px 8px rgba(0,0,0,0.3)';
+                                                    }}
+                                                    onMouseOut={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1)';
+                                                        e.currentTarget.style.opacity = '0.9';
+                                                        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
+                                                    }}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                                
+                                {/* Если событий больше 16, показываем индикатор "ещё" */}
+                                {eventCount > 16 && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        bottom: '2px',
+                                        right: '2px',
+                                        background: 'rgba(0,0,0,0.6)',
+                                        color: 'white',
+                                        fontSize: '9px',
+                                        padding: '1px 3px',
+                                        borderRadius: '4px',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        +{eventCount - 16}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Модальное окно с событиями дня (остается без изменений) */}
+            {showDayModal && selectedDay && (
+                <div className="modal-overlay" onClick={() => setShowDayModal(false)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '700px'}}>
+                        <h3 style={{marginBottom: '1.5rem'}}>
+                            События на {selectedDay.date.toLocaleDateString('ru-RU', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric'
+                            })}
+                        </h3>
+                        
+                        <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                            {selectedDay.events.map(event => (
+                                <div key={event.id} style={{
+                                    padding: '1.5rem',
+                                    background: 'var(--bg)',
+                                    borderRadius: '8px',
+                                    borderLeft: `4px solid ${
+                                        event.status === 'completed' ? 'var(--success)' : 
+                                        event.status === 'in-progress' ? 'var(--info)' : 
+                                        'var(--warning)'
+                                    }`
+                                }}>
+                                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem'}}>
+                                        <div>
+                                            <h4 style={{fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.5rem'}}>
+                                                {event.type || event.title || 'Событие'}
+                                            </h4>
+                                            <div style={{fontSize: '0.9rem', color: 'var(--text-light)'}}>
+                                                👤 <strong>Клиент:</strong> {event.clientName}
+                                            </div>
+                                            {event.caseTitle && (
+                                                <div style={{fontSize: '0.9rem', color: 'var(--text-light)', marginTop: '0.25rem'}}>
+                                                    📋 <strong>Дело:</strong> {event.caseTitle}
                                                 </div>
-                                                {event.time && (
-                                                    <div>
-                                                        <strong>🕐 Время:</strong> {event.time}
+                                            )}
+                                        </div>
+                                        <span className={`list-item-status status-${event.status}`}>
+                                            {event.status === 'new' ? '🆕 Новое' : 
+                                             event.status === 'in-progress' ? '🔵 В процессе' : 
+                                             '✅ Завершено'}
+                                        </span>
+                                    </div>
+                                    
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem'}}>
+                                        <div>
+                                            <strong>📋 Тип:</strong> {event.type}
+                                        </div>
+                                        {event.timeStart && (
+    <div>
+        <strong>🕐 Время:</strong> {event.timeStart}
+        {event.timeEnd && ` – ${event.timeEnd}`}
+        {event.duration && event.duration.formatted && (
+            <span style={{
+                marginLeft: '0.5rem',
+                padding: '0.2rem 0.5rem',
+                background: 'rgba(212, 165, 116, 0.1)',
+                borderRadius: '4px',
+                fontSize: '0.8rem'
+            }}>
+                ⏱️ {event.duration.formatted}
+            </span>
+        )}
+    </div>
+)}
+                                        {event.description && (
+                                            <div>
+                                                <strong>📝 Описание:</strong> {event.description}
+                                            </div>
+                                        )}
+                                        {event.isPaid && (
+                                            <div style={{
+                                                marginTop: '0.5rem',
+                                                padding: '0.75rem',
+                                                background: 'var(--card-bg)',
+                                                borderRadius: '6px',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center'
+                                            }}>
+                                                <div>
+                                                    <strong>💰 Платное событие</strong>
+                                                </div>
+                                                <div style={{textAlign: 'right'}}>
+                                                    <div style={{fontWeight: '600', fontSize: '1.1rem', color: 'var(--primary)'}}>
+                                                        {parseFloat(event.eventAmount || 0).toLocaleString()} MDL
                                                     </div>
-                                                )}
-                                                {event.description && (
-                                                    <div>
-                                                        <strong>📝 Описание:</strong> {event.description}
-                                                    </div>
-                                                )}
-                                                {event.isPaid && (
                                                     <div style={{
-                                                        marginTop: '0.5rem',
-                                                        padding: '0.75rem',
-                                                        background: 'var(--card-bg)',
-                                                        borderRadius: '6px',
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center'
-                                                    }}>
-                                                        <div>
-                                                            <strong>💰 Платное событие</strong>
-                                                        </div>
-                                                        <div style={{textAlign: 'right'}}>
-                                                            <div style={{fontWeight: '600', fontSize: '1.1rem', color: 'var(--primary)'}}>
-                                                                {parseFloat(event.eventAmount || 0).toLocaleString()} MDL
-                                                            </div>
-                                                            <div style={{
-                                                                fontSize: '0.75rem',
-                                                                padding: '0.25rem 0.5rem',
-                                                                borderRadius: '10px',
-                                                                marginTop: '0.25rem',
-                                                                background: event.paymentStatus === 'Оплачено' ? 
-                                                                    'rgba(90, 159, 126, 0.15)' : 'rgba(230, 162, 60, 0.15)',
-                                                                color: event.paymentStatus === 'Оплачено' ? 
-                                                                    'var(--success)' : 'var(--warning)',
-                                                                fontWeight: '600'
-                                                            }}>
-                                                                {event.paymentStatus}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {!event.isPaid && (
-                                                    <div style={{
-                                                        marginTop: '0.5rem',
-                                                        padding: '0.5rem',
-                                                        background: 'rgba(90, 159, 126, 0.1)',
-                                                        borderRadius: '6px',
-                                                        fontSize: '0.85rem',
-                                                        color: 'var(--success)',
+                                                        fontSize: '0.75rem',
+                                                        padding: '0.25rem 0.5rem',
+                                                        borderRadius: '10px',
+                                                        marginTop: '0.25rem',
+                                                        background: event.paymentStatus === 'Оплачено' ? 
+                                                            'rgba(90, 159, 126, 0.15)' : 'rgba(230, 162, 60, 0.15)',
+                                                        color: event.paymentStatus === 'Оплачено' ? 
+                                                            'var(--success)' : 'var(--warning)',
                                                         fontWeight: '600'
                                                     }}>
-                                                        ✓ Входит в договор (бесплатно)
+                                                        {event.paymentStatus}
                                                     </div>
-                                                )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        )}
+                                        {!event.isPaid && (
+                                            <div style={{
+                                                marginTop: '0.5rem',
+                                                padding: '0.5rem',
+                                                background: 'rgba(90, 159, 126, 0.1)',
+                                                borderRadius: '6px',
+                                                fontSize: '0.85rem',
+                                                color: 'var(--success)',
+                                                fontWeight: '600'
+                                            }}>
+                                                ✓ Входит в договор (бесплатно)
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                
-                                <button 
-                                    className="btn btn-secondary" 
-                                    onClick={() => setShowDayModal(false)}
-                                    style={{marginTop: '1.5rem', width: '100%'}}
-                                >
-                                    Закрыть
-                                </button>
-                            </div>
+                            ))}
                         </div>
-                    )}
-				</>
-            );
-        }
+                        
+                        <button 
+                            className="btn btn-secondary" 
+                            onClick={() => setShowDayModal(false)}
+                            style={{marginTop: '1.5rem', width: '100%'}}
+                        >
+                            Закрыть
+                        </button>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+}
 
         // Clients View Component
         function ClientsView({ clients, searchTerm, setSearchTerm, onSelectClient }) {
@@ -3945,7 +4986,7 @@ eventsArray.filter(e => e.isPaid).forEach(e => {
         }
 
         // Modal Component
-        function Modal({ type, onClose, onSave, client, cases }) {
+        function Modal({ type, onClose, onSave, client, cases, hourlyRate, calculateDuration }) {
     const [formData, setFormData] = useState({
         status: 'Активный',  // Дефолтный статус для клиентов
         type: 'Встреча с клиентом',  // Дефолтный тип для событий
@@ -3960,14 +5001,15 @@ eventsArray.filter(e => e.isPaid).forEach(e => {
     } else if (type === 'case') {
         setFormData({
             status: 'new',
-            paymentStatus: 'Не оплачено'  // <- ДОБАВЬТЕ
+            paymentStatus: 'Не оплачено'
         });
     } else if (type === 'event') {
         setFormData({
             type: 'Встреча с клиентом',
             status: 'new',
-            isPaid: false,
-            paymentStatus: 'Бесплатно'
+            isPaid: false,           // Важно: явно false
+            eventAmount: 0,           // Важно: явно 0
+            paymentStatus: 'Бесплатно' // Важно: 'Бесплатно', а не 'Не оплачено'
         });
     } else {
         setFormData({});
@@ -4062,6 +5104,20 @@ eventsArray.filter(e => e.isPaid).forEach(e => {
                 Номер дела будет присвоен автоматически
             </p>
             <form onSubmit={handleSubmit}>
+                {/* ДОБАВЛЕНО: поле для даты */}
+                <div className="form-group">
+                    <label>Дата создания дела *</label>
+                    <input
+                        type="date"
+                        required
+                        value={formData.caseDate || new Date().toISOString().split('T')[0]}
+                        onChange={(e) => handleChange('caseDate', e.target.value)}
+                    />
+                    <small style={{color: 'var(--text-light)'}}>
+                        * Если не указано, будет установлена текущая дата
+                    </small>
+                </div>
+
                 <div className="form-group">
                     <label>Статус</label>
                     <select
@@ -4090,7 +5146,7 @@ eventsArray.filter(e => e.isPaid).forEach(e => {
                         <option>Не оплачено</option>
                         <option>Оплачено</option>
                         <option>Частично оплачено</option>
-						<option>Бесплатно</option>
+                        <option>Бесплатно</option>
                     </select>
                 </div>
                 <div className="form-group">
@@ -4117,6 +5173,7 @@ eventsArray.filter(e => e.isPaid).forEach(e => {
         <>
             <h3>Добавить событие</h3>
             <form onSubmit={handleSubmit}>
+                {/* ВОЗВРАЩАЕМ поле "Выберите дело" */}
                 <div className="form-group">
                     <label>Выберите дело *</label>
                     <select
@@ -4131,15 +5188,15 @@ eventsArray.filter(e => e.isPaid).forEach(e => {
                         }}
                     >
                         <option value="">-- Выберите дело --</option>
-{client && cases && cases.filter(c => c.clientId === client.id).map(c => (
-    <option key={c.id} value={c.id}>
-        {c.title}
-    </option>
-))}
+                        {client && cases && cases.filter(c => c.clientId === client.id).map(c => (
+                            <option key={c.id} value={c.id}>
+                                {c.title}
+                            </option>
+                        ))}
                     </select>
                 </div>
                 
-                
+                {/* ВОЗВРАЩАЕМ поле "Дата" */}
                 <div className="form-group">
                     <label>Дата *</label>
                     <input
@@ -4149,35 +5206,108 @@ eventsArray.filter(e => e.isPaid).forEach(e => {
                         onChange={(e) => handleChange('date', e.target.value)}
                     />
                 </div>
-                <div className="form-group">
-                    <label>Время</label>
-                    <input
-                        type="time"
-                        value={formData.time || ''}
-                        onChange={(e) => handleChange('time', e.target.value)}
-                    />
+                
+                {/* Время начала и окончания */}
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
+                    <div className="form-group">
+                        <label>Время начала</label>
+                        <input
+                            type="time"
+                            value={formData.timeStart || ''}
+                            onChange={(e) => {
+                                const newTimeStart = e.target.value;
+                                handleChange('timeStart', newTimeStart);
+                                
+                                // Автоматически рассчитываем стоимость если есть время окончания
+                                if (formData.timeEnd && formData.isPaid) {
+                                    const cost = calculateCostFromTime(
+                                        newTimeStart, 
+                                        formData.timeEnd, 
+                                        hourlyRate
+                                    );
+                                    if (cost) {
+                                        handleChange('eventAmount', cost.costRounded);
+                                    }
+                                }
+                            }}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Время окончания</label>
+                        <input
+                            type="time"
+                            value={formData.timeEnd || ''}
+                            onChange={(e) => {
+                                const newTimeEnd = e.target.value;
+                                handleChange('timeEnd', newTimeEnd);
+                                
+                                // Автоматически рассчитываем стоимость если есть время начала
+                                if (formData.timeStart && formData.isPaid) {
+                                    const cost = calculateCostFromTime(
+                                        formData.timeStart, 
+                                        newTimeEnd, 
+                                        hourlyRate
+                                    );
+                                    if (cost) {
+                                        handleChange('eventAmount', cost.costRounded);
+                                    }
+                                }
+                            }}
+                        />
+                    </div>
                 </div>
+                
+                {/* Отображение длительности и автоматической стоимости */}
+                {formData.timeStart && formData.timeEnd && formData.isPaid && (
+                    <div style={{
+                        padding: '1rem',
+                        background: 'rgba(212, 165, 116, 0.1)',
+                        borderRadius: '8px',
+                        marginBottom: '1rem'
+                    }}>
+                        {(() => {
+                            const cost = calculateCostFromTime(
+                                formData.timeStart, 
+                                formData.timeEnd, 
+                                hourlyRate
+                            );
+                            return cost ? (
+                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                    <div>
+                                        <strong>⏱️ Длительность:</strong> {cost.hours}
+                                    </div>
+                                    <div style={{fontSize: '1.2rem', fontWeight: '700', color: 'var(--accent-dark)'}}>
+                                        = {cost.costRounded} MDL
+                                    </div>
+                                </div>
+                            ) : null;
+                        })()}
+                    </div>
+                )}
+                
+                {/* ВОЗВРАЩАЕМ поле "Тип события" */}
                 <div className="form-group">
-    <label>Тип события</label>
-    <select
-        value={formData.type || 'Встреча с клиентом'}
-        onChange={(e) => handleChange('type', e.target.value)}
-    >
-        <option value="Встреча с клиентом">Встреча с клиентом</option>
-        <option value="Судебное заседание">Судебное заседание</option>
-        <option value="Консультация">Консультация</option>
-        <option value="Ознакомление с материалами">Ознакомление с материалами</option>
-        <option value="Подготовка заявления">Подготовка заявления</option>
-        <option value="Подготовка искового заявления">Подготовка искового заявления</option>
-        <option value="Подготовка жалобы">Подготовка жалобы</option>
-        <option value="Подготовка ходатайства">Подготовка ходатайства</option>
-        <option value="Подача искового заявления">Подача искового заявления</option>
-        <option value="Подача жалоб">Подача жалоб</option>
-        <option value="Подача заявлений">Подача заявлений</option>
-		<option value="Подача ходатайства">Подача ходатайства</option>
-        <option value="Личное присутствие в гос.органах">Личное присутствие в гос.органах</option>
-    </select>
-</div>
+                    <label>Тип события</label>
+                    <select
+                        value={formData.type || 'Встреча с клиентом'}
+                        onChange={(e) => handleChange('type', e.target.value)}
+                    >
+                        <option value="Встреча с клиентом">Встреча с клиентом</option>
+                        <option value="Судебное заседание">Судебное заседание</option>
+                        <option value="Консультация">Консультация</option>
+                        <option value="Ознакомление с материалами">Ознакомление с материалами</option>
+                        <option value="Подготовка заявления">Подготовка заявления</option>
+                        <option value="Подготовка искового заявления">Подготовка искового заявления</option>
+                        <option value="Подготовка жалобы">Подготовка жалобы</option>
+                        <option value="Подготовка ходатайства">Подготовка ходатайства</option>
+                        <option value="Подача искового заявления">Подача искового заявления</option>
+                        <option value="Подача жалоб">Подача жалоб</option>
+                        <option value="Подача заявлений">Подача заявлений</option>
+                        <option value="Подача ходатайства">Подача ходатайства</option>
+                        <option value="Личное присутствие в гос.органах">Личное присутствие в гос.органах</option>
+                    </select>
+                </div>
+                
                 <div className="form-group">
                     <label>Оплата события</label>
                     <select
@@ -4185,7 +5315,21 @@ eventsArray.filter(e => e.isPaid).forEach(e => {
                         onChange={(e) => {
                             const isPaid = e.target.value === 'paid';
                             handleChange('isPaid', isPaid);
-                            if (!isPaid) {
+                            
+                            if (isPaid) {
+                                // Если выбрано платное, автоматически рассчитываем стоимость
+                                if (formData.timeStart && formData.timeEnd) {
+                                    const cost = calculateCostFromTime(
+                                        formData.timeStart, 
+                                        formData.timeEnd, 
+                                        hourlyRate
+                                    );
+                                    if (cost) {
+                                        handleChange('eventAmount', cost.costRounded);
+                                    }
+                                }
+                                handleChange('paymentStatus', 'Не оплачено');
+                            } else {
                                 handleChange('eventAmount', 0);
                                 handleChange('paymentStatus', 'Бесплатно');
                             }
@@ -4195,6 +5339,7 @@ eventsArray.filter(e => e.isPaid).forEach(e => {
                         <option value="paid">Платное (оплачивается отдельно)</option>
                     </select>
                 </div>
+                
                 {formData.isPaid && (
                     <>
                         <div className="form-group">
@@ -4204,7 +5349,20 @@ eventsArray.filter(e => e.isPaid).forEach(e => {
                                 value={formData.eventAmount || ''}
                                 onChange={(e) => handleChange('eventAmount', e.target.value)}
                                 placeholder="0"
+                                readOnly // Делаем поле только для чтения, т.к. рассчитывается автоматически
+                                style={{
+                                    width: '100%',
+                                    padding: '0.75rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--border)',
+                                    background: 'var(--bg)',
+                                    color: 'var(--accent-dark)',
+                                    fontWeight: '600'
+                                }}
                             />
+                            <small style={{color: 'var(--text-light)'}}>
+                                * Сумма рассчитана автоматически на основе времени и ставки {hourlyRate} MDL/час
+                            </small>
                         </div>
                         <div className="form-group">
                             <label>Статус оплаты</label>
@@ -4218,6 +5376,7 @@ eventsArray.filter(e => e.isPaid).forEach(e => {
                         </div>
                     </>
                 )}
+                
                 <div className="form-group">
                     <label>Статус</label>
                     <select
@@ -4229,6 +5388,7 @@ eventsArray.filter(e => e.isPaid).forEach(e => {
                         <option value="completed">Завершено</option>
                     </select>
                 </div>
+                
                 <div className="form-group">
                     <label>Описание</label>
                     <textarea
@@ -4236,6 +5396,7 @@ eventsArray.filter(e => e.isPaid).forEach(e => {
                         onChange={(e) => handleChange('description', e.target.value)}
                     />
                 </div>
+                
                 <div className="form-actions">
                     <button type="button" className="btn btn-secondary" onClick={onClose}>
                         Отмена
