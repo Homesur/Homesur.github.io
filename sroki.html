@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Судебный календарь Молдовы — точный расчёт сроков (рабочие и календарные дни)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Roboto', 'Noto Sans', sans-serif;
+        }
+        body {
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .card {
+            max-width: 1100px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        .header {
+            background: #1e3a5f;
+            color: white;
+            padding: 1.5rem 2rem;
+        }
+        .header h1 {
+            margin: 0 0 0.3rem;
+            font-size: 1.7rem;
+        }
+        .header p {
+            margin: 0;
+            opacity: 0.85;
+            font-size: 0.95rem;
+        }
+        .content {
+            padding: 1.8rem 2rem 2rem;
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            align-items: flex-end;
+            background: #f9fafc;
+            padding: 1.2rem 1.5rem;
+            border-radius: 28px;
+            border: 1px solid #e2e8f0;
+        }
+        .field {
+            flex: 1;
+            min-width: 160px;
+        }
+        .field label {
+            display: block;
+            font-weight: 600;
+            color: #0f2b3d;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+        .field input, .field select {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 18px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 1rem;
+        }
+        button {
+            background: #1e3a5f;
+            color: white;
+            border: none;
+            padding: 12px 26px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover {
+            background: #0f2b3f;
+            transform: translateY(-1px);
+        }
+        .result-box {
+            background: #eef2ff;
+            border-left: 6px solid #1e3a5f;
+            padding: 1rem 1.5rem;
+            border-radius: 24px;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .result-date {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #0c4a6e;
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+        .result-note {
+            color: #2c3e50;
+            font-size: 0.9rem;
+            background: white;
+            padding: 6px 14px;
+            border-radius: 40px;
+        }
+        .calendar-wrapper {
+            margin-top: 1rem;
+            border: 1px solid #e2edf2;
+            border-radius: 28px;
+            overflow-x: auto;
+            background: #ffffff;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.03);
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.2rem;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .month-nav button {
+            background: none;
+            border: 1px solid #cbd5e1;
+            color: #1e293b;
+            font-size: 1.2rem;
+            padding: 6px 14px;
+            margin: 0 3px;
+            box-shadow: none;
+            background: white;
+            cursor: pointer;
+        }
+        .month-nav button:hover {
+            background: #e6edf4;
+        }
+        .current-month {
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: #0f2b3d;
+        }
+        table.calendar {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .calendar th {
+            background: #f1f5f9;
+            padding: 12px 6px;
+            font-weight: 600;
+            color: #334155;
+        }
+        .calendar td {
+            text-align: center;
+            padding: 10px 6px;
+            border: 1px solid #eef2ff;
+            vertical-align: middle;
+        }
+        .calendar .cell-date {
+            font-weight: 500;
+            display: inline-block;
+            width: 34px;
+            height: 34px;
+            line-height: 34px;
+            border-radius: 40px;
+        }
+        .calendar .target-date {
+            background: #1e3a5f;
+            color: white !important;
+            font-weight: bold;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .calendar .weekend {
+            background-color: #fef9e6;
+            color: #b45309;
+        }
+        .calendar .holiday {
+            background-color: #ffe6e6;
+            color: #b91c1c;
+            position: relative;
+        }
+        .calendar td.holiday .cell-date:not(.target-date) {
+            background-color: #ffe6e6;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-top: 20px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 0.75rem;
+        }
+        .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .footer {
+            background: #f9fafb;
+            padding: 1rem 2rem;
+            font-size: 0.75rem;
+            text-align: center;
+            color: #4b5563;
+            border-top: 1px solid #e2e8f0;
+        }
+        @media (max-width: 640px) {
+            .content { padding: 1.2rem; }
+            .result-date { font-size: 1.2rem; }
+            .form-row { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="header">
+        <h1>🗓️ Судебный календарь (Молдова)</h1>
+        <p>Расчёт даты выдачи решений, апелляционных жалоб и других документов. <strong>Отсчёт начинается СО СЛЕДУЮЩЕГО ДНЯ после даты старта</strong></p>
+    </div>
+    <div class="content">
+        <div class="form-row">
+            <div class="field">
+                <label>📅 Дата старта (событие)</label>
+                <input type="date" id="startDate" value="2026-05-04">
+            </div>
+            <div class="field">
+                <label>⏱️ Срок (в днях)</label>
+                <input type="number" id="durationDays" value="18" step="1" min="1">
+            </div>
+            <div class="field">
+                <label>🧮 Тип расчёта</label>
+                <select id="dayType">
+                    <option value="calendar">Календарные дни (все дни подряд, перенос только сб/вс)</option>
+                    <option value="working">Рабочие дни (пн–пт без праздников + перенос)</option>
+                </select>
+            </div>
+            <button id="calcBtn">📌 Рассчитать дату выдачи</button>
+        </div>
+
+        <div class="result-box" id="resultBox">
+            <div>
+                <span style="font-weight:600;">✅ Документ должен быть выдан:</span>
+                <div class="result-date" id="resultDateStr">—</div>
+            </div>
+            <div class="result-note" id="resultMeta">Выберите параметры и нажмите «Рассчитать»</div>
+        </div>
+
+        <div class="calendar-wrapper">
+            <div class="calendar-header">
+                <div class="month-nav">
+                    <button id="prevMonthBtn">◀</button>
+                    <button id="nextMonthBtn">▶</button>
+                </div>
+                <div class="current-month" id="currentMonthYear">Май 2026</div>
+                <div style="width: 70px;"></div>
+            </div>
+            <table class="calendar" id="calendarTable">
+                <thead>
+                <tr><th>Пн</th><th>Вт</th><th>Ср</th><th>Чт</th><th>Пт</th><th>Сб</th><th>Вс</th></tr>
+                </thead>
+                <tbody id="calendarBody"></tbody>
+            </table>
+        </div>
+
+        <div class="legend">
+            <span>🔵 <strong>Синий круг</strong> — рассчитанная дата выдачи документа</span>
+            <span>🔴 <strong>Красный фон</strong> — официальный праздник (нерабочий день)</span>
+            <span>🟡 <strong>Желтый фон</strong> — суббота/воскресенье</span>
+            <span>⚪ <strong>Обычный день</strong> — рабочий (пн–пт)</span>
+        </div>
+    </div>
+    <div class="footer">
+        ✅ <strong>Нерабочие дни 2026 (Молдова):</strong> 1 янв, 7-8 янв, 8 мар (вс), 12-13 апр (Пасха), 20 апр (Радоница), 1 мая, 9 мая (сб), <strong>22 мая (День города Бельцы)</strong>, <strong>1 июня (День защиты детей)</strong>, 27 авг, 31 авг, 25 дек.<br>
+        📌 <strong>Правила расчёта:</strong> Отсчёт всегда идёт <strong>с дня, следующего за датой старта</strong>.<br>
+        • <strong>Календарные дни:</strong> считаются все дни подряд. Перенос применяется <strong>только если последний день выпадает на субботу или воскресенье</strong> (праздники в будни не переносятся).<br>
+        • <strong>Рабочие дни:</strong> считаются только рабочие дни (пн–пт), исключая все праздники. Если последний день выпадает на выходной <strong>или праздник</strong> — перенос на следующий рабочий день.
+    </div>
+</div>
+
+<script>
+    // ---------- СПИСОК ПРАЗДНИЧНЫХ НЕРАБОЧИХ ДНЕЙ 2026 (Молдова) ----------
+    const holidayMap = new Map();
+
+    function addHoliday(month, day, name) {
+        const dateStr = `2026-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        holidayMap.set(dateStr, name);
+    }
+
+    // Добавляем все праздники по списку
+    addHoliday(1, 1, "Новый год");
+    addHoliday(1, 7, "Рождество Христово");
+    addHoliday(1, 8, "Рождество Христово (2-й день)");
+    addHoliday(3, 8, "Международный женский день");
+    addHoliday(4, 12, "Пасха (1-й день)");
+    addHoliday(4, 13, "Пасха (2-й день)");
+    addHoliday(4, 20, "Радоница / Поминальный день");
+    addHoliday(5, 1, "День труда");
+    addHoliday(5, 9, "День Победы и День Европы");
+    addHoliday(5, 22, "День города Бельцы");
+    addHoliday(6, 1, "Международный день защиты детей");
+    addHoliday(8, 27, "День независимости");
+    addHoliday(8, 31, "Limba noastră");
+    addHoliday(12, 25, "Рождество Христово (новый стиль)");
+
+    // Проверка: является ли день нерабочим по причине праздника?
+    function isHoliday(year, month, day) {
+        if (year !== 2026) return false;
+        const dateStr = `2026-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        return holidayMap.has(dateStr);
+    }
+
+    // Проверка: является ли день выходным (суббота или воскресенье)
+    function isWeekend(year, month, day) {
+        const date = new Date(year, month, day);
+        const dayOfWeek = date.getDay();
+        return (dayOfWeek === 0 || dayOfWeek === 6);
+    }
+
+    // Проверка: является ли день нерабочим для целей РАБОЧИХ дней (выходной ИЛИ праздник)
+    function isNonWorkingForWorkingDays(year, month, day) {
+        return isWeekend(year, month, day) || isHoliday(year, month, day);
+    }
+
+    // Получить название праздника (для подсказки)
+    function getHolidayName(year, month, day) {
+        if (year !== 2026) return '';
+        const dateStr = `2026-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        return holidayMap.get(dateStr) || '';
+    }
+
+    /**
+     * РАСЧЁТ ДАТЫ ВЫДАЧИ
+     * @param {Date} startDate - дата старта (событие)
+     * @param {number} days - количество дней
+     * @param {string} mode - 'calendar' или 'working'
+     * @returns {Date} - дата, когда документ должен быть выдан
+     */
+    function calculateDueDate(startDate, days, mode) {
+        // Отсчёт начинается СО СЛЕДУЮЩЕГО ДНЯ после даты старта
+        let current = new Date(startDate);
+        current.setDate(current.getDate() + 1); // первый день отсчёта = старт + 1
+        
+        if (mode === 'calendar') {
+            // Календарные дни: прибавляем (days - 1) дней к первому дню отсчёта
+            // Например: старт 04.05, первый день отсчёта 05.05, нужно +17 дней чтобы получить 22.05 (18-й день)
+            let target = new Date(current);
+            target.setDate(target.getDate() + (days - 1));
+            
+            // ПЕРЕНОС: только если последний день выпадает на субботу или воскресенье
+            while (isWeekend(target.getFullYear(), target.getMonth(), target.getDate())) {
+                target.setDate(target.getDate() + 1);
+            }
+            return target;
+        } 
+        else { // mode === 'working' — рабочие дни
+            let added = 1; // первый день отсчёта уже учтён
+            let result = new Date(current);
+            
+            // Продолжаем, пока не накопим нужное количество РАБОЧИХ дней
+            while (added < days) {
+                result.setDate(result.getDate() + 1);
+                if (!isNonWorkingForWorkingDays(result.getFullYear(), result.getMonth(), result.getDate())) {
+                    added++;
+                }
+            }
+            
+            // Применяем перенос: если последний день выпал на выходной ИЛИ праздник
+            while (isNonWorkingForWorkingDays(result.getFullYear(), result.getMonth(), result.getDate())) {
+                result.setDate(result.getDate() + 1);
+            }
+            return result;
+        }
+    }
+
+    // Форматирование даты YYYY-MM-DD
+    function formatYMD(date) {
+        let y = date.getFullYear();
+        let m = String(date.getMonth() + 1).padStart(2, '0');
+        let d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    // Глобальные переменные для календаря
+    let currentDisplayMonth = new Date(2026, 4, 1);
+    let targetDueDate = null;
+
+    // Отрисовка календаря с подсветкой праздников, выходных и целевой даты
+    function renderCalendar() {
+        const year = currentDisplayMonth.getFullYear();
+        const month = currentDisplayMonth.getMonth();
+        const firstDayOfMonth = new Date(year, month, 1);
+        let startWeekday = firstDayOfMonth.getDay();
+        let startOffset = (startWeekday === 0 ? 6 : startWeekday - 1);
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        const tbody = document.getElementById('calendarBody');
+        tbody.innerHTML = '';
+        let row = document.createElement('tr');
+        
+        // Пустые ячейки
+        for (let i = 0; i < startOffset; i++) {
+            let td = document.createElement('td');
+            td.innerHTML = '';
+            row.appendChild(td);
+        }
+        
+        for (let d = 1; d <= daysInMonth; d++) {
+            const isHolidayDay = isHoliday(year, month, d);
+            const isWeekendDay = isWeekend(year, month, d);
+            const holidayName = getHolidayName(year, month, d);
+            
+            let td = document.createElement('td');
+            let span = document.createElement('span');
+            span.className = 'cell-date';
+            span.textContent = d;
+            td.appendChild(span);
+            
+            if (isHolidayDay) {
+                td.classList.add('holiday');
+                td.title = holidayName;
+            } else if (isWeekendDay) {
+                td.classList.add('weekend');
+                td.title = 'Выходной (сб/вс)';
+            }
+            
+            // Подсветка целевой даты
+            if (targetDueDate) {
+                const tYear = targetDueDate.getFullYear();
+                const tMonth = targetDueDate.getMonth();
+                const tDay = targetDueDate.getDate();
+                if (tYear === year && tMonth === month && tDay === d) {
+                    span.classList.add('target-date');
+                    td.title = (td.title ? td.title + ' | ' : '') + '🎯 Документ должен быть выдан';
+                }
+            }
+            
+            row.appendChild(td);
+            if ((startOffset + d) % 7 === 0 && d !== daysInMonth) {
+                tbody.appendChild(row);
+                row = document.createElement('tr');
+            }
+        }
+        
+        // Завершение последней строки
+        const totalCells = startOffset + daysInMonth;
+        const remaining = (7 - (totalCells % 7)) % 7;
+        for (let i = 0; i < remaining; i++) {
+            let td = document.createElement('td');
+            td.innerHTML = '';
+            row.appendChild(td);
+        }
+        tbody.appendChild(row);
+        
+        const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        document.getElementById('currentMonthYear').innerHTML = `${monthNames[month]} ${year}`;
+    }
+    
+    // Основная функция обновления расчёта
+    function updateCalculation() {
+        let startInput = document.getElementById('startDate').value;
+        let duration = parseInt(document.getElementById('durationDays').value, 10);
+        let mode = document.getElementById('dayType').value;
+        
+        if (isNaN(duration) || duration < 1) duration = 1;
+        if (!startInput) startInput = '2026-05-04';
+        
+        let startDateObj = new Date(startInput);
+        if (isNaN(startDateObj.getTime())) {
+            startDateObj = new Date(2026, 4, 4);
+        }
+        
+        let dueDate = calculateDueDate(startDateObj, duration, mode);
+        targetDueDate = dueDate;
+        
+        // Форматирование результата
+        const formatted = dueDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+        document.getElementById('resultDateStr').innerHTML = `${formatted} (${formatYMD(dueDate)})`;
+        
+        let modeText = mode === 'working' ? 'рабочих дней' : 'календарных дней';
+        let startText = startDateObj.toLocaleDateString('ru-RU');
+        
+        // Показываем дату начала отсчёта (следующий день)
+        let startOffsetDate = new Date(startDateObj);
+        startOffsetDate.setDate(startOffsetDate.getDate() + 1);
+        let startOffsetText = startOffsetDate.toLocaleDateString('ru-RU');
+        
+        // Детальное пояснение
+        let ruleNote = '';
+        if (mode === 'calendar') {
+            ruleNote = `Отсчёт с ${startOffsetText} (день 1). Календарные дни: все дни подряд. Перенос только если последний день — суббота/воскресенье.`;
+        } else {
+            ruleNote = `Отсчёт с ${startOffsetText} (день 1). Рабочие дни: только пн–пт, исключая праздники. Перенос если последний день — выходной или праздник.`;
+        }
+        
+        document.getElementById('resultMeta').innerHTML = `🗓️ Дата старта (событие): ${startText} | +${duration} ${modeText}<br><span style="font-size:0.8rem;">${ruleNote}</span>`;
+        
+        // Переключаем календарь на месяц целевой даты
+        if (dueDate) {
+            currentDisplayMonth = new Date(dueDate.getFullYear(), dueDate.getMonth(), 1);
+        }
+        renderCalendar();
+    }
+    
+    // Навигация по месяцам
+    function prevMonth() {
+        let newMonth = new Date(currentDisplayMonth.getFullYear(), currentDisplayMonth.getMonth() - 1, 1);
+        if (newMonth.getFullYear() >= 2025 && newMonth.getFullYear() <= 2027) {
+            currentDisplayMonth = newMonth;
+            renderCalendar();
+        } else {
+            if (newMonth.getFullYear() < 2025) currentDisplayMonth = new Date(2025, 0, 1);
+            if (newMonth.getFullYear() > 2027) currentDisplayMonth = new Date(2027, 11, 1);
+            renderCalendar();
+        }
+    }
+    
+    function nextMonth() {
+        let newMonth = new Date(currentDisplayMonth.getFullYear(), currentDisplayMonth.getMonth() + 1, 1);
+        if (newMonth.getFullYear() >= 2025 && newMonth.getFullYear() <= 2027) {
+            currentDisplayMonth = newMonth;
+            renderCalendar();
+        } else {
+            if (newMonth.getFullYear() > 2027) currentDisplayMonth = new Date(2027, 11, 1);
+            renderCalendar();
+        }
+    }
+    
+    // Инициализация и обработчики
+    window.addEventListener('DOMContentLoaded', () => {
+        const startDateInput = document.getElementById('startDate');
+        const durationInput = document.getElementById('durationDays');
+        const dayTypeSelect = document.getElementById('dayType');
+        const calcBtn = document.getElementById('calcBtn');
+        
+        calcBtn.addEventListener('click', () => updateCalculation());
+        startDateInput.addEventListener('change', () => updateCalculation());
+        durationInput.addEventListener('input', () => updateCalculation());
+        dayTypeSelect.addEventListener('change', () => updateCalculation());
+        
+        document.getElementById('prevMonthBtn').addEventListener('click', prevMonth);
+        document.getElementById('nextMonthBtn').addEventListener('click', nextMonth);
+        
+        // Первоначальный расчёт (пример: 04.05.2026 + 18 календарных дней = 22.05.2026)
+        updateCalculation();
+    });
+</script>
+</body>
+</html>
