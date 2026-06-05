@@ -164,14 +164,7 @@
             padding: 20px;
             margin: 20px;
             text-align: center;
-        }
-        .settings-hint {
-            background: rgba(0,0,0,0.3);
-            border-radius: 16px;
-            padding: 16px 24px;
-            margin: 20px;
-            text-align: center;
-            font-size: 14px;
+            color: #ff8888;
         }
         @media (max-width: 768px) {
             .files-table-header, .file-row { grid-template-columns: 40px 1fr 80px; }
@@ -187,7 +180,7 @@
         <div class="logo"><h1><i class="fas fa-cloud-upload-alt"></i> Документы</h1></div>
         <div class="drive-status">
             <i class="fab fa-google"></i> 2023-2026
-            <span id="statusBadge" class="status-badge">⚙️ загрузка...</span>
+            <span id="statusBadge" class="status-badge"></span>
         </div>
     </div>
 
@@ -196,14 +189,10 @@
     </div>
 
     <div id="mainView">
-        <div class="main-folder" id="mainFolderBtn" style="display: none;" onclick="loadRootFolder()">
+        <div class="main-folder" onclick="loadRootFolder()">
             <div class="main-folder-icon">📁</div>
             <div class="main-folder-title" id="mainFolderTitle">Документы</div>
             <div class="main-folder-desc">Нажмите, чтобы открыть хранилище</div>
-        </div>
-        <div id="errorView" style="display: none;">
-            <div class="error-message" id="errorMessage"></div>
-            <div class="settings-hint" id="settingsHint"></div>
         </div>
     </div>
 
@@ -223,29 +212,52 @@
 </div>
 
 <script>
-    // ========== НАСТРОЙКИ (измените здесь один раз) ==========
-    const CONFIG = {
-        // ID папки, которая будет открываться по умолчанию
-        // Для корня "Моего диска" используйте "root"
-        // Для другой папки: скопируйте ID из URL
-        ROOT_FOLDER_ID: '1Obo7qDpfnjUol47QsOIKAysh9YKyJDMr',  // <-- измените здесь на ID вашей папки
-        
-        // Название, которое будет отображаться на главной карточке
-        ROOT_FOLDER_NAME: 'Документы',  // <-- измените здесь
-        
-        // Имя JSON файла с ключами сервисного аккаунта
-        SERVICE_ACCOUNT_KEY_FILE: 'service-account-key.json'
+    // ==================== ВСТАВЬТЕ ВАШИ ДАННЫЕ ЗДЕСЬ ====================
+    // Скопируйте из JSON файла:
+    const SERVICE_ACCOUNT_CONFIG = {
+        client_email: "documents-home@documents-homesur.iam.gserviceaccount.com",  // замените
+        private_key: `-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCtUvNPZHGSWQtb
+yY3+bnNIRkHpxVIRch8KXvQsmhx/fZSsjwA8JgGBtbdFBtyxPEit+zL0+ueCSFpI
+GPGPPtuCuWQH2xMlE6z3XrvyhNNFnM7wz/b4E/f9vy+JSA3S4N4kffvhFvlNt5Au
+/AWKWaF12jl7w92y5hdH9L8h03pWc5sVbhEDS2CtcJxh1JCH3K26CO4fvmXqMVjn
+XiC6JiRikrbdbqp9jordsWVmVHKaIwZPFKRlRDebAkLvEJ5xuU8kBZ4tw6tyGfDR
+jezqMMeuWVmAzLEQ1eXE0orJl6Y/MWZHctt/lBoER1yLcMcZxU8XoVxZwT7fNHp0
+YJEuL+h/AgMBAAECggEAOOjQIATUb5+SJbCv0VdVvejnsojKEhVdEMwts0lkyw2i
+V+haROWbwAm4487FfuJS4OFmkV6izjnQfvTFt+mFLM6PhC7QAfAMbmqqHo6zShub
+LSGzry/rUONKCfLhKxkPh37gSb9/2x9HFc5FSXB1ndsp3bPpoth+028OpN4pwKGI
+87ogNRufctguBqW6V0JB3/gWwDWH931FKyJgMX7xyixZoq8aHwSakJnWRp6LCDAn
+/0Gcw6qcwPIBMmYFR+BgHpo/PpnT2OwgLSvpDcqZWNuyEUFL+r8MjFDmUChGKQ2+
+/bLbf5yjHz3YJIKpGxni0TQJ10o8riMnQBFfeB+NqQKBgQDlyCAUetLYFqeSyahp
+2Kh1+qpj8jm5iNFBMYp2gfzDzAYQZibpWEzTXSpyxaNV2YEE7rjq7JLQM6s0HDNx
+eZCQBMXXZB7BdZ4Cp+rKFM8u7invYHpwiAAqlJXds1MaHZqEnchT9IMsPTRBCkNg
+OIKMNOMaNKucrbW7s7K3jav2WQKBgQDBGbUhyPJ+B/IQnxrxT1CpSY5qYtwhUbLW
+qPdGHyo5eeT62V89r2SdaoBh2dDyOY4VA1SXl5iix5TlPWKBmRoz7jNRBg4Ta21u
+1xc3QHrVfvkEgUBo/qv4W2w83UaAKMCYzUTYfrWyJYwLjYRArSc1mtvebCeanFRu
+BMxh9S8qlwKBgF0B3zJK8NL0gImixF9rieyPNK7V2dWmcoS/57rGLKiYCZBTuMZU
+rmwTVt4z70QNkPKNKh40+cv6Tf7+tzfkK8aPmADyDpzh3b5Xd2qqd54YWrMAyy6H
+bgHOOMcPEcENYIDzWKXa38llUKRO4iytUvIrag0uapQ1n8zFFL7FQmipAoGAVVZq
+IUMwP5h9VvEptAlMaXQzdzq3dBYqBgnoNdoiDAKdumqEV7uCqLrff98GI3ZiH1E4
+ekIp146CdAj71rB1zwtvLFiTsethEoIGJYnefym9HUuNzpj2IS0uGXvk41CfRSg6
+S787xz4mtRhWoUqksGD+2D5OBlseSPzf4k68CIMCgYEA4WdwcXIDYYERUITVcgPW
+JXyX0h17MHli/C2adpxHxljtCooCV3puWYfgZPvv8n8eP75BkW8e22ytj3CWRhMC
+6MOIQidj6C4KAzifNnbbPND12E+Bev06oDVv58rssGbcnPhqi9H2rJYwOGT1zUZK
+EB9p1xH3a+rSDvvxLztv0V8=
+-----END PRIVATE KEY-----`
     };
-    // ========================================================
+    
+    // Настройки папки:
+    const ROOT_FOLDER_ID = "1Obo7qDpfnjUol47QsOIKAysh9YKyJDMr";        // ID папки ("root" = весь Мой диск)
+    const ROOT_FOLDER_NAME = "Документы"; // Название на главной карточке
+    // =================================================================
 
     let config = {
-        clientEmail: '',
-        privateKey: '',
-        rootFolderId: CONFIG.ROOT_FOLDER_ID,
-        rootFolderName: CONFIG.ROOT_FOLDER_NAME,
+        clientEmail: SERVICE_ACCOUNT_CONFIG.client_email,
+        privateKey: SERVICE_ACCOUNT_CONFIG.private_key,
+        rootFolderId: ROOT_FOLDER_ID,
+        rootFolderName: ROOT_FOLDER_NAME,
         accessToken: null,
-        tokenExpiry: null,
-        isReady: false
+        tokenExpiry: null
     };
 
     let currentFolderId = null, currentFolderName = null, historyFolders = [], historyNames = [];
@@ -255,69 +267,40 @@
 
     function updateStatus(text, isError = false) {
         const badge = document.getElementById('statusBadge');
-        if (badge) {
-            badge.innerHTML = text;
-            if (isError) badge.style.background = 'rgba(255,68,68,0.5)';
-            else badge.style.background = 'rgba(0,0,0,0.3)';
-        }
+        if (badge) badge.innerHTML = text;
     }
 
-    async function loadServiceAccountKey() {
-        try {
-            updateStatus('📡 загрузка ключа...');
-            const response = await fetch(CONFIG.SERVICE_ACCOUNT_KEY_FILE);
-            if (!response.ok) {
-                throw new Error(`Файл ${CONFIG.SERVICE_ACCOUNT_KEY_FILE} не найден`);
-            }
-            const keyData = await response.json();
-            
-            if (!keyData.client_email || !keyData.private_key) {
-                throw new Error('Неверный формат JSON ключа');
-            }
-            
-            config.clientEmail = keyData.client_email;
-            config.privateKey = keyData.private_key;
-            config.isReady = true;
-            
-            updateStatus('✅ готово');
-            document.getElementById('mainFolderBtn').style.display = 'block';
-            document.getElementById('mainFolderTitle').innerHTML = config.rootFolderName;
-            document.getElementById('errorView').style.display = 'none';
-            
-            // Автоматически загружаем папку
-            setTimeout(() => loadRootFolder(), 500);
-            
-        } catch (err) {
-            console.error('Ошибка загрузки ключа:', err);
+    // Проверка настроек при загрузке
+    function validateConfig() {
+        if (!config.clientEmail || config.clientEmail === "ВАШ_EMAIL_СЕРВИСНОГО_АККАУНТА") {
+            document.getElementById('mainView').innerHTML = `
+                <div class="error-message">
+                    <strong>⚠️ Настройки не заполнены!</strong><br><br>
+                    Откройте код страницы и вставьте ваши данные в раздел SERVICE_ACCOUNT_CONFIG:<br><br>
+                    1. <strong>client_email</strong> — из JSON файла<br>
+                    2. <strong>private_key</strong> — из JSON файла (весь блок от BEGIN до END)<br>
+                    3. <strong>ROOT_FOLDER_ID</strong> — ID папки или "root"<br>
+                </div>
+            `;
             updateStatus('❌ ошибка', true);
-            
-            const errorDiv = document.getElementById('errorMessage');
-            const hintDiv = document.getElementById('settingsHint');
-            
-            errorDiv.innerHTML = `
-                <strong>⚠️ Не удалось загрузить ключ сервисного аккаунта</strong><br><br>
-                Ошибка: ${err.message}<br><br>
-                <strong>Решение:</strong><br>
-                1. Скачайте JSON файл с ключами из Google Cloud Console<br>
-                2. Переименуйте его в <code>service-account-key.json</code><br>
-                3. Положите в одну папку с этим HTML файлом<br>
-                4. Запустите через локальный сервер (не открывайте напрямую file://)<br>
-                5. Обновите страницу
-            `;
-            
-            hintDiv.innerHTML = `
-                <strong>📁 Как получить JSON ключ:</strong><br><br>
-                1. Перейдите в <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:#FFD700;">Google Cloud Console → Credentials</a><br>
-                2. Создайте Service Account (если ещё нет)<br>
-                3. Нажмите "Create Key" → выберите JSON<br>
-                4. Скачайте файл и переименуйте в <code>service-account-key.json</code><br>
-                5. Положите его рядом с этой страницей<br><br>
-                <strong>⚠️ Важно:</strong> Открывайте страницу через локальный сервер, а не напрямую file://
-            `;
-            
-            document.getElementById('errorView').style.display = 'block';
-            document.getElementById('mainFolderBtn').style.display = 'none';
+            return false;
         }
+        
+        if (!config.privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+            document.getElementById('mainView').innerHTML = `
+                <div class="error-message">
+                    <strong>⚠️ Неверный формат private_key!</strong><br><br>
+                    Убедитесь, что скопировали весь блок от <code>-----BEGIN PRIVATE KEY-----</code><br>
+                    до <code>-----END PRIVATE KEY-----</code> включительно.
+                </div>
+            `;
+            updateStatus('❌ ошибка', true);
+            return false;
+        }
+        
+        updateStatus('');
+        document.getElementById('mainFolderTitle').innerHTML = config.rootFolderName;
+        return true;
     }
 
     function pemToArrayBuffer(pem) {
@@ -407,11 +390,6 @@
     }
 
     async function loadRootFolder() {
-        if (!config.isReady) {
-            alert('Ключи ещё не загружены, подождите...');
-            return;
-        }
-        
         showLoading();
         document.getElementById('mainView').style.display = 'none';
         document.getElementById('folderView').style.display = 'block';
@@ -557,7 +535,9 @@
     }
 
     // Запуск
-    loadServiceAccountKey();
+    if (validateConfig()) {
+        // Всё готово, ждём нажатия на папку
+    }
 </script>
 </body>
 </html>
