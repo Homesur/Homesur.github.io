@@ -255,13 +255,13 @@
 
   <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyBbxvDq2ScstW7vlYHj_qRoay1ed1YaQHI",
-      authDomain: "judecatoria-1e6f6.firebaseapp.com",
-      databaseURL: "https://judecatoria-1e6f6-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "judecatoria-1e6f6",
-      storageBucket: "judecatoria-1e6f6.firebasestorage.app",
-      messagingSenderId: "130607746443",
-      appId: "1:130607746443:web:bb04d8608d644e404a738e"
+        apiKey: "AIzaSyD5jbrQ7UuZuRaFiW2zGBMUDclmo19at4s",
+        authDomain: "dolgi-68d53.firebaseapp.com",
+        databaseURL: "https://dolgi-68d53-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "dolgi-68d53",
+        storageBucket: "dolgi-68d53.firebasestorage.app",
+        messagingSenderId: "1046372289301",
+        appId: "1:1046372289301:web:7a84aa8e2a4ef2d16d371c"
     };
     
     firebase.initializeApp(firebaseConfig);
@@ -271,310 +271,346 @@
     let currentDebtor = "";
     let currentHistory = [];
 
-    function calculatePaymentsLeft(name, total, paid, monthlyPayments) {
-      const remaining = total - paid;
-      const monthly = monthlyPayments[name] || 0;
-      
-      if (monthly > 0 && remaining > 0) {
-        const paymentsLeft = remaining / monthly;
-        return `${paymentsLeft.toFixed(1)} раз`;
-      } else if (remaining === 0) {
-        return "✓ Выплачено";
-      } else if (monthly === 0) {
-        return "Не задано";
-      }
-      return "-";
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
     }
 
-    function renderTable(debtors, payments) {
-      const tbody = document.getElementById('debtTable');
-      tbody.innerHTML = '';
-      
-      // Получаем данные о ежемесячных платежах
-      db.ref('monthlyPayments').once('value', monthlySnap => {
-        const monthlyPayments = monthlySnap.val() || {};
+    function calculatePaymentsLeft(name, total, paid, monthlyPayments) {
+        const remaining = total - paid;
+        const monthly = monthlyPayments[name] || 0;
         
-        Object.entries(debtors).forEach(([name, total]) => {
-          const personPayments = Object.values(payments).filter(p => p.debtor === name);
-          const paid = personPayments.reduce((sum, p) => sum + p.amount, 0);
-          const remaining = total - paid;
-          const status = paid === 0 ? 'Не выплачено' : (remaining === 0 ? 'Выплачено' : 'Частично');
-          
-          // Рассчет оставшихся выплат
-          const paymentsLeft = calculatePaymentsLeft(name, total, paid, monthlyPayments);
-          
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><span class="name-tag">${name}</span></td>
-            <td><span class="total-tag">${total} EUR</span></td>
-            <td><span class="paid-tag">${paid} EUR</span></td>
-            <td><span class="remaining-tag">${remaining} EUR</span></td>
-            <td><span class="status ${statusClass(status)}">${status}</span></td>
-            <td style="text-align: center; font-weight: 600; color: #4b0082;">
-              ${paymentsLeft}
-            </td>
-            <td class="actions">
-              <button onclick="openPaymentModal('${name}')">💳 Выплата</button>
-              <button onclick="openHistoryModal('${name}')">📄 История</button>
-              <button onclick="deleteDebtor('${name}')">🗑️ Удалить</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
+        if (monthly > 0 && remaining > 0) {
+            const paymentsLeft = remaining / monthly;
+            return paymentsLeft.toFixed(1) + ' раз';
+        } else if (remaining === 0) {
+            return "✓ Выплачено";
+        } else if (monthly === 0) {
+            return "Не задано";
+        }
+        return "-";
+    }
+
+    function renderTable(debtors, payments, monthlyPayments) {
+        const tbody = document.getElementById('debtTable');
+        tbody.innerHTML = '';
+        
+        if (!monthlyPayments) {
+            db.ref('monthlyPayments').once('value', function(monthlySnap) {
+                renderTable(debtors, payments, monthlySnap.val() || {});
+            });
+            return;
+        }
+        
+        Object.entries(debtors).forEach(function([name, total]) {
+            const personPayments = Object.values(payments).filter(function(p) {
+                return p.debtor === name;
+            });
+            const paid = personPayments.reduce(function(sum, p) {
+                return sum + p.amount;
+            }, 0);
+            const remaining = total - paid;
+            let status = 'Не выплачено';
+            if (paid > 0 && remaining > 0) status = 'Частично';
+            if (remaining === 0) status = 'Выплачено';
+            
+            const paymentsLeft = calculatePaymentsLeft(name, total, paid, monthlyPayments);
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><span class="name-tag">${escapeHtml(name)}</span></td>
+                <td><span class="total-tag">${total} EUR</span></td>
+                <td><span class="paid-tag">${paid} EUR</span></td>
+                <td><span class="remaining-tag">${remaining} EUR</span></td>
+                <td><span class="status ${statusClass(status)}">${status}</span></td>
+                <td style="text-align: center; font-weight: 600; color: #4b0082;">
+                    ${paymentsLeft}
+                </td>
+                <td class="actions">
+                    <button onclick="openPaymentModal('${escapeHtml(name)}')">💳 Выплата</button>
+                    <button onclick="openHistoryModal('${escapeHtml(name)}')">📄 История</button>
+                    <button onclick="deleteDebtor('${escapeHtml(name)}')">🗑️ Удалить</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
         });
         
         renderSummary(debtors, payments, monthlyPayments);
-      });
     }
 
     function renderSummary(debtors, payments, monthlyPayments) {
-      let totalDebt = 0;
-      let totalPaid = 0;
-      let totalRemainingPayments = 0;
+        let totalDebt = 0;
+        let totalPaid = 0;
+        let totalRemainingPayments = 0;
 
-      Object.entries(debtors).forEach(([name, amount]) => {
-        totalDebt += amount;
-        const personPayments = Object.values(payments).filter(p => p.debtor === name);
-        const paid = personPayments.reduce((sum, p) => sum + p.amount, 0);
-        totalPaid += paid;
-        
-        // Расчет оставшихся выплат для общего подсчета
-        const remaining = amount - paid;
-        const monthly = monthlyPayments[name] || 0;
-        if (monthly > 0 && remaining > 0) {
-          totalRemainingPayments += remaining / monthly;
-        }
-      });
+        Object.entries(debtors).forEach(function([name, amount]) {
+            totalDebt += amount;
+            const personPayments = Object.values(payments).filter(function(p) {
+                return p.debtor === name;
+            });
+            const paid = personPayments.reduce(function(sum, p) {
+                return sum + p.amount;
+            }, 0);
+            totalPaid += paid;
+            
+            const remaining = amount - paid;
+            const monthly = monthlyPayments[name] || 0;
+            if (monthly > 0 && remaining > 0) {
+                totalRemainingPayments += remaining / monthly;
+            }
+        });
 
-      const totalRemaining = totalDebt - totalPaid;
+        const totalRemaining = totalDebt - totalPaid;
 
-      document.getElementById('summaryBox').innerHTML = `
-        💰 Общая сумма долга: <b>${totalDebt.toLocaleString()} EUR</b><br>
-        ✅ Выплачено: <span style="color:green;"><b>${totalPaid.toLocaleString()} EUR</b></span><br>
-        ❌ Осталось выплатить: <span style="color:red;"><b>${totalRemaining.toLocaleString()} EUR</b></span><br>
-      `;
+        document.getElementById('summaryBox').innerHTML = `
+            💰 Общая сумма долга: <b>${totalDebt.toLocaleString()} EUR</b><br>
+            ✅ Выплачено: <span style="color:green;"><b>${totalPaid.toLocaleString()} EUR</b></span><br>
+            ❌ Осталось выплатить: <span style="color:red;"><b>${totalRemaining.toLocaleString()} EUR</b></span><br>
+        `;
     }
 
     function statusClass(status) {
-      switch (status) {
-        case 'Частично': return 'partial';
-        case 'Выплачено': return 'paid';
-        case 'Не выплачено': return 'unpaid';
-        default: return '';
-      }
+        switch (status) {
+            case 'Частично': return 'partial';
+            case 'Выплачено': return 'paid';
+            case 'Не выплачено': return 'unpaid';
+            default: return '';
+        }
     }
 
     function updateTable() {
-      db.ref('debtors').on('value', snap => {
-        const debtors = snap.val() || {};
-        db.ref('payments').on('value', psnap => {
-          const payments = psnap.val() || {};
-          renderTable(debtors, payments);
-        });
-      });
+        if (window.debtorsListener) db.ref('debtors').off('value', window.debtorsListener);
+        if (window.paymentsListener) db.ref('payments').off('value', window.paymentsListener);
+        
+        window.debtorsListener = function(snap) {
+            const debtors = snap.val() || {};
+            
+            if (window.paymentsListener) db.ref('payments').off('value', window.paymentsListener);
+            
+            window.paymentsListener = function(psnap) {
+                const payments = psnap.val() || {};
+                db.ref('monthlyPayments').once('value', function(monthlySnap) {
+                    const monthlyPayments = monthlySnap.val() || {};
+                    renderTable(debtors, payments, monthlyPayments);
+                });
+            };
+            
+            db.ref('payments').on('value', window.paymentsListener);
+        };
+        
+        db.ref('debtors').on('value', window.debtorsListener);
     }
 
     updateTable();
 
     function openPaymentModal(name) {
-      currentDebtor = name;
-      document.getElementById('paymentTitle').innerText = '💳 Выплата для ' + name;
-      document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
-      document.getElementById('paymentModal').style.display = 'block';
+        currentDebtor = name;
+        document.getElementById('paymentTitle').innerText = '💳 Выплата для ' + name;
+        document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
+        document.getElementById('amountInput').value = '';
+        document.getElementById('paymentModal').style.display = 'block';
     }
 
     function openHistoryModal(name) {
-      currentDebtor = name;
-      document.getElementById('historyTitle').innerText = '📄 История выплат ' + name;
-      const box = document.getElementById('historyBox');
-      box.innerHTML = 'Загрузка...';
-      
-      // Получаем данные о должнике и ежемесячном платеже
-      db.ref('debtors/' + name).once('value', debtorSnap => {
-        const totalDebt = debtorSnap.val() || 0;
+        currentDebtor = name;
+        document.getElementById('historyTitle').innerText = '📄 История выплат ' + name;
+        const box = document.getElementById('historyBox');
+        box.innerHTML = 'Загрузка...';
         
-        db.ref('monthlyPayments/' + name).once('value', monthlySnap => {
-          const monthly = monthlySnap.val() || 0;
-          
-          db.ref('payments').orderByChild('debtor').equalTo(name).once('value', snapshot => {
-            const data = snapshot.val();
-            currentHistory = Object.values(data || {}).sort((a, b) => new Date(b.date) - new Date(a.date));
+        db.ref('debtors/' + name).once('value', function(debtorSnap) {
+            const totalDebt = debtorSnap.val() || 0;
             
-            if (!currentHistory.length) {
-              box.innerHTML = 'Нет данных.';
-              return;
-            }
-            
-            const total = currentHistory.reduce((sum, p) => sum + p.amount, 0);
-            const remaining = totalDebt - total;
-            const paymentsLeft = monthly > 0 ? (remaining / monthly).toFixed(1) : '-';
-            
-            box.innerHTML = `
-              <div style="background: #f0f0f5; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-                <strong>Общая сумма долга:</strong> ${totalDebt} EUR<br>
-                <strong>Ежемесячный платеж:</strong> ${monthly} EUR<br>
-                <strong>Выплачено всего:</strong> ${total} EUR<br>
-                <strong>Осталось выплатить:</strong> ${remaining} EUR<br>
-                <strong>Осталось выплат:</strong> ${paymentsLeft} раз
-              </div>
-            `;
-            
-            box.innerHTML += currentHistory.map(p =>
-              `📅 ${p.date} — ${p.amount} EUR — ${p.method}`
-            ).join('<br>');
-            
-            box.innerHTML += `
-              <hr style="margin: 15px 0;">
-              <div style="font-size: 12px; color: #666; text-align: right;">
-                Сформировано: ${new Date().toLocaleDateString()}
-              </div>
-            `;
-          });
+            db.ref('monthlyPayments/' + name).once('value', function(monthlySnap) {
+                const monthly = monthlySnap.val() || 0;
+                
+                db.ref('payments').orderByChild('debtor').equalTo(name).once('value', function(snapshot) {
+                    const data = snapshot.val();
+                    currentHistory = Object.values(data || {}).sort(function(a, b) {
+                        return new Date(b.date) - new Date(a.date);
+                    });
+                    
+                    if (!currentHistory.length) {
+                        box.innerHTML = 'Нет данных.';
+                        return;
+                    }
+                    
+                    const total = currentHistory.reduce(function(sum, p) {
+                        return sum + p.amount;
+                    }, 0);
+                    const remaining = totalDebt - total;
+                    const paymentsLeft = monthly > 0 ? (remaining / monthly).toFixed(1) : '-';
+                    
+                    box.innerHTML = `
+                        <div style="background: #f0f0f5; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                            <strong>Общая сумма долга:</strong> ${totalDebt} EUR<br>
+                            <strong>Ежемесячный платеж:</strong> ${monthly} EUR<br>
+                            <strong>Выплачено всего:</strong> ${total} EUR<br>
+                            <strong>Осталось выплатить:</strong> ${remaining} EUR<br>
+                            <strong>Осталось выплат:</strong> ${paymentsLeft} раз
+                        </div>
+                    `;
+                    
+                    for (var i = 0; i < currentHistory.length; i++) {
+                        var p = currentHistory[i];
+                        box.innerHTML += '📅 ' + p.date + ' — ' + p.amount + ' EUR — ' + p.method + '<br>';
+                    }
+                    
+                    box.innerHTML += `
+                        <hr style="margin: 15px 0;">
+                        <div style="font-size: 12px; color: #666; text-align: right;">
+                            Сформировано: ${new Date().toLocaleDateString()}
+                        </div>
+                    `;
+                });
+            });
         });
-      });
-      
-      document.getElementById('historyModal').style.display = 'block';
+        
+        document.getElementById('historyModal').style.display = 'block';
     }
 
     function closeModal(id) {
-      document.getElementById(id).style.display = 'none';
-      document.getElementById('amountInput').value = '';
+        document.getElementById(id).style.display = 'none';
     }
 
     function submitPayment() {
-      const amount = parseFloat(document.getElementById('amountInput').value);
-      const date = document.getElementById('dateInput').value;
-      const method = document.getElementById('methodSelect').value;
-      
-      if (!amount || amount <= 0) {
-        alert('Введите корректную сумму!');
-        return;
-      }
-      if (!date) {
-        alert('Введите дату!');
-        return;
-      }
-      
-      const paymentData = {
-        debtor: currentDebtor,
-        amount,
-        date,
-        method,
-        timestamp: Date.now()
-      };
-      
-      db.ref('payments').push(paymentData)
-        .then(() => {
-          alert('✅ Выплата сохранена!');
-          closeModal('paymentModal');
-        })
-        .catch((error) => {
-          alert('❌ Ошибка: ' + error.message);
-        });
+        const amount = parseFloat(document.getElementById('amountInput').value);
+        const date = document.getElementById('dateInput').value;
+        const method = document.getElementById('methodSelect').value;
+        
+        if (!amount || amount <= 0) {
+            alert('Введите корректную сумму!');
+            return;
+        }
+        if (!date) {
+            alert('Введите дату!');
+            return;
+        }
+        
+        const paymentData = {
+            debtor: currentDebtor,
+            amount: amount,
+            date: date,
+            method: method,
+            timestamp: Date.now()
+        };
+        
+        db.ref('payments').push(paymentData)
+            .then(function() {
+                alert('✅ Выплата сохранена!');
+                closeModal('paymentModal');
+            })
+            .catch(function(error) {
+                alert('❌ Ошибка: ' + error.message);
+            });
     }
 
     function exportToExcel() {
-      if (!currentHistory.length) return alert('Нет данных для экспорта.');
-      
-      const sheetData = currentHistory.map(p => ({
-        'Дата': p.date,
-        'Сумма (EUR)': p.amount,
-        'Метод оплаты': p.method
-      }));
-      
-      const worksheet = XLSX.utils.json_to_sheet(sheetData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "История выплат");
-      
-      const today = new Date().toISOString().split('T')[0];
-      XLSX.writeFile(workbook, `${currentDebtor}_выплаты_${today}.xlsx`);
+        if (!currentHistory.length) {
+            alert('Нет данных для экспорта.');
+            return;
+        }
+        
+        const sheetData = [];
+        for (var i = 0; i < currentHistory.length; i++) {
+            sheetData.push({
+                'Дата': currentHistory[i].date,
+                'Сумма (EUR)': currentHistory[i].amount,
+                'Метод оплаты': currentHistory[i].method
+            });
+        }
+        
+        const worksheet = XLSX.utils.json_to_sheet(sheetData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "История выплат");
+        
+        const today = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(workbook, currentDebtor + '_выплаты_' + today + '.xlsx');
     }
 
     function addDebtor() {
-      const name = document.getElementById('newName').value.trim();
-      const amount = parseFloat(document.getElementById('newAmount').value);
-      const monthly = parseFloat(document.getElementById('newMonthly').value);
-      
-      if (!name) {
-        alert('Введите имя!');
-        return;
-      }
-      if (isNaN(amount) || amount <= 0) {
-        alert('Введите корректную сумму!');
-        return;
-      }
-      if (isNaN(monthly) || monthly <= 0) {
-        alert('Введите корректный ежемесячный платеж!');
-        return;
-      }
-      if (monthly > amount) {
-        alert('Ежемесячный платеж не может быть больше общей суммы!');
-        return;
-      }
-      
-      // Сохраняем основную сумму долга
-      db.ref('debtors/' + name).set(amount)
-        .then(() => {
-          // Сохраняем ежемесячный платеж в отдельный узел
-          return db.ref('monthlyPayments/' + name).set(monthly);
-        })
-        .then(() => {
-          alert('✅ Должник добавлен');
-          document.getElementById('newName').value = '';
-          document.getElementById('newAmount').value = '';
-          document.getElementById('newMonthly').value = '';
-        })
-        .catch(err => alert('❌ Ошибка: ' + err.message));
+        const name = document.getElementById('newName').value.trim();
+        const amount = parseFloat(document.getElementById('newAmount').value);
+        const monthly = parseFloat(document.getElementById('newMonthly').value);
+        
+        if (!name) {
+            alert('Введите имя!');
+            return;
+        }
+        if (isNaN(amount) || amount <= 0) {
+            alert('Введите корректную сумму!');
+            return;
+        }
+        if (isNaN(monthly) || monthly <= 0) {
+            alert('Введите корректный ежемесячный платеж!');
+            return;
+        }
+        if (monthly > amount) {
+            alert('Ежемесячный платеж не может быть больше общей суммы!');
+            return;
+        }
+        
+        db.ref('debtors/' + name).once('value', function(snapshot) {
+            if (snapshot.exists()) {
+                alert('❌ Кредитор с таким именем уже существует!');
+                return;
+            }
+            
+            db.ref('debtors/' + name).set(amount)
+                .then(function() {
+                    return db.ref('monthlyPayments/' + name).set(monthly);
+                })
+                .then(function() {
+                    alert('✅ Должник добавлен');
+                    document.getElementById('newName').value = '';
+                    document.getElementById('newAmount').value = '';
+                    document.getElementById('newMonthly').value = '';
+                })
+                .catch(function(err) {
+                    alert('❌ Ошибка: ' + err.message);
+                });
+        });
     }
 
     function deleteDebtor(name) {
-      debtorToDelete = name;
-      document.getElementById('deleteTitle').innerText = `Удаление: ${name}`;
-      document.getElementById('deletePassword').value = '';
-      document.getElementById('deleteModal').style.display = 'block';
+        debtorToDelete = name;
+        document.getElementById('deleteTitle').innerText = 'Удаление: ' + name;
+        document.getElementById('deletePassword').value = '';
+        document.getElementById('deleteModal').style.display = 'block';
     }
 
     function confirmDelete() {
-      const password = document.getElementById('deletePassword').value;
-      const correctPassword = "0000";
+        const password = document.getElementById('deletePassword').value;
+        const correctPassword = "0000";
 
-      if (password !== correctPassword) {
-        alert("❌ Неверный пароль");
-        return;
-      }
+        if (password !== correctPassword) {
+            alert("❌ Неверный пароль");
+            return;
+        }
 
-      const updates = {};
-      updates['debtors/' + debtorToDelete] = null;
-      updates['monthlyPayments/' + debtorToDelete] = null; // Удаляем и ежемесячный платеж
+        const updates = {};
+        updates['debtors/' + debtorToDelete] = null;
+        updates['monthlyPayments/' + debtorToDelete] = null;
 
-      db.ref('payments').orderByChild('debtor').equalTo(debtorToDelete).once('value')
-        .then(snapshot => {
-          snapshot.forEach(child => {
-            updates['payments/' + child.key] = null;
-          });
-          return db.ref().update(updates);
-        })
-        .then(() => {
-          alert(`🗑️ ${debtorToDelete} удалён`);
-          closeModal('deleteModal');
-        })
-        .catch(err => alert('❌ Ошибка: ' + err.message));
+        db.ref('payments').orderByChild('debtor').equalTo(debtorToDelete).once('value')
+            .then(function(snapshot) {
+                snapshot.forEach(function(child) {
+                    updates['payments/' + child.key] = null;
+                });
+                return db.ref().update(updates);
+            })
+            .then(function() {
+                alert('🗑️ ' + debtorToDelete + ' удалён');
+                closeModal('deleteModal');
+            })
+            .catch(function(err) {
+                alert('❌ Ошибка: ' + err.message);
+            });
     }
-
-    // Функция для установки ежемесячного платежа существующим должникам
-    function setMonthlyPayment(name, amount) {
-      if (!name || isNaN(amount) || amount <= 0) {
-        alert('Введите корректные данные!');
-        return;
-      }
-      
-      db.ref('monthlyPayments/' + name).set(amount)
-        .then(() => {
-          alert(`✅ Ежемесячный платеж для ${name} установлен: ${amount} EUR`);
-          updateTable(); // Обновляем таблицу
-        })
-        .catch(err => alert('❌ Ошибка: ' + err.message));
-    }
-  </script>
+</script>
 </body>
 </html>
-
