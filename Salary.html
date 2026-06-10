@@ -379,13 +379,13 @@
     let ADMIN_PASSWORD = "0000";
     let SALARY_PERCENTAGE = 4.5;
     const firebaseConfig = {
-      apiKey: "AIzaSyA_WAUmHLsgGKd-0T0w22mjsIh_mkXuOc4",
-      authDomain: "isota-ed295.firebaseapp.com",
-      databaseURL: "https://isota-ed295-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "isota-ed295",
-      storageBucket: "isota-ed295.firebasestorage.app",
-      messagingSenderId: "658102298792",
-      appId: "1:658102298792:web:fbc90679e3adadcac93a9d"
+      apiKey: "AIzaSyDP04_CG1oC16huJzBQareGtI21agyUxYk",
+      authDomain: "salary-5f3b8.firebaseapp.com",
+      databaseURL: "https://salary-5f3b8-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "salary-5f3b8",
+      storageBucket: "salary-5f3b8.firebasestorage.app",
+      messagingSenderId: "594865690169",
+      appId: "1:594865690169:web:dbecf3666aecaa1f96dfe8"
     };
     
     firebase.initializeApp(firebaseConfig);
@@ -867,7 +867,7 @@
       } else {
         analysisText = `
           <p>✅ <strong>${revenueDays}</strong> дней с выручкой из <strong>${workDays}</strong> рабочих</p>
-          <p>📊 Эффективность: <strong>${efficiency}%</strong></p>
+          
           <p>💰 Средняя выручка в день: <strong>${avgRevenuePerDay} MDL</strong></p>
           <p>💵 Средняя зарплата в день: <strong>${avgSalaryPerDay} MDL</strong></p>
           ${efficiency < 50 ? '<p class="text-amber-600 mt-2">⚠️ Низкая эффективность. Постарайтесь увеличить количество дней с выручкой.</p>' : ''}
