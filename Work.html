@@ -6,123 +6,130 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-  font-family: 'Segoe UI', Arial, sans-serif;
-  margin: 20px;
-  background:#f0f2f5;
-  color:#333;
-}
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 20px;
+      background:#f0f2f5;
+      color:#333;
+    }
 
-h2 {
-  margin-bottom: 15px;
-  color:#1e3a8a;
-}
+    h2 {
+      margin-bottom: 15px;
+      color:#1e3a8a;
+    }
 
-.filter-panel {
-  background:#fff;
-  padding:15px;
-  border-radius:10px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.1);
-  margin-bottom:20px;
-  display:flex;
-  flex-wrap:wrap;
-  gap:15px;
-  align-items:flex-end;
-}
+    .filter-panel {
+      background:#fff;
+      padding:15px;
+      border-radius:10px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom:20px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:15px;
+      align-items:flex-end;
+    }
 
-.filter-panel label {
-  font-weight:bold;
-  font-size:13px;
-  margin-right:5px;
-}
+    .filter-panel label {
+      font-weight:bold;
+      font-size:13px;
+      margin-right:5px;
+    }
 
-.filter-panel input,
-.filter-panel select {
-  padding:8px;
-  border:1px solid #ccc;
-  border-radius:6px;
-  font-size:14px;
-}
+    .filter-panel input,
+    .filter-panel select {
+      padding:8px;
+      border:1px solid #ccc;
+      border-radius:6px;
+      font-size:14px;
+    }
 
-.filter-panel button {
-  padding:8px 14px;
-  border:none;
-  border-radius:6px;
-  font-size:14px;
-  cursor:pointer;
-  transition:0.3s;
-}
+    .filter-panel button {
+      padding:8px 14px;
+      border:none;
+      border-radius:6px;
+      font-size:14px;
+      cursor:pointer;
+      transition:0.3s;
+    }
 
-.filter-panel button:first-of-type {
-  background:#1e3a8a;
-  color:#fff;
-}
-.filter-panel button:first-of-type:hover {
-  background:#2f4fb3;
-}
+    .filter-panel button:first-of-type {
+      background:#1e3a8a;
+      color:#fff;
+    }
+    .filter-panel button:first-of-type:hover {
+      background:#2f4fb3;
+    }
 
-.filter-panel button:last-of-type {
-  background:#ccc;
-  color:#333;
-}
-.filter-panel button:last-of-type:hover {
-  background:#aaa;
-}
+    .filter-panel button:last-of-type {
+      background:#ccc;
+      color:#333;
+    }
+    .filter-panel button:last-of-type:hover {
+      background:#aaa;
+    }
 
-table {
-  border-collapse: collapse;
-  width: 100%;
-  background:#fff;
-  border-radius:10px;
-  overflow:hidden;
-  box-shadow:0 2px 6px rgba(0,0,0,0.1);
-}
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      background:#fff;
+      border-radius:10px;
+      overflow:hidden;
+      box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    }
 
-th, td {
-  border: 1px solid #eee;
-  padding: 10px;
-  text-align: center;
-  font-size:14px;
-}
+    th, td {
+      border: 1px solid #eee;
+      padding: 10px;
+      text-align: center;
+      font-size:14px;
+    }
 
-th {
-  background:#1e3a8a;
-  color:#fff;
-}
+    th {
+      background:#1e3a8a;
+      color:#fff;
+    }
 
-tr:nth-child(even) {
-  background:#f9fafb;
-}
+    tr:nth-child(even) {
+      background:#f9fafb;
+    }
 
-.edit-btn {
-  background:#1e3a8a;
-  color:#fff;
-}
-.edit-btn:hover {
-  background:#2f4fb3;
-}
+    .edit-btn {
+      background:#1e3a8a;
+      color:#fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .edit-btn:hover {
+      background:#2f4fb3;
+    }
 
-.delete-btn {
-  background:#dc2626;
-  color:#fff;
-}
-.delete-btn:hover {
-  background:#b91c1c;
-}
+    .delete-btn {
+      background:#dc2626;
+      color:#fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .delete-btn:hover {
+      background:#b91c1c;
+    }
 
-.badge {
-  display:inline-block;
-  padding:4px 8px;
-  border-radius:6px;
-  font-weight:600;
-  font-size:12px;
-  color:#fff;
-}
+    .badge {
+      display:inline-block;
+      padding:4px 8px;
+      border-radius:6px;
+      font-weight:600;
+      font-size:12px;
+      color:#fff;
+    }
 
-.status-work { background:#f59e0b; }
-.status-ready { background:#3b82f6; }
-.status-issued { background:#10b981; }
-.status-debt { background:#ef4444; font-style:italic; }
-
+    .status-work { background:#f59e0b; }
+    .status-ready { background:#3b82f6; }
+    .status-issued { background:#10b981; }
+    .status-debt { background:#ef4444; font-style:italic; }
 
     .modal {
       display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
@@ -142,6 +149,13 @@ tr:nth-child(even) {
     .modal-buttons button { width:48%; padding:8px; border:none; border-radius:6px; font-size:14px; cursor:pointer; }
     .save-btn { background:#1e3a8a; color:#fff; }
     .cancel-btn { background:#ccc; color:#333; }
+
+    .actions-cell {
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
   </style>
 </head>
 <body>
@@ -150,37 +164,36 @@ tr:nth-child(even) {
   <!-- Панель фильтров -->
   <div class="filter-panel">
     <div>
-    <label>Дата приёма:</label>
-    <input type="date" id="filterReceived">
-  </div>
+      <label>Дата приёма:</label>
+      <input type="date" id="filterReceived">
+    </div>
 
-  <div>
-    <label>Дата выдачи:</label>
-    <input type="date" id="filterIssued">
-  </div>
+    <div>
+      <label>Дата выдачи:</label>
+      <input type="date" id="filterIssued">
+    </div>
 
-  <div>
-    <label>Клиент:</label>
-    <input type="text" id="filterClient" placeholder="Введите имя или номер">
-  </div>
-  <div>
-    <label>Статус:</label>
-    <select id="filterStatus">
-      <option value="">-- Все --</option>
-      <option value="В работе">В работе</option>
-      <option value="Готов">Готов</option>
-      <option value="Ожидает запчастей">Ожидает запчастей</option>
-      <option value="Выдан в долг!">Выдан в долг!</option>
-      <option value="Выдан клиенту">Выдан клиенту</option>
-    </select>
-  </div>
+    <div>
+      <label>Клиент:</label>
+      <input type="text" id="filterClient" placeholder="Введите имя или номер">
+    </div>
+    <div>
+      <label>Статус:</label>
+      <select id="filterStatus">
+        <option value="">-- Все --</option>
+        <option value="В работе">В работе</option>
+        <option value="Готов">Готов</option>
+        <option value="Ожидает запчастей">Ожидает запчастей</option>
+        <option value="Выдан в долг!">Выдан в долг!</option>
+        <option value="Выдан клиенту">Выдан клиенту</option>
+      </select>
+    </div>
 
-  <div>
-    <button onclick="applyFilters()">Применить</button>
-    <button onclick="resetFilters()">Сбросить</button>
+    <div>
+      <button onclick="applyFilters()">Применить</button>
+      <button onclick="resetFilters()">Сбросить</button>
+    </div>
   </div>
-</div>
-
 
   <table id="phonesTable">
     <tr>
@@ -229,7 +242,7 @@ tr:nth-child(even) {
         <option value="Джордан">Джордан</option>
         <option value="Gudok">Gudok</option>
         <option value="Andrei Patria">Andrei Patria</option>
-		</select>
+      </select>
 
       <div class="modal-buttons">
         <button class="save-btn" onclick="saveChanges()">Сохранить</button>
@@ -239,157 +252,203 @@ tr:nth-child(even) {
   </div>
 
   <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, get, update, remove, query, orderByChild } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyB6hf_Xm8Tvu6t-BoRgiLR6PBwHZv7bo2I",
-    authDomain: "phones-690eb.firebaseapp.com",
-    projectId: "phones-690eb",
-    storageBucket: "phones-690eb.firebasestorage.app",
-    messagingSenderId: "58794916374",
-    appId: "1:58794916374:web:88420ab7bb2303ec96d337"
-  };
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  let currentEditId = null;
-
-  async function loadPhones(filters = {}) {
-    // сортировка по дате приёма (новые сверху)
-    const q = query(collection(db, "phones"), orderBy("receivedAt", "desc"));
-    const snap = await getDocs(q);
-
-    const table = document.getElementById("phonesTable");
-    table.innerHTML = `
-      <tr>
-        <th>Имя/Номер Тел:</th>
-        <th>Модель</th>
-        <th>Неисправность</th>
-        <th>Дата приёма</th>
-        <th>Дата выдачи</th>
-        <th>Статус</th>
-        <th>Услуги</th>
-        <th>Цена</th>
-        <th>Поставщик</th>
-        <th>Действия</th>
-      </tr>`;
-
-    snap.forEach(d => {
-      const data = d.data();
-
-      // фильтры
-      if (filters.status && data.status !== filters.status) return;
-
-      if (filters.receivedDate) {
-        const receivedDate = data.receivedAt ? new Date(data.receivedAt).toISOString().split("T")[0] : null;
-        if (receivedDate !== filters.receivedDate) return;
-      }
-
-      if (filters.issuedDate) {
-        const issuedDate = data.issuedAt ? new Date(data.issuedAt).toISOString().split("T")[0] : null;
-        if (issuedDate !== filters.issuedDate) return;
-      }
-
-      if (filters.client) {
-        const clientStr = `${data.client || ""} ${data.phoneNumber || ""}`.toLowerCase();
-        if (!clientStr.includes(filters.client)) return;
-      }
-
-      // badge
-      let badgeClass = "";
-      if (data.status === "В работе") badgeClass = "status-work";
-      else if (data.status === "Готов") badgeClass = "status-ready";
-      else if (data.status === "Выдан клиенту") badgeClass = "status-issued";
-      else if (data.status === "Выдан в долг!") badgeClass = "status-debt";
-
-      const receivedDateStr = data.receivedAt ? new Date(data.receivedAt).toLocaleDateString() : "-";
-      const issuedDateStr = data.issuedAt ? new Date(data.issuedAt).toLocaleDateString() : "-";
-
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${ data.client && data.phoneNumber ? `${data.client} (${data.phoneNumber})` : (data.client || data.phoneNumber || "-") }</td>
-        <td>${ data.brand && data.phoneModel ? `${data.brand} ${data.phoneModel}` : (data.brand || data.phoneModel || "-") }</td>
-        <td>${data.issue}</td>
-        <td>${receivedDateStr}</td>
-        <td>${issuedDateStr}</td>
-        <td><span class="badge ${badgeClass}">${data.status}</span></td>
-        <td>${data.services && data.services.length > 0 ? data.services.join(", ") : "-"}</td>
-        <td>${data.price || "-"}</td>
-        <td>${data.supplier || "-"}</td>
-        <td>
-          <button class="edit-btn" onclick="openModal('${d.id}', '${data.status}', '${(data.services || []).join(",")}', '${data.price || ""}', '${data.supplier || ""}')">Редактировать</button>
-          <button class="delete-btn" onclick="deletePhone('${d.id}')">Удалить</button>
-        </td>`;
-      table.appendChild(row);
-    });
-  }
-
-  // глобальные функции для кнопок
-  window.applyFilters = function() {
-    const status = document.getElementById("filterStatus").value;
-    const receivedDate = document.getElementById("filterReceived").value;
-    const issuedDate = document.getElementById("filterIssued").value;
-    const client = document.getElementById("filterClient").value.trim().toLowerCase();
-    loadPhones({ status, receivedDate, issuedDate, client });
-  }
-
-  window.resetFilters = function() {
-    document.getElementById("filterStatus").value = "";
-    document.getElementById("filterReceived").value = "";
-    document.getElementById("filterIssued").value = "";
-    document.getElementById("filterClient").value = "";
-    loadPhones();
-  }
-
-  window.openModal = function(id, status, services, price, supplier) {
-    currentEditId = id;
-    document.getElementById("editStatus").value = status;
-    document.getElementById("editService").value = services;
-    document.getElementById("editPrice").value = price;
-    document.getElementById("editSupplier").value = supplier;
-    document.getElementById("editModal").style.display = "block";
-  }
-
-  window.closeModal = function() {
-    document.getElementById("editModal").style.display = "none";
-  }
-
-  window.saveChanges = async function() {
-    const newStatus = document.getElementById("editStatus").value;
-    const newService = document.getElementById("editService").value;
-    const newPrice = document.getElementById("editPrice").value;
-    const newSupplier = document.getElementById("editSupplier").value;
-    const ref = doc(db, "phones", currentEditId);
-
-    let updateData = {
-      status: newStatus,
-      services: newService ? [newService] : [],
-      price: newPrice ? Number(newPrice) : null,
-      supplier: newSupplier || null
+    const firebaseConfig = {
+      apiKey: "AIzaSyDmEjyAgQDS2kT8jcwi9LegqN0DZcqHFwk",
+      authDomain: "database-well-tell.firebaseapp.com",
+      databaseURL: "https://database-well-tell-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "database-well-tell",
+      storageBucket: "database-well-tell.firebasestorage.app",
+      messagingSenderId: "964122450648",
+      appId: "1:964122450648:web:990bd957b86595b48815ad"
     };
+    
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-    // дата выдачи для "Выдан в долг!" и "Выдан клиенту"
-    if (newStatus === "Выдан в долг!" || newStatus === "Выдан клиенту") {
-      updateData.issuedAt = new Date().toISOString();
+    let currentEditId = null;
+
+    async function loadPhones(filters = {}) {
+      try {
+        const phonesRef = ref(db, 'phones');
+        const snap = await get(phonesRef);
+
+        const table = document.getElementById("phonesTable");
+        table.innerHTML = `
+          <tr>
+            <th>Имя/Номер Тел:</th>
+            <th>Модель</th>
+            <th>Неисправность</th>
+            <th>Дата приёма</th>
+            <th>Дата выдачи</th>
+            <th>Статус</th>
+            <th>Услуги</th>
+            <th>Цена</th>
+            <th>Поставщик</th>
+            <th>Действия</th>
+          </tr>`;
+
+        if (!snap.exists()) {
+          table.innerHTML += `<tr><td colspan="10">Нет данных</td></tr>`;
+          return;
+        }
+
+        // Собираем данные в массив для сортировки
+        let phones = [];
+        snap.forEach(child => {
+          const data = child.val();
+          phones.push({
+            id: child.key,
+            ...data
+          });
+        });
+
+        // Сортировка по дате приёма (новые сверху)
+        phones.sort((a, b) => {
+          if (!a.receivedAt) return 1;
+          if (!b.receivedAt) return -1;
+          return new Date(b.receivedAt) - new Date(a.receivedAt);
+        });
+
+        phones.forEach(data => {
+          // фильтры
+          if (filters.status && data.status !== filters.status) return;
+
+          if (filters.receivedDate) {
+            const receivedDate = data.receivedAt ? new Date(data.receivedAt).toISOString().split("T")[0] : null;
+            if (receivedDate !== filters.receivedDate) return;
+          }
+
+          if (filters.issuedDate) {
+            const issuedDate = data.issuedAt ? new Date(data.issuedAt).toISOString().split("T")[0] : null;
+            if (issuedDate !== filters.issuedDate) return;
+          }
+
+          if (filters.client) {
+            const clientStr = `${data.client || ""} ${data.phoneNumber || ""}`.toLowerCase();
+            if (!clientStr.includes(filters.client)) return;
+          }
+
+          // badge
+          let badgeClass = "";
+          if (data.status === "В работе") badgeClass = "status-work";
+          else if (data.status === "Готов") badgeClass = "status-ready";
+          else if (data.status === "Выдан клиенту") badgeClass = "status-issued";
+          else if (data.status === "Выдан в долг!") badgeClass = "status-debt";
+
+          const receivedDateStr = data.receivedAt ? new Date(data.receivedAt).toLocaleDateString() : "-";
+          const issuedDateStr = data.issuedAt ? new Date(data.issuedAt).toLocaleDateString() : "-";
+
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${data.client && data.phoneNumber ? `${data.client} (${data.phoneNumber})` : (data.client || data.phoneNumber || "-")}</td>
+            <td>${data.brand && data.phoneModel ? `${data.brand} ${data.phoneModel}` : (data.brand || data.phoneModel || "-")}</td>
+            <td>${data.issue || "-"}</td>
+            <td>${receivedDateStr}</td>
+            <td>${issuedDateStr}</td>
+            <td><span class="badge ${badgeClass}">${data.status || "-"}</span></td>
+            <td>${data.services && data.services.length > 0 ? data.services.join(", ") : "-"}</td>
+            <td>${data.price || "-"}</td>
+            <td>${data.supplier || "-"}</td>
+            <td>
+              <div class="actions-cell">
+                <button class="edit-btn" onclick="openModal('${data.id}', '${data.status || ""}', '${(data.services || []).join(",")}', '${data.price || ""}', '${data.supplier || ""}')">✏️</button>
+                <button class="delete-btn" onclick="deletePhone('${data.id}')">🗑️</button>
+              </div>
+            </td>`;
+          table.appendChild(row);
+        });
+      } catch (error) {
+        console.error("Ошибка загрузки:", error);
+        document.getElementById("phonesTable").innerHTML += `<tr><td colspan="10">Ошибка загрузки: ${error.message}</td></tr>`;
+      }
     }
 
-    await updateDoc(ref, updateData);
-    alert("Обновлено!");
-    closeModal();
-    loadPhones();
-  }
+    // глобальные функции для кнопок
+    window.applyFilters = function() {
+      const status = document.getElementById("filterStatus").value;
+      const receivedDate = document.getElementById("filterReceived").value;
+      const issuedDate = document.getElementById("filterIssued").value;
+      const client = document.getElementById("filterClient").value.trim().toLowerCase();
+      loadPhones({ status, receivedDate, issuedDate, client });
+    }
 
-  window.deletePhone = async function(id) {
-    if (confirm("Вы уверены, что хотите удалить этот телефон?")) {
-      const ref = doc(db, "phones", id);
-      await deleteDoc(ref);
-      alert("Телефон удалён!");
+    window.resetFilters = function() {
+      document.getElementById("filterStatus").value = "";
+      document.getElementById("filterReceived").value = "";
+      document.getElementById("filterIssued").value = "";
+      document.getElementById("filterClient").value = "";
       loadPhones();
     }
-  }
 
-  loadPhones();
-</script>
+    window.openModal = function(id, status, services, price, supplier) {
+      currentEditId = id;
+      document.getElementById("editStatus").value = status || "В работе";
+      document.getElementById("editService").value = services || "";
+      document.getElementById("editPrice").value = price || "";
+      document.getElementById("editSupplier").value = supplier || "";
+      document.getElementById("editModal").style.display = "block";
+    }
+
+    window.closeModal = function() {
+      document.getElementById("editModal").style.display = "none";
+      currentEditId = null;
+    }
+
+    window.saveChanges = async function() {
+      if (!currentEditId) {
+        alert("Ошибка: не выбран телефон для редактирования");
+        return;
+      }
+
+      const newStatus = document.getElementById("editStatus").value;
+      const newService = document.getElementById("editService").value.trim();
+      const newPrice = document.getElementById("editPrice").value.trim();
+      const newSupplier = document.getElementById("editSupplier").value;
+
+      try {
+        const refPath = ref(db, `phones/${currentEditId}`);
+        
+        let updateData = {
+          status: newStatus,
+          services: newService ? [newService] : [],
+          price: newPrice ? Number(newPrice) : null,
+          supplier: newSupplier || null
+        };
+
+        // дата выдачи для "Выдан в долг!" и "Выдан клиенту"
+        if (newStatus === "Выдан в долг!" || newStatus === "Выдан клиенту") {
+          updateData.issuedAt = new Date().toISOString();
+        }
+
+        await update(refPath, updateData);
+        alert("Обновлено!");
+        closeModal();
+        loadPhones();
+      } catch (error) {
+        console.error("Ошибка сохранения:", error);
+        alert("Ошибка при сохранении: " + error.message);
+      }
+    }
+
+    window.deletePhone = async function(id) {
+      if (confirm("Вы уверены, что хотите удалить этот телефон?")) {
+        try {
+          const refPath = ref(db, `phones/${id}`);
+          await remove(refPath);
+          alert("Телефон удалён!");
+          loadPhones();
+        } catch (error) {
+          console.error("Ошибка удаления:", error);
+          alert("Ошибка при удалении: " + error.message);
+        }
+      }
+    }
+
+    // Загрузка данных
+    loadPhones();
+  </script>
 </body>
 </html>
