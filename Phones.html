@@ -59,6 +59,11 @@
       grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
+    .form-grid-full {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
     .result {
       display: flex;
       flex-direction: column;
@@ -99,6 +104,8 @@
   <div class="container">
     <div class="card">
       <h2>Добавить телефон</h2>
+      
+      <!-- Строка 1: Клиент и Новый клиент -->
       <div class="form-grid">
         <select id="clientSelect">
           <option value="">-- Выберите клиента --</option>
@@ -114,6 +121,16 @@
           <option value="Rustam">Rustam</option>
         </select>
         <input id="clientName" placeholder="Новый клиент (если нет в списке)">
+      </div>
+
+      <!-- Строка 2: Номер телефона и Адрес -->
+      <div class="form-grid">
+        <input id="phoneNumber" placeholder="📱 Номер телефона клиента">
+        <input id="address" placeholder="📍 Адрес клиента">
+      </div>
+
+      <!-- Строка 3: Марка и Модель -->
+      <div class="form-grid">
         <select id="brandSelect">
           <option value="">-- Выберите марку --</option>
           <option value="Apple">Apple</option>
@@ -121,32 +138,34 @@
           <option value="Xiaomi">Xiaomi</option>
           <option value="Huawei">Huawei</option>
           <option value="Oppo">Oppo</option>
-		  <option value="Realme">Realme</option>
-		  <option value="Nokia">Nokia</option>
+          <option value="Realme">Realme</option>
+          <option value="Nokia">Nokia</option>
           <option value="Sony">Sony</option>
           <option value="Motorola">Motorola</option>
           <option value="LG">LG</option>
           <option value="Google">Google (Pixel)</option>
-          <!-- остальные бренды -->
         </select>
         <input id="phoneModel" placeholder="Модель телефона">
       </div>
 
-      <select id="issue">
-        <option value="Не включается">Не включается</option>
-        <option value="Не заряжается">Не заряжается</option>
-        <option value="Разбит экран">Разбит экран</option>
-		<option value="Прошивка">Прошивка</option>
-        <option value="Не работает звук">Не работает звук</option>
-        <option value="Не ловит сеть">Не ловит сеть</option>
-        <option value="Нет изображения">Нет изображения</option>
-        <option value="Не работает сенсор">Не работает сенсор</option>
-        <option value="Замена Аккумулятора">Замена Аккумулятора</option>
-		<option value="Забыли пароль">Забыли пароль</option>
-        <option value="Google account">Google account</option>
-        <option value="Mi account">Mi account</option>
-        <option value="Другое">Другое...</option>
-      </select>
+      <!-- Строка 4: Неисправность -->
+      <div class="form-grid-full">
+        <select id="issue">
+          <option value="Не включается">Не включается</option>
+          <option value="Не заряжается">Не заряжается</option>
+          <option value="Разбит экран">Разбит экран</option>
+          <option value="Прошивка">Прошивка</option>
+          <option value="Не работает звук">Не работает звук</option>
+          <option value="Не ловит сеть">Не ловит сеть</option>
+          <option value="Нет изображения">Нет изображения</option>
+          <option value="Не работает сенсор">Не работает сенсор</option>
+          <option value="Замена Аккумулятора">Замена Аккумулятора</option>
+          <option value="Забыли пароль">Забыли пароль</option>
+          <option value="Google account">Google account</option>
+          <option value="Mi account">Mi account</option>
+          <option value="Другое">Другое...</option>
+        </select>
+      </div>
 
       <button onclick="addPhone()">Сохранить</button>
     </div>
@@ -160,113 +179,149 @@
     <div id="result" class="result"></div>
   </div>
 
-    <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, push, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyB6hf_Xm8Tvu6t-BoRgiLR6PBwHZv7bo2I",
-    authDomain: "phones-690eb.firebaseapp.com",
-    projectId: "phones-690eb",
-    storageBucket: "phones-690eb.firebasestorage.app",
-    messagingSenderId: "58794916374",
-    appId: "1:58794916374:web:88420ab7bb2303ec96d337"
-  };
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+    const firebaseConfig = {
+      apiKey: "AIzaSyDmEjyAgQDS2kT8jcwi9LegqN0DZcqHFwk",
+      authDomain: "database-well-tell.firebaseapp.com",
+      databaseURL: "https://database-well-tell-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "database-well-tell",
+      storageBucket: "database-well-tell.firebasestorage.app",
+      messagingSenderId: "964122450648",
+      appId: "1:964122450648:web:990bd957b86595b48815ad"
+    };
+    
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-  async function addPhone() {
-    const clientSelect = document.getElementById("clientSelect").value;
-    const clientName = document.getElementById("clientName").value.trim();
-    const brand = document.getElementById("brandSelect").value;
-    const phoneModel = document.getElementById("phoneModel").value.trim();
-    let issue = document.getElementById("issue").value;
+    async function addPhone() {
+      const clientSelect = document.getElementById("clientSelect").value;
+      const clientName = document.getElementById("clientName").value.trim();
+      const phoneNumber = document.getElementById("phoneNumber").value.trim();
+      const address = document.getElementById("address").value.trim();
+      const brand = document.getElementById("brandSelect").value;
+      const phoneModel = document.getElementById("phoneModel").value.trim();
+      let issue = document.getElementById("issue").value;
 
-    if (issue === "Другое") {
-      issue = prompt("Введите причину неисправности:");
-    }
-
-    const client = clientName || clientSelect;
-    if (!client) {
-      alert("Укажите клиента!");
-      return;
-    }
-
-    const receivedAt = new Date().toISOString();
-
-    await addDoc(collection(db, "phones"), {
-      client,
-      brand,
-      phoneModel,
-      issue,
-      status: "В работе",
-      services: [],
-      price: null,
-      receivedAt,
-      issuedAt: null
-    });
-    alert("Телефон добавлен!");
-  }
-
-  async function searchPhone() {
-    const q = document.getElementById("searchQuery").value.toLowerCase().trim();
-
-    // 🚫 если строка поиска пустая — не выполняем поиск
-    if (!q) {
-      document.getElementById("result").innerHTML = "<p>Введите запрос для поиска</p>";
-      return;
-    }
-
-    const phonesRef = collection(db, "phones");
-    const snap = await getDocs(phonesRef);
-
-    let resultHTML = "";
-    snap.forEach(doc => {
-      const data = doc.data();
-      const fullModel = `${data.brand || ""} ${data.phoneModel || ""}`.toLowerCase();
-
-      if (
-        (data.client && data.client.toLowerCase().includes(q)) ||
-        (data.phoneNumber && data.phoneNumber.toLowerCase().includes(q)) ||
-        (data.phoneModel && data.phoneModel.toLowerCase().includes(q)) ||
-        fullModel.includes(q)
-      ) {
-        let badgeClass = "status-work";
-        if (data.status === "Готов") badgeClass = "status-ready";
-        else if (data.status === "Выдан клиенту") badgeClass = "status-issued";
-        else if (data.status === "Выдан в долг!") badgeClass = "status-work"; // можно задать отдельный цвет
-
-        resultHTML += `
-          <div class="phone-card">
-            <div class="phone-header">${data.brand || ""} ${data.phoneModel || ""}</div>
-            <div class="phone-detail">👤 Клиент: ${data.client || "-"}</div>
-            <div class="phone-detail">📅 Дата приёма: ${data.receivedAt ? new Date(data.receivedAt).toLocaleDateString() : "-"}</div>
-            <div class="phone-detail">⚡ Неисправность: ${data.issue}</div>
-            <div class="phone-detail">💰 Цена: ${data.price || "-"}</div>
-        `;
-
-        // 🛠 Услуга для трёх статусов
-        if (
-          ["Готов", "Выдан клиенту", "Выдан в долг!"].includes(data.status) &&
-          data.services &&
-          data.services.length > 0
-        ) {
-          resultHTML += `<div class="phone-detail">🛠 Услуга: ${data.services.join(", ")}</div>`;
-        }
-
-        if (data.issuedAt) {
-          resultHTML += `<div class="phone-detail">✅ Дата выдачи: ${new Date(data.issuedAt).toLocaleDateString()}</div>`;
-        }
-
-        resultHTML += `<span class="badge ${badgeClass}">${data.status}</span></div>`;
+      if (issue === "Другое") {
+        issue = prompt("Введите причину неисправности:");
+        if (!issue) return;
       }
-    });
 
-    document.getElementById("result").innerHTML = resultHTML || "<p>Ничего не найдено</p>";
-  }
+      const client = clientName || clientSelect;
+      if (!client) {
+        alert("Укажите клиента!");
+        return;
+      }
 
-  // делаем функции доступными для кнопок
-  window.addPhone = addPhone;
-  window.searchPhone = searchPhone;
-</script>
+      if (!phoneNumber) {
+        alert("Введите номер телефона клиента!");
+        return;
+      }
 
+      const receivedAt = new Date().toISOString();
+
+      try {
+        const newRef = push(ref(db, 'phones'));
+        await set(newRef, {
+          client,
+          phoneNumber,
+          address,
+          brand,
+          phoneModel,
+          issue,
+          status: "В работе",
+          services: [],
+          price: null,
+          receivedAt,
+          issuedAt: null,
+          supplier: null
+        });
+        alert("Телефон добавлен!");
+        
+        // Очистка полей
+        document.getElementById("clientSelect").value = "";
+        document.getElementById("clientName").value = "";
+        document.getElementById("phoneNumber").value = "";
+        document.getElementById("address").value = "";
+        document.getElementById("brandSelect").value = "";
+        document.getElementById("phoneModel").value = "";
+        document.getElementById("issue").value = "Не включается";
+      } catch (error) {
+        console.error("Ошибка добавления:", error);
+        alert("Ошибка при добавлении: " + error.message);
+      }
+    }
+
+    async function searchPhone() {
+      const q = document.getElementById("searchQuery").value.toLowerCase().trim();
+
+      if (!q) {
+        document.getElementById("result").innerHTML = "<p>Введите запрос для поиска</p>";
+        return;
+      }
+
+      try {
+        const phonesRef = ref(db, 'phones');
+        const snap = await get(phonesRef);
+        
+        let resultHTML = "";
+
+        if (snap.exists()) {
+          snap.forEach(child => {
+            const data = child.val();
+            const fullModel = `${data.brand || ""} ${data.phoneModel || ""}`.toLowerCase();
+
+            if (
+              (data.client && data.client.toLowerCase().includes(q)) ||
+              (data.phoneNumber && data.phoneNumber.toLowerCase().includes(q)) ||
+              (data.phoneModel && data.phoneModel.toLowerCase().includes(q)) ||
+              (data.address && data.address.toLowerCase().includes(q)) ||
+              fullModel.includes(q)
+            ) {
+              let badgeClass = "status-work";
+              if (data.status === "Готов") badgeClass = "status-ready";
+              else if (data.status === "Выдан клиенту") badgeClass = "status-issued";
+              else if (data.status === "Выдан в долг!") badgeClass = "status-work";
+
+              resultHTML += `
+                <div class="phone-card">
+                  <div class="phone-header">${data.brand || ""} ${data.phoneModel || ""}</div>
+                  <div class="phone-detail">👤 Клиент: ${data.client || "-"} ${data.phoneNumber ? `(${data.phoneNumber})` : ""}</div>
+                  ${data.address ? `<div class="phone-detail">📍 Адрес: ${data.address}</div>` : ""}
+                  <div class="phone-detail">📅 Дата приёма: ${data.receivedAt ? new Date(data.receivedAt).toLocaleDateString() : "-"}</div>
+                  <div class="phone-detail">⚡ Неисправность: ${data.issue}</div>
+                  <div class="phone-detail">💰 Цена: ${data.price || "-"}</div>
+              `;
+
+              if (
+                ["Готов", "Выдан клиенту", "Выдан в долг!"].includes(data.status) &&
+                data.services &&
+                data.services.length > 0
+              ) {
+                resultHTML += `<div class="phone-detail">🛠 Услуга: ${data.services.join(", ")}</div>`;
+              }
+
+              if (data.issuedAt) {
+                resultHTML += `<div class="phone-detail">✅ Дата выдачи: ${new Date(data.issuedAt).toLocaleDateString()}</div>`;
+              }
+
+              resultHTML += `<span class="badge ${badgeClass}">${data.status}</span></div>`;
+            }
+          });
+        }
+
+        document.getElementById("result").innerHTML = resultHTML || "<p>Ничего не найдено</p>";
+      } catch (error) {
+        console.error("Ошибка поиска:", error);
+        document.getElementById("result").innerHTML = "<p>Ошибка при поиске: " + error.message + "</p>";
+      }
+    }
+
+    window.addPhone = addPhone;
+    window.searchPhone = searchPhone;
+  </script>
+</body>
+</html>
