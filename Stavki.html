@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Калькулятор ставок (фиксированный бюджет)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+        body {
+            background: linear-gradient(145deg, #0b2b3b, #1a4a5f);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .card {
+            background: #f6fafc;
+            max-width: 750px;
+            width: 100%;
+            padding: 30px 28px;
+            border-radius: 48px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 2px #f5c542 inset;
+        }
+        h1 {
+            margin: 0 0 4px 0;
+            font-size: 1.9rem;
+            color: #0b262f;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 small {
+            font-size: 0.85rem;
+            font-weight: 400;
+            background: #d9e9ef;
+            padding: 4px 16px;
+            border-radius: 30px;
+            color: #144452;
+        }
+        .sub {
+            color: #1b4a5a;
+            border-left: 4px solid #f5b342;
+            padding-left: 14px;
+            margin: -4px 0 20px 0;
+            font-weight: 500;
+            background: rgba(245, 195, 66, 0.12);
+            border-radius: 0 20px 20px 0;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+        .input-group {
+            background: #e8f0f4;
+            border-radius: 32px;
+            padding: 18px 18px 22px;
+            margin-bottom: 20px;
+        }
+        .input-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 16px;
+        }
+        .input-row label {
+            font-weight: 600;
+            color: #0b2a34;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .input-row label span {
+            background: #1f4e62;
+            color: white;
+            border-radius: 40px;
+            padding: 0 14px;
+            font-size: 0.8rem;
+            line-height: 1.9;
+        }
+        .input-row input {
+            flex: 2;
+            min-width: 150px;
+            padding: 14px 18px;
+            border: none;
+            border-radius: 60px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            color: #08222b;
+        }
+        .input-row input:focus {
+            outline: 2px solid #f5b342;
+            box-shadow: 0 4px 12px rgba(245, 179, 66, 0.3);
+        }
+        .odds-section {
+            margin: 16px 0 12px;
+        }
+        .odds-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            color: #1a4a5a;
+            padding: 0 8px 6px;
+            border-bottom: 2px solid #c8dce5;
+        }
+        .odds-header span:first-child {
+            flex: 2;
+        }
+        .odds-header span:last-child {
+            flex: 1;
+            text-align: center;
+        }
+        .odds-list {
+            max-height: 350px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .odds-list::-webkit-scrollbar {
+            width: 5px;
+        }
+        .odds-list::-webkit-scrollbar-thumb {
+            background: #b0ccd8;
+            border-radius: 10px;
+        }
+        .odds-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            border-radius: 16px;
+            padding: 8px 14px 8px 18px;
+            margin: 6px 0;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+        .odds-item .label {
+            flex: 2;
+            font-weight: 500;
+            color: #0b2a34;
+            font-size: 0.95rem;
+        }
+        .odds-item .label input {
+            width: 100%;
+            border: none;
+            border-bottom: 2px solid #d6e4ea;
+            background: transparent;
+            font-weight: 600;
+            padding: 4px 2px;
+            font-size: 0.95rem;
+            color: #05212b;
+        }
+        .odds-item .label input:focus {
+            border-color: #f5b342;
+            outline: none;
+        }
+        .odds-item .kof {
+            flex: 1;
+            min-width: 80px;
+        }
+        .odds-item .kof input {
+            width: 100%;
+            padding: 8px 6px;
+            border: 2px solid #d6e4ea;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-align: center;
+            background: #f9fdfe;
+            color: #05212b;
+        }
+        .odds-item .kof input:focus {
+            border-color: #f5b342;
+            outline: none;
+            background: white;
+        }
+        .odds-item .remove-btn {
+            background: #e05a5a;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            width: 28px;
+            height: 28px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.1s;
+            flex-shrink: 0;
+        }
+        .odds-item .remove-btn:hover:not(:disabled) {
+            background: #c04141;
+            transform: scale(1.05);
+        }
+        .odds-item .remove-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .btn-add {
+            background: #c8dce5;
+            border: none;
+            border-radius: 40px;
+            padding: 8px 20px;
+            font-weight: 600;
+            color: #0b2a34;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: 0.1s;
+        }
+        .btn-add:hover {
+            background: #b0ccd8;
+        }
+        .btn-example {
+            background: #d9e9ef;
+            border: none;
+            border-radius: 30px;
+            padding: 6px 18px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #0b2a34;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+        .btn-example:hover {
+            background: #c0d7df;
+        }
+        .btn-calc {
+            width: 100%;
+            padding: 16px;
+            background: #f5b342;
+            border: none;
+            border-radius: 60px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #0b262f;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #b87a2a;
+            transition: 0.08s linear;
+            margin: 16px 0 10px;
+        }
+        .btn-calc:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #b87a2a;
+        }
+        .result-block {
+            background: #e2eef4;
+            border-radius: 32px;
+            padding: 18px 18px 12px;
+            margin-top: 16px;
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            border-radius: 16px;
+            padding: 8px 16px;
+            margin: 4px 0;
+            font-weight: 500;
+        }
+        .result-item .label {
+            color: #1a4a5a;
+            flex: 1.5;
+        }
+        .result-item .bet {
+            flex: 1;
+            text-align: center;
+            font-weight: 700;
+            color: #0b2a34;
+        }
+        .result-item .win {
+            flex: 1;
+            text-align: center;
+            font-weight: 700;
+            color: #1b7a3d;
+        }
+        .result-item .profit {
+            flex: 1;
+            text-align: right;
+            font-weight: 700;
+        }
+        .result-item .profit.positive {
+            color: #1b7a3d;
+        }
+        .result-item .profit.negative {
+            color: #b13a3a;
+        }
+        .summary {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            background: #d2e2e9;
+            border-radius: 40px;
+            padding: 14px 20px;
+            margin-top: 14px;
+            font-weight: 600;
+            color: #08232e;
+            gap: 8px;
+        }
+        .summary span {
+            background: #1f4e62;
+            color: white;
+            padding: 2px 16px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+        }
+        .warning {
+            background: #fce3c6;
+            border-radius: 30px;
+            padding: 10px 16px;
+            margin: 12px 0 0;
+            font-weight: 500;
+            color: #914d0e;
+            border-left: 5px solid #f5a623;
+            display: none;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.8rem;
+            color: #2a5b6d;
+        }
+        .currency-badge {
+            background: #1f4e62;
+            color: white;
+            border-radius: 40px;
+            padding: 0 12px;
+            font-size: 0.7rem;
+            line-height: 1.8;
+            margin-left: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>
+            ⚽ Калькулятор
+            <small>N исходов</small>
+        </h1>
+        <div class="sub">
+            📊 Распределяет ваш <strong>фиксированный бюджет</strong> так, чтобы <strong>любой выигрыш</strong> перекрывал все проигранные ставки.
+        </div>
+
+        <div class="input-group">
+            <div class="input-row">
+                <label>
+                    💰 Мой бюджет
+                    <span class="currency-badge">лей</span>
+                </label>
+                <input type="number" id="totalBet" value="1000" step="10" min="1" />
+            </div>
+        </div>
+
+        <div class="odds-section">
+            <div class="odds-header">
+                <span>📌 Исход</span>
+                <span>📈 Коэффициент</span>
+                <span style="width:28px;"></span>
+            </div>
+            <div class="odds-list" id="oddsList">
+                <!-- Динамические строки -->
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                <button class="btn-add" id="addBtn">➕ Добавить исход</button>
+                <button class="btn-example" id="exampleBtn">📋 Пример (6 исходов)</button>
+            </div>
+        </div>
+
+        <button class="btn-calc" id="calcBtn">🧮 Рассчитать</button>
+
+        <div class="result-block" id="resultBlock">
+            <div id="resultList"></div>
+            <div class="summary">
+                <div>📦 Общая ставка: <strong id="totalDisplay">0 лей</strong></div>
+                <div>📈 Прибыль при любом исходе: <strong id="profitDisplay">0 лей</strong></div>
+            </div>
+            <div class="warning" id="warningBox">
+                ⚠️ Все коэффициенты меньше количества исходов — прибыли не будет ни при одном исходе.
+            </div>
+        </div>
+        <div class="footer">
+            Сумма на исход = Бюджет × (1/коэф) / Σ(1/коэф)
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const totalInput = document.getElementById('totalBet');
+            const oddsList = document.getElementById('oddsList');
+            const resultList = document.getElementById('resultList');
+            const totalDisplay = document.getElementById('totalDisplay');
+            const profitDisplay = document.getElementById('profitDisplay');
+            const warningBox = document.getElementById('warningBox');
+
+            let outcomes = [
+                { label: '1:0', odds: 9.60 },
+                { label: 'Ничья', odds: 11.90 },
+                { label: '2:0', odds: 6.40 },
+                { label: '2:1', odds: 13.50 },
+                { label: '0:1', odds: 40.00 },
+                { label: '0:2', odds: 201.00 }
+            ];
+
+            function renderOdds() {
+                oddsList.innerHTML = '';
+                outcomes.forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'odds-item';
+                    div.innerHTML = `
+                        <div class="label">
+                            <input type="text" value="${item.label}" data-index="${index}" class="label-input" placeholder="Название" />
+                        </div>
+                        <div class="kof">
+                            <input type="number" value="${item.odds}" step="0.1" min="1.01" data-index="${index}" class="odds-input" />
+                        </div>
+                        <button class="remove-btn" data-index="${index}" ${outcomes.length <= 2 ? 'disabled style="opacity:0.3;"' : ''}>✕</button>
+                    `;
+                    oddsList.appendChild(div);
+                });
+
+                document.querySelectorAll('.label-input').forEach(inp => {
+                    inp.addEventListener('change', function() {
+                        const idx = parseInt(this.dataset.index);
+                        outcomes[idx].label = this.value || 'Исход';
+                        calculate();
+                    });
+                });
+
+                document.querySelectorAll('.odds-input').forEach(inp => {
+                    inp.addEventListener('input', function() {
+                        const idx = parseInt(this.dataset.index);
+                        const val = parseFloat(this.value);
+                        if (!isNaN(val) && val >= 1.01) {
+                            outcomes[idx].odds = val;
+                        }
+                        calculate();
+                    });
+                    inp.addEventListener('change', function() {
+                        const idx = parseInt(this.dataset.index);
+                        let val = parseFloat(this.value);
+                        if (isNaN(val) || val < 1.01) {
+                            val = 1.01;
+                            this.value = '1.01';
+                        }
+                        outcomes[idx].odds = val;
+                        calculate();
+                    });
+                });
+
+                document.querySelectorAll('.remove-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const idx = parseInt(this.dataset.index);
+                        if (outcomes.length <= 2) return;
+                        outcomes.splice(idx, 1);
+                        renderOdds();
+                        calculate();
+                    });
+                });
+            }
+
+            function calculate() {
+                const labelInputs = document.querySelectorAll('.label-input');
+                const oddsInputs = document.querySelectorAll('.odds-input');
+                
+                labelInputs.forEach((inp, i) => {
+                    if (i < outcomes.length) {
+                        outcomes[i].label = inp.value || 'Исход';
+                    }
+                });
+                oddsInputs.forEach((inp, i) => {
+                    if (i < outcomes.length) {
+                        const val = parseFloat(inp.value);
+                        if (!isNaN(val) && val >= 1.01) {
+                            outcomes[i].odds = val;
+                        }
+                    }
+                });
+
+                let totalBet = parseFloat(totalInput.value);
+                if (isNaN(totalBet) || totalBet <= 0) totalBet = 1000;
+                totalInput.value = totalBet;
+
+                const weights = outcomes.map(o => 1 / o.odds);
+                const sumWeights = weights.reduce((a, b) => a + b, 0);
+
+                const bets = outcomes.map((o, i) => {
+                    const bet = totalBet * (weights[i] / sumWeights);
+                    return {
+                        label: o.label,
+                        odds: o.odds,
+                        bet: bet,
+                        win: bet * o.odds,
+                        profit: bet * o.odds - totalBet
+                    };
+                });
+
+                // Проверяем, будет ли прибыль
+                const hasProfit = bets.some(b => b.profit > 0);
+                const avgProfit = bets.reduce((sum, b) => sum + b.profit, 0) / bets.length;
+
+                resultList.innerHTML = '';
+                bets.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'result-item';
+                    const profitClass = item.profit > 0 ? 'positive' : (item.profit < 0 ? 'negative' : '');
+                    div.innerHTML = `
+                        <span class="label">${item.label}</span>
+                        <span class="bet">${item.bet.toFixed(2)} лей</span>
+                        <span class="win">${item.win.toFixed(2)} лей</span>
+                        <span class="profit ${profitClass}">${item.profit > 0 ? '+' : ''}${item.profit.toFixed(2)} лей</span>
+                    `;
+                    resultList.appendChild(div);
+                });
+
+                totalDisplay.textContent = totalBet.toFixed(2) + ' лей';
+                
+                const profitVal = bets.length > 0 ? bets[0].profit : 0;
+                profitDisplay.textContent = (profitVal > 0 ? '+' : '') + profitVal.toFixed(2) + ' лей';
+                profitDisplay.style.color = profitVal > 0 ? '#1b7a3d' : '#b13a3a';
+
+                // Предупреждение
+                const allLoss = bets.every(b => b.profit < 0);
+                if (allLoss) {
+                    warningBox.style.display = 'block';
+                    warningBox.textContent = '⚠️ Все коэффициенты меньше ' + outcomes.length + '.0 — при любом исходе будет убыток.';
+                } else {
+                    warningBox.style.display = 'none';
+                }
+            }
+
+            document.getElementById('addBtn').addEventListener('click', function() {
+                outcomes.push({ label: 'Исход ' + (outcomes.length + 1), odds: 2.0 });
+                renderOdds();
+                calculate();
+            });
+
+            document.getElementById('exampleBtn').addEventListener('click', function() {
+                outcomes = [
+                    { label: '1:0', odds: 9.60 },
+                    { label: 'Ничья', odds: 11.90 },
+                    { label: '2:0', odds: 6.40 },
+                    { label: '2:1', odds: 13.50 },
+                    { label: '0:1', odds: 40.00 },
+                    { label: '0:2', odds: 201.00 }
+                ];
+                renderOdds();
+                calculate();
+            });
+
+            document.getElementById('calcBtn').addEventListener('click', calculate);
+
+            totalInput.addEventListener('input', function() {
+                clearTimeout(window._calcTimer);
+                window._calcTimer = setTimeout(calculate, 200);
+            });
+            totalInput.addEventListener('change', calculate);
+
+            window.addEventListener('DOMContentLoaded', function() {
+                renderOdds();
+                calculate();
+            });
+        })();
+    </script>
+</body>
+</html>
