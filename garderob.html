@@ -153,7 +153,6 @@
       transform: none;
     }
 
-    /* Категории - теперь как большие карточки */
     .category-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -194,7 +193,6 @@
       border-radius: 20px;
     }
 
-    /* Модальное окно для товаров */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -431,6 +429,9 @@
         <div class="field">
           <label for="itemCategory">Категория</label>
           <select id="itemCategory">
+            <option value="Комплекты">Комплекты</option>
+            <option value="Обувь">Обувь</option>
+            <option value="Шорты">Шорты</option>
             <option value="Куртки">Куртки</option>
             <option value="Желетки">Желетки</option>
             <option value="Свитера">Свитера</option>
@@ -438,13 +439,11 @@
             <option value="Рубашки">Рубашки</option>
             <option value="Штаны">Штаны</option>
             <option value="Брюки">Брюки</option>
-			<option value="Шорты">Шорты</option>
-			<option value="Комплекты">Комплекты</option>
             <option value="Сп.Штаны">Сп.Штаны</option>
             <option value="Сп.Кофта">Сп.Кофта</option>
-			<option value="Сп.Костюм">Сп.Костюм</option>
+            <option value="Сп.Костюм">Сп.Костюм</option>
             <option value="Ветровки" selected>Ветровки</option>
-            <option value="Обувь">Обувь</option>
+            <option value="Перчатки">Перчатки</option>
             <option value="Аксессуары">Аксессуары</option>
             <option value="Другое">Другое</option>
           </select>
@@ -481,7 +480,7 @@
       <div class="error-message" id="errorMessage"></div>
       <div class="success-message" id="successMessage">✅ Вещь успешно добавлена!</div>
 
-      <!-- Категории (теперь на главной) -->
+      <!-- Категории -->
       <h2 style="font-size: 1.2rem; color: #475569; margin: 1.5rem 0 0.5rem;">📂 Категории</h2>
       <div class="category-grid" id="categoryContainer"></div>
 
@@ -492,7 +491,7 @@
       </div>
     </div>
 
-    <!-- Модальное окно с товарами категории -->
+    <!-- Модальное окно -->
     <div class="modal-overlay" id="categoryModal">
       <div class="modal">
         <div class="modal-header">
@@ -520,6 +519,30 @@
     let allItems = [];
     let isProcessing = false;
 
+    // ============================================
+    // 🎨 ЗДЕСЬ МЕНЯЙТЕ ЗНАЧКИ ДЛЯ КАТЕГОРИЙ
+    // ============================================
+    const categoryIcons = {
+      'Комплекты': '👔',
+      'Обувь': '👟',
+      'Шорты': '🩳',
+      'Куртки': '🧥',
+      'Желетки': '🦺',
+      'Свитера': '🧶',
+      'Майки': '👕',
+      'Рубашки': '👔',
+      'Штаны': '👖',
+      'Брюки': '👖',
+      'Сп.Штаны': '🏃',
+      'Сп.Кофта': '🏃',
+      'Сп.Костюм': '🏃',
+      'Ветровки': '🧥',
+      'Перчатки': '🧤',
+      'Аксессуары': '🧣',
+      'Другое': '📦'
+    };
+    // ============================================
+
     const categoryContainer = document.getElementById('categoryContainer');
     const modalOverlay = document.getElementById('categoryModal');
     const modalGrid = document.getElementById('modalGrid');
@@ -531,23 +554,6 @@
     const statusBadge = document.getElementById('statusBadge');
     const itemCount = document.getElementById('itemCount');
     const addBtn = document.getElementById('addBtn');
-
-    // Эмодзи для категорий
-    const categoryIcons = {
-      'Куртки': '🧥',
-      'Желетки': '🦺',
-      'Свитера': '🧶',
-      'Майки': '👕',
-      'Рубашки': '👔',
-      'Штаны': '👖',
-      'Брюки': '👖',
-      'Сп.Штаны': '🏃',
-      'Сп.Кофта': '🏃',
-      'Ветровки': '🧥',
-      'Обувь': '👟',
-      'Аксессуары': '🧣',
-      'Другое': '📦'
-    };
 
     function showError(msg) {
       errorMessage.textContent = msg;
@@ -662,7 +668,6 @@
       });
     }
 
-    // Только категории на главной
     function renderCategories(itemsArray) {
       const cats = new Map();
       itemsArray.forEach(item => {
@@ -699,7 +704,6 @@
       });
       categoryContainer.innerHTML = html;
 
-      // Клик по категории - открываем модалку
       document.querySelectorAll('.category-card').forEach(card => {
         card.addEventListener('click', () => {
           const cat = card.dataset.category;
@@ -709,9 +713,9 @@
       });
     }
 
-    // Модальное окно с товарами категории
     function openModal(title, itemsArray) {
-      modalTitle.innerHTML = `${categoryIcons[title] || '📁'} ${escapeHtml(title)}`;
+      const icon = categoryIcons[title] || '📁';
+      modalTitle.innerHTML = `${icon} ${escapeHtml(title)}`;
       
       if (!itemsArray.length) {
         modalGrid.innerHTML = `<div class="empty-state"><span class="icon">📭</span>В этой категории пока нет вещей</div>`;
@@ -739,7 +743,6 @@
         });
         modalGrid.innerHTML = html;
 
-        // Обработчики внутри модалки
         modalGrid.querySelectorAll('.delete-btn').forEach(btn => {
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -747,7 +750,6 @@
             if (confirm('Удалить вещь?')) {
               deleteItemFromFirebase(id).then(() => {
                 showSuccess('🗑️ Вещь удалена');
-                // Закрываем модалку, если категория стала пустой
                 const remaining = allItems.filter(it => it.category === title);
                 if (remaining.length === 0) {
                   modalOverlay.classList.remove('open');
@@ -777,7 +779,6 @@
               color: newColor.trim() || '—'
             }).then(() => {
               showSuccess('✏️ Вещь обновлена');
-              // Обновляем модалку с новой категорией
               const updatedItems = allItems.filter(it => it.category === title);
               openModal(title, updatedItems);
             }).catch(err => showError('Ошибка обновления: ' + err.message));
