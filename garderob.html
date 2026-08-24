@@ -8,8 +8,6 @@
   </script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js">
   </script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js">
-  </script>
   <style>
     * {
       box-sizing: border-box;
@@ -87,10 +85,6 @@
     .category-pill:hover {
       background: #dce2ec;
       transform: scale(0.96);
-    }
-    .category-pill.active {
-      background: #1e293b;
-      color: white;
     }
     .add-section {
       background: #f8fafc;
@@ -179,7 +173,6 @@
       cursor: not-allowed;
       transform: none;
     }
-
     .items-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -245,7 +238,6 @@
       flex-wrap: wrap;
       justify-content: center;
     }
-
     .modal-overlay {
       display: none;
       position: fixed;
@@ -320,6 +312,17 @@
     .error-message.active {
       display: block;
     }
+    .warning {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      display: none;
+    }
+    .warning.active {
+      display: block;
+    }
     @media (max-width: 640px) {
       .wardrobe-card {
         padding: 1.25rem;
@@ -341,12 +344,16 @@
 <body>
   <div class="app">
     <div class="wardrobe-card">
-      <h1>🧥 Гардероб <small>Firebase</small></h1>
+      <h1>🧥 Гардероб <small>Firebase (Base64)</small></h1>
       <div class="top-row">
         <div class="stats">👕 всего: <span id="itemCount">0</span></div>
         <div>
           <button class="btn btn-outline btn-sm" id="clearAllBtn">🗑️ очистить</button>
         </div>
+      </div>
+
+      <div class="warning" id="warningMessage">
+        ⚠️ Изображения хранятся в Base64 (в базе данных). Для больших коллекций рекомендуется настроить Firebase Storage.
       </div>
 
       <div class="category-grid" id="categoryContainer"></div>
@@ -366,7 +373,7 @@
             <option value="Рубашки">Рубашки</option>
             <option value="Штаны">Штаны</option>
             <option value="Брюки">Брюки</option>
-			<option value="Шорты">Шорты</option>
+			  <option value="Шорты1">Шорты1</option>
             <option value="Сп.Штаны">Сп.Штаны</option>
             <option value="Сп.Кофта">Сп.Кофта</option>
             <option value="Ветровки" selected>Ветровки</option>
@@ -403,7 +410,7 @@
           <button class="btn" id="addBtn">➕ Добавить</button>
         </div>
       </div>
-      <div class="loading-indicator" id="uploadIndicator">⏳ Загрузка фото...</div>
+      <div class="loading-indicator" id="uploadIndicator">⏳ Обработка изображения...</div>
       <div class="error-message" id="errorMessage"></div>
 
       <div id="itemsGrid" class="items-grid"></div>
@@ -438,10 +445,9 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const storage = firebase.storage();
 
     let allItems = [];
-    let isUploading = false;
+    let isProcessing = false;
 
     const itemsGrid = document.getElementById('itemsGrid');
     const itemCount = document.getElementById('itemCount');
@@ -452,7 +458,11 @@
     const modalCloseBtn = document.getElementById('modalCloseBtn');
     const uploadIndicator = document.getElementById('uploadIndicator');
     const errorMessage = document.getElementById('errorMessage');
+    const warningMessage = document.getElementById('warningMessage');
     const addBtn = document.getElementById('addBtn');
+
+    // Показываем предупреждение о Base64
+    warningMessage.classList.add('active');
 
     function showError(msg) {
       errorMessage.textContent = msg;
@@ -490,54 +500,55 @@
       return db.ref('wardrobe/' + id).update(updated);
     }
 
-    function uploadImage(file) {
+    // Конвертация изображения в Base64 (без CORS)
+    function imageToBase64(file) {
       return new Promise((resolve, reject) => {
         if (!file || !file.type.startsWith('image/')) {
           reject(new Error('Пожалуйста, выберите изображение'));
           return;
         }
 
-        if (file.size > 5 * 1024 * 1024) {
-          reject(new Error('Размер файла не должен превышать 5MB'));
+        if (file.size > 2 * 1024 * 1024) {
+          reject(new Error('Размер файла не должен превышать 2MB (для Base64)'));
           return;
         }
 
-        const fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-        const storageRef = storage.ref('wardrobe_images/' + fileName);
-        
-        const metadata = {
-          contentType: file.type,
-          cacheControl: 'public, max-age=31536000'
-        };
-
-        const uploadTask = storageRef.put(file, metadata);
-        
-        uploadTask.on('state_changed',
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            console.log('Upload progress:', Math.round(progress) + '%');
-          },
-          (error) => {
-            console.error('Upload error:', error);
-            let errorMsg = 'Ошибка загрузки: ';
-            if (error.code === 'storage/unauthorized') {
-              errorMsg += 'Нет прав для загрузки. Проверьте правила безопасности.';
-            } else if (error.code === 'storage/canceled') {
-              errorMsg += 'Загрузка отменена.';
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          // Сжимаем изображение
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_SIZE = 600;
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > height) {
+              if (width > MAX_SIZE) {
+                height = (height / width) * MAX_SIZE;
+                width = MAX_SIZE;
+              }
             } else {
-              errorMsg += error.message || 'Неизвестная ошибка';
+              if (height > MAX_SIZE) {
+                width = (width / height) * MAX_SIZE;
+                height = MAX_SIZE;
+              }
             }
-            reject(new Error(errorMsg));
-          },
-          () => {
-            storageRef.getDownloadURL().then((url) => {
-              console.log('Upload complete, URL:', url);
-              resolve(url);
-            }).catch((err) => {
-              reject(new Error('Не удалось получить URL: ' + err.message));
-            });
-          }
-        );
+            
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Сохраняем как JPEG с качеством 60%
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+            resolve(dataUrl);
+          };
+          img.onerror = () => reject(new Error('Ошибка загрузки изображения'));
+          img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('Ошибка чтения файла'));
+        reader.readAsDataURL(file);
       });
     }
 
@@ -554,8 +565,8 @@
       }
       let html = '';
       itemsArray.forEach(item => {
-        const imageHtml = item.imageUrl ?
-          `<img src="${item.imageUrl}" alt="${item.name}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'placeholder\\'>📷</div>'" />` :
+        const imageHtml = item.imageData ?
+          `<img src="${item.imageData}" alt="${item.name}" loading="lazy" />` :
           `<div class="placeholder">📷</div>`;
         
         html += `
@@ -639,8 +650,8 @@
       } else {
         let html = '';
         itemsArray.forEach(item => {
-          const img = item.imageUrl ?
-            `<img src="${item.imageUrl}" alt="${item.name}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'placeholder\\'>📷</div>'" />` :
+          const img = item.imageData ?
+            `<img src="${item.imageData}" alt="${item.name}" loading="lazy" />` :
             `<div class="placeholder">📷</div>`;
           html += `
             <div class="item-card">
@@ -666,7 +677,7 @@
     });
 
     async function handleAdd() {
-      if (isUploading) return;
+      if (isProcessing) return;
       
       const name = document.getElementById('itemName').value.trim();
       const category = document.getElementById('itemCategory').value;
@@ -679,23 +690,23 @@
         return; 
       }
 
-      let imageUrl = '';
+      let imageData = '';
       if (file) {
         try {
-          isUploading = true;
+          isProcessing = true;
           addBtn.disabled = true;
           uploadIndicator.classList.add('active');
           
-          imageUrl = await uploadImage(file);
-          console.log('Image uploaded successfully:', imageUrl);
+          imageData = await imageToBase64(file);
+          console.log('Image converted to Base64');
         } catch (err) {
           showError(err.message);
-          isUploading = false;
+          isProcessing = false;
           addBtn.disabled = false;
           uploadIndicator.classList.remove('active');
           return;
         } finally {
-          isUploading = false;
+          isProcessing = false;
           addBtn.disabled = false;
           uploadIndicator.classList.remove('active');
         }
@@ -705,7 +716,7 @@
         name,
         category,
         color,
-        imageUrl: imageUrl || ''
+        imageData: imageData || ''
       };
 
       try {
@@ -726,7 +737,9 @@
 
     function exportJSON() {
       if (!allItems.length) { showError('Нет данных для экспорта'); return; }
-      const data = allItems.map(({ id, name, category, color, imageUrl }) => ({ id, name, category, color, imageUrl }));
+      const data = allItems.map(({ id, name, category, color, imageData }) => ({ 
+        id, name, category, color, imageData 
+      }));
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -745,9 +758,9 @@
           const ref = db.ref('wardrobe');
           await ref.remove();
           for (const item of data) {
-            const { name, category, color, imageUrl } = item;
+            const { name, category, color, imageData } = item;
             if (!name) continue;
-            await ref.push({ name, category: category || 'Другое', color: color || '—', imageUrl: imageUrl || '' });
+            await ref.push({ name, category: category || 'Другое', color: color || '—', imageData: imageData || '' });
           }
           alert(`Импортировано ${data.length} вещей`);
         } catch (err) { showError('Ошибка импорта: ' + err.message); }
