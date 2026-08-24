@@ -23,7 +23,7 @@
       justify-content: center;
     }
     .app {
-      max-width: 1300px;
+      max-width: 1000px;
       width: 100%;
     }
     .wardrobe-card {
@@ -40,6 +40,7 @@
       font-size: 1.9rem;
       color: #1e293b;
       margin-bottom: 1.5rem;
+      flex-wrap: wrap;
     }
     h1 small {
       font-size: 0.95rem;
@@ -63,28 +64,6 @@
     }
     .stats span {
       font-weight: 600;
-    }
-    .category-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.6rem 0.8rem;
-      margin: 1.5rem 0 2rem;
-    }
-    .category-pill {
-      background: #eef2f6;
-      padding: 0.5rem 1.2rem;
-      border-radius: 40px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      color: #1e293b;
-      cursor: pointer;
-      transition: 0.15s;
-      border: 1px solid transparent;
-      user-select: none;
-    }
-    .category-pill:hover {
-      background: #dce2ec;
-      transform: scale(0.96);
     }
     .add-section {
       background: #f8fafc;
@@ -173,11 +152,105 @@
       cursor: not-allowed;
       transform: none;
     }
-    .items-grid {
+
+    /* Категории - теперь как большие карточки */
+    .category-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: 1.2rem;
       margin: 1.5rem 0 1rem;
+    }
+    .category-card {
+      background: #fcfcfd;
+      border-radius: 1.2rem;
+      border: 1px solid #e9edf2;
+      padding: 1.5rem 1rem;
+      transition: 0.15s;
+      cursor: pointer;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .category-card:hover {
+      background: #f1f5f9;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
+    }
+    .category-card .icon {
+      font-size: 2.5rem;
+    }
+    .category-card .name {
+      font-weight: 600;
+      font-size: 1rem;
+      color: #1e293b;
+    }
+    .category-card .count {
+      font-size: 0.8rem;
+      color: #64748b;
+      background: #e9edf2;
+      padding: 0.15rem 0.8rem;
+      border-radius: 20px;
+    }
+
+    /* Модальное окно для товаров */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 1rem;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal {
+      background: white;
+      max-width: 900px;
+      width: 100%;
+      max-height: 85vh;
+      border-radius: 2rem;
+      padding: 2rem;
+      overflow-y: auto;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+      position: relative;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid #e9edf2;
+    }
+    .modal-header h2 {
+      font-size: 1.5rem;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .modal-header .close-btn {
+      background: none;
+      border: none;
+      font-size: 2rem;
+      cursor: pointer;
+      color: #64748b;
+      transition: 0.15s;
+    }
+    .modal-header .close-btn:hover {
+      color: #1e293b;
+      transform: rotate(90deg);
+    }
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 1.2rem;
     }
     .item-card {
       background: #fcfcfd;
@@ -217,9 +290,10 @@
     .item-card .name {
       font-weight: 600;
       font-size: 0.95rem;
+      word-break: break-word;
     }
     .item-card .category {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: #475569;
       background: #e9edf2;
       padding: 0.15rem 0.8rem;
@@ -238,52 +312,7 @@
       flex-wrap: wrap;
       justify-content: center;
     }
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(3px);
-      align-items: center;
-      justify-content: center;
-      z-index: 999;
-      padding: 1rem;
-    }
-    .modal-overlay.open {
-      display: flex;
-    }
-    .modal {
-      background: white;
-      max-width: 700px;
-      width: 100%;
-      max-height: 80vh;
-      border-radius: 2rem;
-      padding: 2rem;
-      overflow-y: auto;
-      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
-      position: relative;
-    }
-    .modal h2 {
-      margin-bottom: 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .modal .close-btn {
-      background: none;
-      border: none;
-      font-size: 1.8rem;
-      cursor: pointer;
-      color: #475569;
-    }
-    .modal-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 1rem;
-    }
-    .modal-grid .item-card {
-      background: #f8fafc;
-    }
+
     .footer-actions {
       display: flex;
       justify-content: flex-end;
@@ -312,17 +341,45 @@
     .error-message.active {
       display: block;
     }
-    .warning {
-      background: #fef3c7;
-      border: 1px solid #f59e0b;
-      padding: 0.75rem 1rem;
+    .success-message {
+      color: #065f46;
+      background: #d1fae5;
+      padding: 0.5rem 1rem;
       border-radius: 8px;
-      margin: 1rem 0;
+      margin: 0.5rem 0;
       display: none;
     }
-    .warning.active {
+    .success-message.active {
       display: block;
     }
+    .status-badge {
+      display: inline-block;
+      padding: 0.2rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .status-badge.online {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .status-badge.offline {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .empty-state {
+      grid-column: 1/-1;
+      text-align: center;
+      color: #94a3b8;
+      padding: 3rem 1rem;
+      font-size: 1.1rem;
+    }
+    .empty-state .icon {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
     @media (max-width: 640px) {
       .wardrobe-card {
         padding: 1.25rem;
@@ -338,13 +395,26 @@
         width: 100%;
         justify-content: center;
       }
+      .modal {
+        padding: 1.25rem;
+      }
+      .modal-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      }
+      .category-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      }
     }
   </style>
 </head>
 <body>
   <div class="app">
     <div class="wardrobe-card">
-      <h1>🧥 Гардероб <small>Firebase (Base64)</small></h1>
+      <h1>
+        🧥 Гардероб 
+        <small>Firebase</small>
+        <span class="status-badge online" id="statusBadge">● Online</span>
+      </h1>
       <div class="top-row">
         <div class="stats">👕 всего: <span id="itemCount">0</span></div>
         <div>
@@ -352,12 +422,7 @@
         </div>
       </div>
 
-      <div class="warning" id="warningMessage">
-        ⚠️ Изображения хранятся в Base64 (в базе данных). Для больших коллекций рекомендуется настроить Firebase Storage.
-      </div>
-
-      <div class="category-grid" id="categoryContainer"></div>
-
+      <!-- Форма добавления -->
       <div class="add-section">
         <div class="field">
           <label for="itemName">Название</label>
@@ -373,9 +438,11 @@
             <option value="Рубашки">Рубашки</option>
             <option value="Штаны">Штаны</option>
             <option value="Брюки">Брюки</option>
-			  <option value="Шорты1">Шорты1</option>
+			<option value="Шорты">Шорты</option>
+			<option value="Комплекты">Комплекты</option>
             <option value="Сп.Штаны">Сп.Штаны</option>
             <option value="Сп.Кофта">Сп.Кофта</option>
+			<option value="Сп.Костюм">Сп.Костюм</option>
             <option value="Ветровки" selected>Ветровки</option>
             <option value="Обувь">Обувь</option>
             <option value="Аксессуары">Аксессуары</option>
@@ -412,8 +479,11 @@
       </div>
       <div class="loading-indicator" id="uploadIndicator">⏳ Обработка изображения...</div>
       <div class="error-message" id="errorMessage"></div>
+      <div class="success-message" id="successMessage">✅ Вещь успешно добавлена!</div>
 
-      <div id="itemsGrid" class="items-grid"></div>
+      <!-- Категории (теперь на главной) -->
+      <h2 style="font-size: 1.2rem; color: #475569; margin: 1.5rem 0 0.5rem;">📂 Категории</h2>
+      <div class="category-grid" id="categoryContainer"></div>
 
       <div class="footer-actions">
         <button class="btn btn-outline btn-sm" id="exportJsonBtn">⬇️ Экспорт JSON</button>
@@ -422,12 +492,13 @@
       </div>
     </div>
 
+    <!-- Модальное окно с товарами категории -->
     <div class="modal-overlay" id="categoryModal">
       <div class="modal">
-        <h2>
-          <span id="modalTitle">Категория</span>
+        <div class="modal-header">
+          <h2 id="modalTitle">📁 Категория</h2>
           <button class="close-btn" id="modalCloseBtn">&times;</button>
-        </h2>
+        </div>
         <div class="modal-grid" id="modalGrid"></div>
       </div>
     </div>
@@ -449,8 +520,6 @@
     let allItems = [];
     let isProcessing = false;
 
-    const itemsGrid = document.getElementById('itemsGrid');
-    const itemCount = document.getElementById('itemCount');
     const categoryContainer = document.getElementById('categoryContainer');
     const modalOverlay = document.getElementById('categoryModal');
     const modalGrid = document.getElementById('modalGrid');
@@ -458,20 +527,60 @@
     const modalCloseBtn = document.getElementById('modalCloseBtn');
     const uploadIndicator = document.getElementById('uploadIndicator');
     const errorMessage = document.getElementById('errorMessage');
-    const warningMessage = document.getElementById('warningMessage');
+    const successMessage = document.getElementById('successMessage');
+    const statusBadge = document.getElementById('statusBadge');
+    const itemCount = document.getElementById('itemCount');
     const addBtn = document.getElementById('addBtn');
 
-    // Показываем предупреждение о Base64
-    warningMessage.classList.add('active');
+    // Эмодзи для категорий
+    const categoryIcons = {
+      'Куртки': '🧥',
+      'Желетки': '🦺',
+      'Свитера': '🧶',
+      'Майки': '👕',
+      'Рубашки': '👔',
+      'Штаны': '👖',
+      'Брюки': '👖',
+      'Сп.Штаны': '🏃',
+      'Сп.Кофта': '🏃',
+      'Ветровки': '🧥',
+      'Обувь': '👟',
+      'Аксессуары': '🧣',
+      'Другое': '📦'
+    };
 
     function showError(msg) {
       errorMessage.textContent = msg;
       errorMessage.classList.add('active');
+      successMessage.classList.remove('active');
       setTimeout(() => errorMessage.classList.remove('active'), 5000);
+    }
+
+    function showSuccess(msg) {
+      successMessage.textContent = msg || '✅ Вещь успешно добавлена!';
+      successMessage.classList.add('active');
+      errorMessage.classList.remove('active');
+      setTimeout(() => successMessage.classList.remove('active'), 3000);
+    }
+
+    function updateStatus(online) {
+      if (online) {
+        statusBadge.textContent = '● Online';
+        statusBadge.className = 'status-badge online';
+      } else {
+        statusBadge.textContent = '● Offline';
+        statusBadge.className = 'status-badge offline';
+      }
     }
 
     function loadFromFirebase() {
       const ref = db.ref('wardrobe');
+      
+      const connectedRef = db.ref('.info/connected');
+      connectedRef.on('value', (snap) => {
+        updateStatus(snap.val() === true);
+      });
+
       ref.on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
@@ -482,7 +591,11 @@
         } else {
           allItems = [];
         }
-        renderAll();
+        renderCategories(allItems);
+        itemCount.textContent = allItems.length;
+      }, (error) => {
+        showError('Ошибка загрузки данных: ' + error.message);
+        updateStatus(false);
       });
     }
 
@@ -500,7 +613,6 @@
       return db.ref('wardrobe/' + id).update(updated);
     }
 
-    // Конвертация изображения в Base64 (без CORS)
     function imageToBase64(file) {
       return new Promise((resolve, reject) => {
         if (!file || !file.type.startsWith('image/')) {
@@ -509,13 +621,12 @@
         }
 
         if (file.size > 2 * 1024 * 1024) {
-          reject(new Error('Размер файла не должен превышать 2MB (для Base64)'));
+          reject(new Error('Размер файла не должен превышать 2MB'));
           return;
         }
 
         const reader = new FileReader();
         reader.onload = (e) => {
-          // Сжимаем изображение
           const img = new Image();
           img.onload = () => {
             const canvas = document.createElement('canvas');
@@ -540,7 +651,6 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
             
-            // Сохраняем как JPEG с качеством 60%
             const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
             resolve(dataUrl);
           };
@@ -552,119 +662,127 @@
       });
     }
 
-    function renderAll() {
-      renderItems(allItems);
-      renderCategories(allItems);
-      itemCount.textContent = allItems.length;
-    }
+    // Только категории на главной
+    function renderCategories(itemsArray) {
+      const cats = new Map();
+      itemsArray.forEach(item => {
+        if (cats.has(item.category)) {
+          cats.get(item.category).push(item);
+        } else {
+          cats.set(item.category, [item]);
+        }
+      });
 
-    function renderItems(itemsArray) {
-      if (!itemsArray.length) {
-        itemsGrid.innerHTML = `<p style="grid-column:1/-1; text-align:center; color:#64748b; padding:2rem;">Пока ничего нет. Добавьте вещь!</p>`;
+      if (cats.size === 0) {
+        categoryContainer.innerHTML = `
+          <div class="empty-state">
+            <span class="icon">📭</span>
+            Нет вещей в гардеробе<br/>
+            <small style="color: #94a3b8;">Добавьте первую вещь!</small>
+          </div>
+        `;
         return;
       }
+
       let html = '';
-      itemsArray.forEach(item => {
-        const imageHtml = item.imageData ?
-          `<img src="${item.imageData}" alt="${item.name}" loading="lazy" />` :
-          `<div class="placeholder">📷</div>`;
-        
+      const sorted = Array.from(cats.keys()).sort();
+      sorted.forEach(cat => {
+        const items = cats.get(cat);
+        const icon = categoryIcons[cat] || '📁';
         html += `
-          <div class="item-card" data-id="${item.id}">
-            <div class="image-wrapper">
-              ${imageHtml}
-            </div>
-            <div class="name">${escapeHtml(item.name)}</div>
-            <span class="category">${escapeHtml(item.category)}</span>
-            <div class="color">🎨 ${escapeHtml(item.color)}</div>
-            <div class="actions">
-              <button class="btn btn-outline btn-sm edit-btn" data-id="${item.id}">✏️</button>
-              <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">✕</button>
-            </div>
+          <div class="category-card" data-category="${cat}">
+            <div class="icon">${icon}</div>
+            <div class="name">${escapeHtml(cat)}</div>
+            <div class="count">${items.length} вещей</div>
           </div>
         `;
       });
-      itemsGrid.innerHTML = html;
-
-      document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const id = btn.dataset.id;
-          if (confirm('Удалить вещь?')) {
-            deleteItemFromFirebase(id).catch(err => showError('Ошибка удаления: ' + err.message));
-          }
-        });
-      });
-
-      document.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const id = btn.dataset.id;
-          const item = allItems.find(it => it.id === id);
-          if (!item) return;
-          const newName = prompt('Название:', item.name);
-          if (newName === null) return;
-          const trimmed = newName.trim();
-          if (!trimmed) { alert('Название не может быть пустым'); return; }
-          const newCategory = prompt('Категория:', item.category);
-          if (newCategory === null) return;
-          const newColor = prompt('Цвет:', item.color);
-          if (newColor === null) return;
-          updateItemInFirebase(id, {
-            name: trimmed,
-            category: newCategory.trim() || 'Другое',
-            color: newColor.trim() || '—'
-          }).catch(err => showError('Ошибка обновления: ' + err.message));
-        });
-      });
-    }
-
-    function renderCategories(itemsArray) {
-      const cats = new Set();
-      itemsArray.forEach(it => cats.add(it.category));
-      const sorted = Array.from(cats).sort();
-      let html = `<div class="category-pill" data-category="all">🏷️ Все (${itemsArray.length})</div>`;
-      sorted.forEach(cat => {
-        const count = itemsArray.filter(it => it.category === cat).length;
-        html += `<div class="category-pill" data-category="${cat}">${cat} (${count})</div>`;
-      });
       categoryContainer.innerHTML = html;
 
-      document.querySelectorAll('.category-pill').forEach(pill => {
-        pill.addEventListener('click', () => {
-          const cat = pill.dataset.category;
-          if (cat === 'all') {
-            openModal('Все вещи', allItems);
-          } else {
-            const filtered = allItems.filter(it => it.category === cat);
-            openModal(cat, filtered);
-          }
+      // Клик по категории - открываем модалку
+      document.querySelectorAll('.category-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const cat = card.dataset.category;
+          const items = cats.get(cat) || [];
+          openModal(cat, items);
         });
       });
     }
 
+    // Модальное окно с товарами категории
     function openModal(title, itemsArray) {
-      modalTitle.textContent = title;
+      modalTitle.innerHTML = `${categoryIcons[title] || '📁'} ${escapeHtml(title)}`;
+      
       if (!itemsArray.length) {
-        modalGrid.innerHTML = `<p style="grid-column:1/-1; text-align:center; color:#64748b;">В этой категории пока нет вещей</p>`;
+        modalGrid.innerHTML = `<div class="empty-state"><span class="icon">📭</span>В этой категории пока нет вещей</div>`;
       } else {
         let html = '';
         itemsArray.forEach(item => {
-          const img = item.imageData ?
+          const imageHtml = item.imageData ?
             `<img src="${item.imageData}" alt="${item.name}" loading="lazy" />` :
             `<div class="placeholder">📷</div>`;
+          
           html += `
-            <div class="item-card">
+            <div class="item-card" data-id="${item.id}">
               <div class="image-wrapper">
-                ${img}
+                ${imageHtml}
               </div>
               <div class="name">${escapeHtml(item.name)}</div>
               <span class="category">${escapeHtml(item.category)}</span>
               <div class="color">🎨 ${escapeHtml(item.color)}</div>
+              <div class="actions">
+                <button class="btn btn-outline btn-sm edit-btn" data-id="${item.id}">✏️</button>
+                <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">✕</button>
+              </div>
             </div>
           `;
         });
         modalGrid.innerHTML = html;
+
+        // Обработчики внутри модалки
+        modalGrid.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            if (confirm('Удалить вещь?')) {
+              deleteItemFromFirebase(id).then(() => {
+                showSuccess('🗑️ Вещь удалена');
+                // Закрываем модалку, если категория стала пустой
+                const remaining = allItems.filter(it => it.category === title);
+                if (remaining.length === 0) {
+                  modalOverlay.classList.remove('open');
+                }
+              }).catch(err => showError('Ошибка удаления: ' + err.message));
+            }
+          });
+        });
+
+        modalGrid.querySelectorAll('.edit-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            const item = allItems.find(it => it.id === id);
+            if (!item) return;
+            const newName = prompt('Название:', item.name);
+            if (newName === null) return;
+            const trimmed = newName.trim();
+            if (!trimmed) { showError('Название не может быть пустым'); return; }
+            const newCategory = prompt('Категория:', item.category);
+            if (newCategory === null) return;
+            const newColor = prompt('Цвет:', item.color);
+            if (newColor === null) return;
+            updateItemInFirebase(id, {
+              name: trimmed,
+              category: newCategory.trim() || 'Другое',
+              color: newColor.trim() || '—'
+            }).then(() => {
+              showSuccess('✏️ Вещь обновлена');
+              // Обновляем модалку с новой категорией
+              const updatedItems = allItems.filter(it => it.category === title);
+              openModal(title, updatedItems);
+            }).catch(err => showError('Ошибка обновления: ' + err.message));
+          });
+        });
       }
       modalOverlay.classList.add('open');
     }
@@ -698,7 +816,6 @@
           uploadIndicator.classList.add('active');
           
           imageData = await imageToBase64(file);
-          console.log('Image converted to Base64');
         } catch (err) {
           showError(err.message);
           isProcessing = false;
@@ -723,6 +840,7 @@
         await saveItemToFirebase(newItem);
         document.getElementById('itemName').value = '';
         document.getElementById('itemImage').value = '';
+        showSuccess('✅ Вещь успешно добавлена!');
       } catch (err) {
         showError('Ошибка сохранения: ' + err.message);
       }
@@ -732,7 +850,10 @@
       if (!allItems.length) return;
       if (!confirm('Удалить все вещи из гардероба?')) return;
       const ref = db.ref('wardrobe');
-      ref.remove().then(() => {}).catch(err => showError('Ошибка: ' + err.message));
+      ref.remove().then(() => {
+        showSuccess('🗑️ Все вещи удалены');
+        modalOverlay.classList.remove('open');
+      }).catch(err => showError('Ошибка: ' + err.message));
     }
 
     function exportJSON() {
@@ -762,7 +883,7 @@
             if (!name) continue;
             await ref.push({ name, category: category || 'Другое', color: color || '—', imageData: imageData || '' });
           }
-          alert(`Импортировано ${data.length} вещей`);
+          showSuccess(`✅ Импортировано ${data.length} вещей`);
         } catch (err) { showError('Ошибка импорта: ' + err.message); }
       };
       reader.readAsText(file);
