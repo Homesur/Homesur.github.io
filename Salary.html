@@ -177,8 +177,9 @@
     <i class="fas fa-money-check-alt text-green-600"></i> Учёт зарплаты
   </h2>
   
-  <div class="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-100">
-    <h3 class="font-medium mb-3 text-gray-700 text-sm italic">Добавить новую запись</h3>
+  <!-- Блок добавления выручки -->
+  <div class="bg-gray-50 p-4 rounded-lg mb-3 border border-gray-100">
+    <h3 class="font-medium mb-3 text-gray-700 text-sm italic">Добавить выручку</h3>
     <div class="flex flex-col sm:flex-row gap-2 mb-3">
       <div class="relative flex-grow">
         <i class="fas fa-calendar absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
@@ -196,7 +197,30 @@
       <i class="fas fa-bolt"></i> Быстрая запись на сегодня
     </button>
   </div>
-  
+
+  <!-- Блок добавления дополнительного заработка -->
+  <div class="bg-amber-50 p-4 rounded-lg mb-4 border border-amber-200">
+    <h3 class="font-medium mb-3 text-amber-800 text-sm italic flex items-center gap-2">
+      <i class="fas fa-star text-amber-500"></i> Дополнительный заработок
+    </h3>
+    <div class="flex flex-col sm:flex-row gap-2 mb-2">
+      <div class="relative flex-grow">
+        <i class="fas fa-calendar absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+        <input id="bonusDate" type="date" class="pl-10 w-full border border-amber-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm bg-white" />
+      </div>
+      <div class="relative flex-grow">
+        <i class="fas fa-plus-circle absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+        <input id="bonusInput" type="number" placeholder="Сумма (MDL)" class="pl-10 w-full border border-amber-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm bg-white" />
+      </div>
+      <button onclick="addBonus()" class="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 py-2 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm flex items-center justify-center gap-2 text-sm font-semibold">
+        <i class="fas fa-star"></i> Добавить
+      </button>
+    </div>
+    <p class="text-[10px] text-amber-700 flex items-center gap-1 mt-1">
+      <i class="fas fa-info-circle"></i> Доп. заработок прибавляется к итоговой зарплате, но не входит в выручку.
+    </p>
+  </div>
+
   <div class="overflow-x-auto">
     <table class="min-w-full text-sm">
       <thead>
@@ -394,6 +418,7 @@
     let currentMonth = "";
     let shifts = {};
     let salary = [];
+    let bonuses = []; // Массив для дополнительного заработка
     let currentChart = 'revenue';
     let debugInfo = {
       currentMonth: '',
@@ -437,8 +462,8 @@
   // Добавляем проверку: если элементов нет, просто выходим из функции
   if (!percEl || !multEl) return; 
 
-  percEl.textContent = `${salaryPercentage}%`;
-  multEl.textContent = (salaryPercentage / 100).toFixed(3);
+  percEl.textContent = `${SALARY_PERCENTAGE}%`;
+  multEl.textContent = (SALARY_PERCENTAGE / 100).toFixed(3);
 }
 
     function updatePercentageValue(value) {
@@ -473,7 +498,7 @@
     }
 
     function showHelp() {
-      showLex("📚 Помощь по системе:<br>1. Клик на день для изменения смены<br>2. Добавьте выручку для расчёта зарплаты<br>3. Используйте экспорт для отчётов<br>4. Настройте процент в настройках");
+      showLex("📚 Помощь по системе:<br>1. Клик на день для изменения смены<br>2. Добавьте выручку для расчёта зарплаты<br>3. Добавьте доп. заработок (бонусы)<br>4. Используйте экспорт для отчётов<br>5. Настройте процент в настройках");
     }
 
     function printPage() {
@@ -490,7 +515,17 @@
         csvContent += `${entry.date},${entry.revenue},${entry.salary}\n`;
       });
       
-      csvContent += `\nИтого:,${salary.reduce((sum, e) => sum + e.revenue, 0).toFixed(2)},${salary.reduce((sum, e) => sum + e.salary, 0).toFixed(2)}\n`;
+      csvContent += `\nИтого по выручке:,${salary.reduce((sum, e) => sum + e.revenue, 0).toFixed(2)},${salary.reduce((sum, e) => sum + e.salary, 0).toFixed(2)}\n`;
+      
+      if (bonuses.length > 0) {
+        csvContent += `\nДополнительный заработок:\nДата,Сумма (MDL)\n`;
+        bonuses.forEach(b => {
+          csvContent += `${b.date},${b.amount}\n`;
+        });
+        csvContent += `Итого доп. заработок:,,${bonuses.reduce((sum, b) => sum + b.amount, 0).toFixed(2)}\n`;
+      }
+      
+      csvContent += `\nОБЩАЯ ЗАРПЛАТА:,,${getTotalSalaryWithBonuses().toFixed(2)}\n`;
       csvContent += `Рабочих дней:,${Object.values(shifts).filter(v => v).length}\n`;
       csvContent += `Процент зарплаты:,${SALARY_PERCENTAGE}%\n`;
       
@@ -532,9 +567,10 @@
       
       for (let i = 1; i <= daysInMonth; i++) {
         const date = new Date(year, month - 1, i);
-		const key = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+		    const key = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
         const isWork = shifts[key] || false;
         const salaryEntry = salary.find(e => e.date === key);
+        const bonusEntry = bonuses.find(b => b.date === key);
         
         const row = document.createElement('tr');
         row.className = 'border-b hover:bg-gray-50';
@@ -545,9 +581,10 @@
             <span class="px-2 py-1 rounded text-xs ${salaryEntry ? 'bg-yellow-100 text-yellow-800' : isWork ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
               ${salaryEntry ? 'С выручкой' : isWork ? 'Рабочий' : 'Выходной'}
             </span>
+            ${bonusEntry ? '<span class="ml-1 px-2 py-1 rounded text-xs bg-amber-100 text-amber-800">★ Бонус</span>' : ''}
           </td>
           <td class="py-2 px-3">${salaryEntry ? salaryEntry.revenue + ' MDL' : '-'}</td>
-          <td class="py-2 px-3">${salaryEntry ? salaryEntry.salary + ' MDL' : '-'}</td>
+          <td class="py-2 px-3">${salaryEntry ? salaryEntry.salary + ' MDL' : '-'} ${bonusEntry ? '<br><span class="text-amber-600 font-bold">+' + bonusEntry.amount + ' MDL</span>' : ''}</td>
         `;
         listBody.appendChild(row);
       }
@@ -582,6 +619,62 @@
   document.getElementById('revenueInput').focus();
   showLex("📅 Дата установлена на сегодня. Введите выручку!");
 }
+
+    // ========== НОВАЯ ФУНКЦИЯ: Добавление дополнительного заработка ==========
+    function addBonus() {
+      const dateInput = document.getElementById('bonusDate');
+      const amountInput = document.getElementById('bonusInput');
+      const date = dateInput.value || new Date().toISOString().split('T')[0];
+      const amount = parseFloat(amountInput.value);
+      
+      if (isNaN(amount) || amount <= 0 || !date) {
+        showLex("⚠️ Введите корректную сумму доп. заработка!");
+        return;
+      }
+      
+      // Проверяем, есть ли уже бонус за эту дату
+      const existingBonus = bonuses.find(b => b.date === date);
+      
+      if (existingBonus) {
+        // Спрашиваем, добавить к существующему или заменить
+        if (confirm(`За ${date} уже есть доп. заработок: ${existingBonus.amount} MDL. Добавить к нему?`)) {
+          existingBonus.amount = +(existingBonus.amount + amount).toFixed(2);
+        } else {
+          existingBonus.amount = amount;
+        }
+      } else {
+        bonuses.push({ date, amount: +amount.toFixed(2) });
+      }
+      
+      bonuses.sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      db.ref(`months/${currentMonth}/bonuses`).set(bonuses).then(() => {
+        renderSalaryTable();
+        toggleChart(currentChart);
+        updateStats();
+        amountInput.value = '';
+        dateInput.value = '';
+        showLex(`🌟 Доп. заработок ${amount} MDL добавлен за ${date}!`);
+      });
+    }
+    
+    // Функция для получения общей зарплаты с бонусами
+    function getTotalSalaryWithBonuses() {
+      const baseSalary = salary.reduce((sum, e) => sum + e.salary, 0);
+      const totalBonuses = bonuses.reduce((sum, b) => sum + b.amount, 0);
+      return baseSalary + totalBonuses;
+    }
+    
+    // Функция для получения общей выручки
+    function getTotalRevenue() {
+      return salary.reduce((sum, e) => sum + e.revenue, 0);
+    }
+    
+    // Функция для получения бонусов за конкретный день
+    function getBonusForDate(date) {
+      const bonus = bonuses.find(b => b.date === date);
+      return bonus ? bonus.amount : 0;
+    }
 
     function toggleChart(chartType) {
       document.getElementById('revenueChartContainer').classList.add('hidden');
@@ -674,14 +767,17 @@
       }
       
       const labels = salary.map(e => e.date.split('-')[2]);
-      const data = salary.map(e => e.salary);
+      const data = salary.map(e => {
+        const bonus = getBonusForDate(e.date);
+        return e.salary + bonus;
+      });
       
       canvas.chart = new Chart(ctx, {
         type: 'line',
         data: {
           labels: labels,
           datasets: [{
-            label: 'Зарплата (MDL)',
+            label: 'Зарплата с бонусами (MDL)',
             data: data,
             backgroundColor: 'rgba(147, 51, 234, 0.1)',
             borderColor: 'rgb(147, 51, 234)',
@@ -724,7 +820,10 @@
       
       const labels = salary.map(e => e.date.split('-')[2]);
       const revenueData = salary.map(e => e.revenue);
-      const salaryData = salary.map(e => e.salary);
+      const salaryData = salary.map(e => {
+        const bonus = getBonusForDate(e.date);
+        return e.salary + bonus;
+      });
       
       canvas.chart = new Chart(ctx, {
         type: 'bar',
@@ -740,7 +839,7 @@
               yAxisID: 'y'
             },
             {
-              label: 'Зарплата (MDL)',
+              label: 'Зарплата + бонусы (MDL)',
               data: salaryData,
               backgroundColor: 'rgba(147, 51, 234, 0.7)',
               borderColor: 'rgb(147, 51, 234)',
@@ -787,9 +886,11 @@
     }
 
     function updateStats() {
-  // 1. Считаем общие суммы
+  // 1. Считаем общие суммы (зарплата теперь включает бонусы)
   const totalRevenue = salary.reduce((sum, e) => sum + e.revenue, 0);
-  const totalSalary = salary.reduce((sum, e) => sum + e.salary, 0);
+  const baseSalary = salary.reduce((sum, e) => sum + e.salary, 0);
+  const totalBonuses = bonuses.reduce((sum, b) => sum + b.amount, 0);
+  const totalSalary = baseSalary + totalBonuses;
   const revenueDays = salary.length;
 
   // 2. Получаем реальное количество дней в месяце
@@ -809,68 +910,61 @@
   const avgSalary = workDays ? (totalSalary / workDays).toFixed(2) : 0;
   const freeDays = daysInMonth - workDays;
 
-  // --- ВОТ СЮДА ВСТАВЛЯЕМ НОВЫЙ БЛОК ЭФФЕКТИВНОСТИ ---
+  // --- Блок эффективности ---
   let efficiency = 0;
   const minTarget = 1000;
-  const maxTarget = 15000;
+  const maxTarget = 20000;
 
   if (totalSalary <= minTarget) {
     efficiency = 0;
   } else if (totalSalary >= maxTarget) {
     efficiency = 100;
   } else {
-    // Вычисляем точный плавающий процент
     efficiency = Math.round(((totalSalary - minTarget) / (maxTarget - minTarget)) * 100);
   }
-  // -------------------------------------------------------
 
   // 5. ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
   
-  // Обновляем текстовые значения (карточки сверху)
   if (document.getElementById('workDaysCount')) document.getElementById('workDaysCount').textContent = workDays;
   if (document.getElementById('totalRevenue')) document.getElementById('totalRevenue').textContent = totalRevenue.toFixed(2) + ' MDL';
   if (document.getElementById('totalSalary')) document.getElementById('totalSalary').textContent = totalSalary.toFixed(2) + ' MDL';
   if (document.getElementById('avgPerDay')) document.getElementById('avgPerDay').textContent = avgSalary + ' MDL';
   if (document.getElementById('totalEntries')) document.getElementById('totalEntries').textContent = revenueDays;
 
-  // Обновляем блок детального отчета (внизу)
   if (document.getElementById('reportWorkDays')) document.getElementById('reportWorkDays').textContent = workDays;
   if (document.getElementById('reportFreeDays')) document.getElementById('reportFreeDays').textContent = freeDays;
   if (document.getElementById('reportRevenueDays')) document.getElementById('reportRevenueDays').textContent = revenueDays;
   
-  // Обновление самой эффективности с динамическим цветом
   const repEffEl = document.getElementById('reportEfficiency');
   if (repEffEl) {
     repEffEl.textContent = efficiency + '%';
     
-    // Плавное изменение цвета в зависимости от прогресса
     if (efficiency === 0) repEffEl.className = "font-bold text-gray-400";
     else if (efficiency < 40) repEffEl.className = "font-bold text-orange-400";
     else if (efficiency < 80) repEffEl.className = "font-bold text-blue-500";
     else repEffEl.className = "font-bold text-green-600";
   }
 
-  // Анализ месяца (текстовый блок)
-  updateMonthAnalysis(totalRevenue, totalSalary, workDays, revenueDays, efficiency);
+  updateMonthAnalysis(totalRevenue, totalSalary, workDays, revenueDays, efficiency, totalBonuses);
 }
 
-    function updateMonthAnalysis(totalRevenue, totalSalary, workDays, revenueDays) {
+    function updateMonthAnalysis(totalRevenue, totalSalary, workDays, revenueDays, efficiency, totalBonuses = 0) {
       const analysisEl = document.getElementById('monthAnalysis');
       const avgRevenuePerDay = revenueDays ? (totalRevenue / revenueDays).toFixed(2) : 0;
       const avgSalaryPerDay = workDays ? (totalSalary / workDays).toFixed(2) : 0;
-      const efficiency = workDays ? Math.round((revenueDays / workDays) * 100) : 0;
       
       let analysisText = '';
       
-      if (salary.length === 0) {
+      if (salary.length === 0 && bonuses.length === 0) {
         analysisText = '<p class="text-amber-600">📝 За месяц пока нет данных о выручке. Добавьте первую запись!</p>';
       } else {
         analysisText = `
           <p>✅ <strong>${revenueDays}</strong> дней с выручкой из <strong>${workDays}</strong> рабочих</p>
-          
+          <p>📈 Эффективность: <strong>${efficiency}%</strong></p>
           <p>💰 Средняя выручка в день: <strong>${avgRevenuePerDay} MDL</strong></p>
           <p>💵 Средняя зарплата в день: <strong>${avgSalaryPerDay} MDL</strong></p>
-          ${efficiency < 50 ? '<p class="text-amber-600 mt-2">⚠️ Низкая эффективность. Постарайтесь увеличить количество дней с выручкой.</p>' : ''}
+          ${totalBonuses > 0 ? `<p class="text-amber-600 mt-1">🌟 Доп. заработок: <strong>${totalBonuses.toFixed(2)} MDL</strong></p>` : ''}
+          ${efficiency < 40 ? '<p class="text-amber-600 mt-2">⚠️ Низкая эффективность. Постарайтесь увеличить количество дней с выручкой.</p>' : ''}
           ${efficiency >= 80 ? '<p class="text-green-600 mt-2">🎉 Отличная эффективность! Продолжайте в том же духе!</p>' : ''}
         `;
       }
@@ -948,30 +1042,42 @@
         }
 
         const salaryEntry = salary.find(e => e.date === key);
+        const bonusEntry = bonuses.find(b => b.date === key);
         const isWork = salaryEntry ? true : shifts[key];
         
         const cell = document.createElement('button');
         let bgColor, textColor, borderColor;
 
         if (isWork) {
-          // ВСЕ рабочие дни (и с выручкой, и без) теперь ЗЕЛЕНЫЕ
-          bgColor = 'bg-green-100';
-          textColor = 'text-green-800';
-          borderColor = 'border-green-300';
+          if (salaryEntry) {
+            // Рабочий день с выручкой - ЖЕЛТЫЙ
+            bgColor = 'bg-yellow-100';
+            textColor = 'text-yellow-800';
+            borderColor = 'border-yellow-300';
+          } else {
+            // Рабочий день без выручки - ЗЕЛЕНЫЙ
+            bgColor = 'bg-green-100';
+            textColor = 'text-green-800';
+            borderColor = 'border-green-300';
+          }
           debugInfo.shiftsCount++;
         } else {
-          // Все выходные - СЕРЫЕ
+          // Выходной - СЕРЫЙ
           bgColor = 'bg-gray-100';
           textColor = 'text-gray-500'; 
           borderColor = 'border-gray-200';
         }
 
-        // Компактный стиль: только число по центру
-        cell.className = `p-2 rounded-lg text-center border ${bgColor} ${textColor} ${borderColor} hover:ring-2 hover:ring-blue-400 transition-all font-bold flex items-center justify-center min-h-[55px] text-lg`;
-        cell.innerHTML = `<span>${i}</span>`;
+        // Если есть бонус, добавляем звездочку
+        const bonusStar = bonusEntry ? '<span class="absolute -top-1 -right-1 text-amber-500 text-xs">★</span>' : '';
+        
+        cell.className = `p-2 rounded-lg text-center border ${bgColor} ${textColor} ${borderColor} hover:ring-2 hover:ring-blue-400 transition-all font-bold flex items-center justify-center min-h-[55px] text-lg relative`;
+        cell.innerHTML = `<span>${i}</span>${bonusStar}`;
 
-        // Подсказка при наведении (оставляем для информации)
-        cell.title = salaryEntry ? `Выручка: ${salaryEntry.revenue} MDL` : (isWork ? "Рабочий день" : "Выходной");
+        // Подсказка при наведении
+        let tooltip = salaryEntry ? `Выручка: ${salaryEntry.revenue} MDL` : (isWork ? "Рабочий день" : "Выходной");
+        if (bonusEntry) tooltip += `\n★ Бонус: ${bonusEntry.amount} MDL`;
+        cell.title = tooltip;
 
         cell.onclick = () => {
           const pass = prompt("Введите пароль для изменения смены:");
@@ -1001,6 +1107,7 @@
         totalSalaryEntries: salary.length,
         salaryInThisMonth: 0,
         shiftsInThisMonth: 0,
+        bonusesCount: bonuses.length,
         mismatches: []
       };
       
@@ -1037,6 +1144,7 @@
       message += `• Всего записей о зарплате: ${result.totalSalaryEntries}\n`;
       message += `• Записей в этом месяце: ${result.salaryInThisMonth}\n`;
       message += `• Рабочих дней в этом месяце: ${result.shiftsInThisMonth}\n`;
+      message += `• Бонусов: ${result.bonusesCount}\n`;
       
       if (result.mismatches.length > 0) {
         message += `\n⚠️ Найдены несоответствия:\n`;
@@ -1046,7 +1154,6 @@
         
         message += `\nИсправить автоматически?`;
         if (confirm(message)) {
-          // Автоматически исправляем
           result.mismatches.forEach(m => {
             shifts[m.date] = true;
           });
@@ -1115,7 +1222,6 @@
       salary.sort((a, b) => new Date(a.date) - new Date(b.date));
 
       db.ref(`months/${currentMonth}/salary`).set(salary).then(() => {
-        // После сохранения зарплаты, убедимся что день отмечен как рабочий
         const [entryYear, entryMonth] = date.split('-').map(Number);
         const [currentYear, currentMonthNum] = currentMonth.split('-').map(Number);
         
@@ -1155,12 +1261,18 @@
       }
       
       salary.forEach(entry => {
+        const bonus = getBonusForDate(entry.date);
+        const totalDaySalary = entry.salary + bonus;
+        
         const row = document.createElement('tr');
         row.className = 'border-b hover:bg-gray-50';
         row.innerHTML = `
           <td class="py-2 px-3">${entry.date}</td>
           <td class="py-2 px-3 font-medium">${entry.revenue.toFixed(2)} MDL</td>
-          <td class="py-2 px-3 font-bold text-green-700">${entry.salary.toFixed(2)} MDL</td>
+          <td class="py-2 px-3 font-bold text-green-700">
+            ${entry.salary.toFixed(2)} MDL
+            ${bonus > 0 ? `<br><span class="text-amber-600 text-xs font-bold">+ ${bonus.toFixed(2)} MDL бонус</span>` : ''}
+          </td>
           <td class="py-2 px-3">
             <div class="flex gap-2">
               <button onclick="editEntry('${entry.date}')" class="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50">
@@ -1173,6 +1285,43 @@
           </td>
         `;
         table.appendChild(row);
+      });
+      
+      // Показываем бонусы без выручки
+      const bonusesWithoutSalary = bonuses.filter(b => !salary.find(e => e.date === b.date));
+      bonusesWithoutSalary.forEach(bonus => {
+        const row = document.createElement('tr');
+        row.className = 'border-b hover:bg-amber-50 bg-amber-50/30';
+        row.innerHTML = `
+          <td class="py-2 px-3">${bonus.date}</td>
+          <td class="py-2 px-3 text-gray-400 italic">—</td>
+          <td class="py-2 px-3 font-bold text-amber-600">
+            + ${bonus.amount.toFixed(2)} MDL
+            <br><span class="text-[10px] font-normal uppercase tracking-wider text-amber-500">★ Бонус</span>
+          </td>
+          <td class="py-2 px-3">
+            <div class="flex gap-2">
+              <button onclick="deleteBonus('${bonus.date}')" class="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        table.appendChild(row);
+      });
+    }
+    
+    // Функция удаления бонуса
+    function deleteBonus(date) {
+      const pass = prompt("Введите пароль для удаления бонуса:");
+      if (pass !== ADMIN_PASSWORD) return alert("Неверный пароль");
+      
+      bonuses = bonuses.filter(b => b.date !== date);
+      db.ref(`months/${currentMonth}/bonuses`).set(bonuses).then(() => {
+        renderSalaryTable();
+        toggleChart(currentChart);
+        updateStats();
+        showLex("🗑️ Бонус удалён!");
       });
     }
 
@@ -1212,15 +1361,13 @@
       console.log(`=== ЗАГРУЗКА МЕСЯЦА: ${monthKey} ===`);
       currentMonth = monthKey;
       
-      // Скрываем кнопку проверки до загрузки данных
       document.getElementById('debugBtn').classList.add('hidden');
       
-      // Загружаем данные из Firebase
       db.ref(`months/${monthKey}`).once('value').then(snapshot => {
         const data = snapshot.val() || {};
         console.log('Данные из Firebase:', data);
         
-        // Загружаем зарплату ПЕРВОЙ
+        // Загружаем зарплату
         if (data.salary) {
           salary = data.salary;
           console.log(`Загружено записей о зарплате: ${salary.length}`);
@@ -1228,7 +1375,15 @@
           salary = [];
         }
         
-        // Затем загружаем смены
+        // Загружаем бонусы
+        if (data.bonuses) {
+          bonuses = data.bonuses;
+          console.log(`Загружено бонусов: ${bonuses.length}`);
+        } else {
+          bonuses = [];
+        }
+        
+        // Загружаем смены
         if (data.shifts) {
           shifts = data.shifts;
           console.log(`Загружено смен: ${Object.keys(shifts).length}`);
