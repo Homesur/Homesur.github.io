@@ -4,370 +4,79 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartHome | Умный дом</title>
-    <!-- Иконки -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Шрифты (Inter для основного текста, Montserrat для заголовков) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #f0f4f8;
-            min-height: 100vh;
-            color: #2d3748;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 30px 20px;
-        }
-
-        /* Шапка */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 40px;
-        }
-
-        header h1 {
-            color: #1a202c;
-            font-size: 26px;
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        header h1 i {
-            color: #4facfe;
-        }
-
-        .btn-add {
-            background: #4facfe;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
-            /* Скрыто по умолчанию, показывается только админу */
-            display: none; 
-        }
-
-        .btn-add:hover {
-            background: #3a8dde;
-            transform: translateY(-2px);
-        }
-
-        /* Сетка карточек */
-        .devices-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 25px;
-        }
-
-        /* Карточка - Настенный выключатель */
-        .switch-card {
-            background: #ffffff;
-            border-radius: 35px;
-            padding: 35px 25px;
-            position: relative;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            border: 1px solid #e2e8f0;
-        }
-
-        .switch-card:hover {
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
-            transform: translateY(-5px);
-        }
-
-        /* Название вверху - Жирный и красивый шрифт */
-        .switch-card h3 {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 22px;
-            font-weight: 800;
-            color: #1a202c;
-            margin-bottom: 20px;
-            letter-spacing: -0.5px;
-        }
-
-        /* ID устройства - скрыто для обычных пользователей */
-        .device-id {
-            font-size: 11px;
-            color: #a0aec0;
-            background: #f7fafc;
-            padding: 4px 10px;
-            border-radius: 20px;
-            margin-bottom: 25px;
-            font-family: monospace;
-            display: none; /* Скрыто */
-        }
-
-        /* Большая круглая кнопка */
-        .main-button {
-            width: 130px;
-            height: 130px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 50px;
-            color: white;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            margin-bottom: 25px;
-            position: relative;
-            box-shadow: inset 0 -8px 15px rgba(0,0,0,0.1), 0 10px 20px rgba(0,0,0,0.1);
-        }
-
-        /* Состояние ВЫКЛ (Красный) */
-        .main-button.is-off {
-            background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
-            box-shadow: inset 0 -8px 15px rgba(0,0,0,0.1), 0 10px 25px rgba(255, 126, 95, 0.4);
-        }
-
-        /* Состояние ВКЛ (Зеленый) */
-        .main-button.is-on {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            box-shadow: inset 0 -8px 15px rgba(0,0,0,0.1), 0 10px 25px rgba(56, 239, 125, 0.4);
-            animation: pulse-green 2s infinite;
-        }
-
-        @keyframes pulse-green {
-            0% { box-shadow: 0 0 0 0 rgba(56, 239, 125, 0.5); }
-            70% { box-shadow: 0 0 0 20px rgba(56, 239, 125, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(56, 239, 125, 0); }
-        }
-
-        .main-button:active {
-            transform: scale(0.92);
-        }
-
-        /* Статус текст под кнопкой */
-        .status-text {
-            font-size: 14px;
-            font-weight: 600;
-            color: #a0aec0;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 20px;
-        }
-
-        /* Кнопка удаления - скрыта */
-        .btn-delete {
-            background: transparent;
-            color: #cbd5e0;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            display: none; /* Скрыто по умолчанию */
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            padding: 8px;
-            transition: color 0.2s;
-            margin-top: auto;
-        }
-
-        .btn-delete:hover {
-            color: #e53e3e;
-        }
-
-        /* Классы для отображения элементов админом */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f0f4f8; min-height: 100vh; color: #2d3748; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        header h1 { color: #1a202c; font-size: 26px; font-family: 'Montserrat', sans-serif; font-weight: 800; display: flex; align-items: center; gap: 12px; }
+        header h1 i { color: #4facfe; }
+        .btn-add { background: #4facfe; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: none; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3); }
+        .btn-add:hover { background: #3a8dde; transform: translateY(-2px); }
+        .devices-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .switch-card { background: #ffffff; border-radius: 35px; padding: 35px 25px; position: relative; transition: all 0.3s ease; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; align-items: center; text-align: center; border: 1px solid #e2e8f0; }
+        .switch-card:hover { box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1); transform: translateY(-5px); }
+        .switch-card h3 { font-family: 'Montserrat', sans-serif; font-size: 22px; font-weight: 800; color: #1a202c; margin-bottom: 20px; letter-spacing: -0.5px; }
+        .device-id { font-size: 11px; color: #a0aec0; background: #f7fafc; padding: 4px 10px; border-radius: 20px; margin-bottom: 25px; font-family: monospace; display: none; }
+        .main-button { width: 130px; height: 130px; border-radius: 50%; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 50px; color: white; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); margin-bottom: 25px; position: relative; box-shadow: inset 0 -8px 15px rgba(0,0,0,0.1), 0 10px 20px rgba(0,0,0,0.1); }
+        .main-button.is-off { background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%); box-shadow: inset 0 -8px 15px rgba(0,0,0,0.1), 0 10px 25px rgba(255, 126, 95, 0.4); }
+        .main-button.is-on { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); box-shadow: inset 0 -8px 15px rgba(0,0,0,0.1), 0 10px 25px rgba(56, 239, 125, 0.4); animation: pulse-green 2s infinite; }
+        @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(56, 239, 125, 0.5); } 70% { box-shadow: 0 0 0 20px rgba(56, 239, 125, 0); } 100% { box-shadow: 0 0 0 0 rgba(56, 239, 125, 0); } }
+        .main-button:active { transform: scale(0.92); }
+        .status-text { font-size: 14px; font-weight: 600; color: #a0aec0; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 20px; }
+        .btn-delete { background: transparent; color: #cbd5e0; border: none; cursor: pointer; font-size: 14px; display: none; align-items: center; justify-content: center; gap: 5px; padding: 8px; transition: color 0.2s; margin-top: auto; }
+        .btn-delete:hover { color: #e53e3e; }
         body.is-admin .device-id { display: inline-block; }
         body.is-admin .btn-delete { display: flex; }
         body.is-admin .btn-add { display: flex; }
-
-        /* Модальное окно */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 1000; }
         .modal.active { display: flex; }
-
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            animation: slideUp 0.3s ease;
-        }
-
-        @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .modal-content h2 {
-            margin-bottom: 20px;
-            color: #2d3748;
-            font-size: 22px;
-            font-family: 'Montserrat', sans-serif;
-        }
-
-        .input-group {
-            margin-bottom: 15px;
-            position: relative;
-        }
-
-        .input-group i {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #a0aec0;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 14px 14px 14px 45px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 15px;
-            transition: all 0.2s;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .input-group input:focus {
-            outline: none;
-            border-color: #4facfe;
-            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 25px;
-        }
-
-        .modal-buttons button {
-            flex: 1;
-            padding: 14px;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 15px;
-        }
-
+        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-content h2 { margin-bottom: 20px; color: #2d3748; font-size: 22px; font-family: 'Montserrat', sans-serif; }
+        .input-group { margin-bottom: 15px; position: relative; }
+        .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #a0aec0; }
+        .input-group input { width: 100%; padding: 14px 14px 14px 45px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 15px; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+        .input-group input:focus { outline: none; border-color: #4facfe; box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1); }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 25px; }
+        .modal-buttons button { flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 15px; }
         .modal-buttons .save { background: #4facfe; color: white; }
         .modal-buttons .save:hover { background: #3a8dde; }
         .modal-buttons .cancel { background: #edf2f7; color: #4a5568; }
         .modal-buttons .cancel:hover { background: #e2e8f0; }
 
-        /* Уведомления */
-        .toast {
-            position: fixed;
-            bottom: 20px; right: 20px;
-            background: white;
-            padding: 15px 25px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transform: translateX(150%);
-            transition: transform 0.3s ease;
-            z-index: 2000;
-            border-left: 5px solid #48bb78;
-            font-weight: 500;
-        }
-
+        .toast { position: fixed; bottom: 20px; right: 20px; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 12px; transform: translateX(150%); transition: transform 0.3s ease; z-index: 2000; border-left: 5px solid #48bb78; font-weight: 500; }
         .toast.show { transform: translateX(0); }
         .toast.error { border-left-color: #f56565; }
         .toast i { font-size: 20px; color: #48bb78; }
         .toast.error i { color: #f56565; }
 
-        /* Загрузка */
-        .loader-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.7);
-            backdrop-filter: blur(3px);
-            z-index: 3000;
-            justify-content: center;
-            align-items: center;
-        }
+        .loader-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); backdrop-filter: blur(3px); z-index: 3000; justify-content: center; align-items: center; }
         .loader-overlay.active { display: flex; }
-        .spinner {
-            width: 40px; height: 40px;
-            border: 4px solid #e2e8f0;
-            border-top: 4px solid #4facfe;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
+        .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid #4facfe; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        .empty-state {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 50px;
-            background: white;
-            border: 2px dashed #e2e8f0;
-            border-radius: 20px;
-            color: #a0aec0;
-        }
+        .empty-state { grid-column: 1 / -1; text-align: center; padding: 50px; background: white; border: 2px dashed #e2e8f0; border-radius: 20px; color: #a0aec0; }
         .empty-state i { font-size: 50px; margin-bottom: 15px; opacity: 0.7; }
         .empty-state p { font-size: 18px; }
     </style>
 </head>
 <body>
 
-    <div class="loader-overlay" id="loader">
-        <div class="spinner"></div>
-    </div>
-
-    <div class="toast" id="toast">
-        <i class="fas fa-check-circle"></i>
-        <span id="toastMsg">Успешно</span>
-    </div>
+    <div class="loader-overlay" id="loader"><div class="spinner"></div></div>
+    <div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg">Успешно</span></div>
 
     <div class="container">
         <header>
             <h1><i class="fas fa-home"></i> Умный Дом</h1>
-            <!-- Кнопка добавления скрыта, пока не активирован режим админа -->
-            <button class="btn-add" onclick="openModal()">
-                <i class="fas fa-plus"></i> Добавить
-            </button>
+            <button class="btn-add" onclick="openModal()"><i class="fas fa-plus"></i> Добавить</button>
         </header>
-
-        <div class="devices-grid" id="grid">
-            <!-- Карточки генерируются через JS -->
-        </div>
+        <div class="devices-grid" id="grid"></div>
     </div>
 
-    <!-- Модальное окно -->
     <div class="modal" id="modal">
         <div class="modal-content">
             <h2>Новое устройство</h2>
@@ -387,48 +96,116 @@
     </div>
 
     <script>
-        // КОНСТАНТЫ SUPABASE
-        const SUPABASE_URL = 'https://apnqvsexgebvzqozlfmo.supabase.co/functions/v1/toggle-device';
-        const SUPABASE_ANON_KEY = 'sb_publishable_onLn9Ip6zF26jb61VZvX7Q_oUjejgJf';
+        // ==========================================
+        // НАСТРОЙКИ SUPABASE
+        // ==========================================
+        const SUPABASE_PROJECT_URL = 'https://apnqvsexgebvzqozlfmo.supabase.co';
+        // Вставьте сюда ваш ключ anon (тот, что начинается на eyJ...)
+        const SUPABASE_ANON_KEY = 'sb_publishable_onLn9Ip6zF26jb61VZvX7Q_oUjejgJf'; 
+        
+        // URL вашей Edge Function для управления реле
+        const SUPABASE_FUNCTION_URL = 'https://apnqvsexgebvzqozlfmo.supabase.co/functions/v1/toggle-device';
+        // Ключ, который вы передавали для функции
+        const SUPABASE_FUNCTION_KEY = 'sb_publishable_onLn9Ip6zF26jb61VZvX7Q_oUjejgJf';
 
         // Массив устройств
         let devices = [];
 
-        // Загрузка при старте
-        window.onload = () => {
-            // Проверяем, есть ли в URL параметр ?admin=true
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('admin') === 'true') {
-                document.body.classList.add('is-admin'); // Включаем режим админа
-            }
+        // ==========================================
+        // РАБОТА С БАЗОЙ ДАННЫХ (CRUD)
+        // ==========================================
 
-            const saved = localStorage.getItem('my_smart_home_devices_v2');
-            if (saved) {
-                devices = JSON.parse(saved);
+        // Загрузка устройств из базы Supabase
+        async function loadDevicesFromDb() {
+            setLoading(true);
+            try {
+                const res = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/devices?select=*`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+                const data = await res.json();
+                devices = data;
+                renderDevices();
+            } catch (error) {
+                showToast('Ошибка загрузки данных', true);
+            } finally {
+                setLoading(false);
             }
-            renderDevices();
-        };
-
-        // Сохранение в память браузера
-        function saveData() {
-            localStorage.setItem('my_smart_home_devices_v2', JSON.stringify(devices));
         }
 
-        // Уведомления
+        // Добавление в базу
+        async function addDeviceToDb(name, tuyaId) {
+            setLoading(true);
+            try {
+                await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/devices`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ name: name, tuya_id: tuyaId, is_on: false })
+                });
+                loadDevicesFromDb(); // Перезагружаем список
+            } catch (error) {
+                showToast('Ошибка сохранения', true);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Удаление из базы
+        async function deleteDeviceFromDb(id) {
+            setLoading(true);
+            try {
+                await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/devices?id=eq.${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+                loadDevicesFromDb(); // Перезагружаем список
+            } catch (error) {
+                showToast('Ошибка удаления', true);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Обновление статуса в базе (вкл/выкл)
+        async function updateStatusInDb(id, isOn) {
+            await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/devices?id=eq.${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ is_on: isOn })
+            });
+        }
+
+        // ==========================================
+        // ИНТЕРФЕЙС И ЛОГИКА
+        // ==========================================
+
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('admin') === 'true') {
+                document.body.classList.add('is-admin');
+            }
+            loadDevicesFromDb(); // Загружаем из облака!
+        };
+
         function showToast(msg, isError = false) {
             const toast = document.getElementById('toast');
-            const toastMsg = document.getElementById('toastMsg');
-            toastMsg.textContent = msg;
-            
-            if (isError) {
-                toast.classList.add('error');
-                toast.querySelector('i').className = 'fas fa-exclamation-circle';
-            } else {
-                toast.classList.remove('error');
-                toast.querySelector('i').className = 'fas fa-check-circle';
-            }
-            
-            toast.classList.add('show');
+            document.getElementById('toastMsg').textContent = msg;
+            toast.className = isError ? 'toast show error' : 'toast show';
+            toast.querySelector('i').className = isError ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
@@ -446,122 +223,86 @@
             document.getElementById('modal').classList.remove('active');
         }
 
-        // Добавление устройства
         function addDevice() {
             const name = document.getElementById('inpName').value.trim();
             const id = document.getElementById('inpId').value.trim();
-
-            if (!name) return showToast('Введите название', true);
-            if (!id) return showToast('Введите Tuya ID', true);
-
-            devices.push({
-                id: Date.now().toString(),
-                name: name,
-                tuyaId: id,
-                isOn: false
-            });
-
-            saveData();
-            renderDevices();
+            if (!name || !id) return showToast('Заполните все поля', true);
+            
+            addDeviceToDb(name, id);
             closeModal();
-            showToast('Устройство добавлено');
+            showToast('Добавлено');
         }
 
         function deleteDevice(id) {
             if (!confirm('Удалить это устройство?')) return;
-            devices = devices.filter(d => d.id !== id);
-            saveData();
-            renderDevices();
+            deleteDeviceFromDb(id);
             showToast('Удалено');
         }
 
-        // Отрисовка интерфейса
         function renderDevices() {
             const grid = document.getElementById('grid');
-            
             if (devices.length === 0) {
-                grid.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-satellite-dish"></i>
-                        <p>Нет добавленных устройств</p>
-                    </div>
-                `;
+                grid.innerHTML = `<div class="empty-state"><i class="fas fa-satellite-dish"></i><p>Нет добавленных устройств</p></div>`;
                 return;
             }
 
             let html = '';
             devices.forEach(dev => {
-                const btnClass = dev.isOn ? 'is-on' : 'is-off';
-                const statusText = dev.isOn ? 'Включено' : 'Выключено';
+                const btnClass = dev.is_on ? 'is-on' : 'is-off';
+                const statusText = dev.is_on ? 'Включено' : 'Выключено';
 
                 html += `
                     <div class="switch-card">
                         <h3>${dev.name}</h3>
-                        <!-- ID и кнопка удаления скрыты через CSS, пока не активирован режим админа -->
-                        <div class="device-id">${dev.tuyaId}</div>
-                        
-                        <button class="main-button ${btnClass}" onclick="toggleTuya('${dev.id}')">
+                        <div class="device-id">${dev.tuya_id}</div>
+                        <button class="main-button ${btnClass}" onclick="toggleTuya('${dev.id}', ${dev.is_on})">
                             <i class="fas fa-power-off"></i>
                         </button>
-                        
                         <div class="status-text">${statusText}</div>
-                        
-                        <button class="btn-delete" onclick="deleteDevice('${dev.id}')">
+                        <button class="btn-delete" onclick="deleteDevice(${dev.id})">
                             <i class="fas fa-trash"></i> Удалить
                         </button>
                     </div>
                 `;
             });
-            
             grid.innerHTML = html;
         }
 
-        // Отправка команды
-        async function toggleTuya(htmlId) {
-            const devIndex = devices.findIndex(d => d.id === htmlId);
-            if (devIndex === -1) return;
-            
-            const dev = devices[devIndex];
-            const newState = dev.isOn ? 0 : 1; 
-            
+        // Отправка команды в Tuya и обновление базы
+        async function toggleTuya(dbId, currentState) {
+            const newState = currentState ? 0 : 1; 
+            // Находим tuyaId для этого устройства
+            const dev = devices.find(d => d.id == dbId);
+            if (!dev) return;
+
             setLoading(true);
-            
             try {
-                const response = await fetch(SUPABASE_URL, {
+                const response = await fetch(SUPABASE_FUNCTION_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        'apikey': SUPABASE_FUNCTION_KEY,
+                        'Authorization': `Bearer ${SUPABASE_FUNCTION_KEY}`
                     },
-                    body: JSON.stringify({ 
-                        deviceId: dev.tuyaId, 
-                        state: newState 
-                    })
+                    body: JSON.stringify({ deviceId: dev.tuya_id, state: newState })
                 });
 
                 const data = await response.json();
-                
                 if (data.success === true) {
-                    devices[devIndex].isOn = (newState === 1);
-                    saveData();
-                    renderDevices();
+                    // Обновляем статус в базе данных Supabase
+                    await updateStatusInDb(dbId, newState === 1);
+                    // Перезагружаем список с новыми данными
+                    loadDevicesFromDb();
                     showToast(newState === 1 ? 'Включено!' : 'Выключено!');
                 } else {
-                    console.error('Tuya Error:', data);
-                    showToast('Ошибка: ' + (data.msg || data.error || 'Неизвестно'), true);
+                    showToast('Ошибка Tuya: ' + (data.msg || 'Неизвестно'), true);
                 }
             } catch (error) {
-                console.error('Fetch Error:', error);
                 showToast('Ошибка сети', true);
             } finally {
                 setLoading(false);
             }
         }
-
-        window.onclick = (e) => {
-            if (e.target.classList.contains('modal')) closeModal();
-        };
     </script>
 </body>
 </html>
