@@ -6,8 +6,8 @@
     <title>SmartHome | Умный дом</title>
     <!-- Иконки -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Шрифты -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Шрифты (Inter для основного текста, Montserrat для заголовков) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -38,7 +38,9 @@
 
         header h1 {
             color: #1a202c;
-            font-size: 24px;
+            font-size: 26px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
             display: flex;
             align-items: center;
             gap: 12px;
@@ -62,6 +64,8 @@
             align-items: center;
             gap: 8px;
             box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+            /* Скрыто по умолчанию, показывается только админу */
+            display: none; 
         }
 
         .btn-add:hover {
@@ -79,8 +83,8 @@
         /* Карточка - Настенный выключатель */
         .switch-card {
             background: #ffffff;
-            border-radius: 30px;
-            padding: 30px 20px;
+            border-radius: 35px;
+            padding: 35px 25px;
             position: relative;
             transition: all 0.3s ease;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
@@ -96,14 +100,17 @@
             transform: translateY(-5px);
         }
 
-        /* Название вверху */
+        /* Название вверху - Жирный и красивый шрифт */
         .switch-card h3 {
-            font-size: 20px;
-            font-weight: 700;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
             color: #1a202c;
-            margin-bottom: 8px;
+            margin-bottom: 20px;
+            letter-spacing: -0.5px;
         }
 
+        /* ID устройства - скрыто для обычных пользователей */
         .device-id {
             font-size: 11px;
             color: #a0aec0;
@@ -112,19 +119,20 @@
             border-radius: 20px;
             margin-bottom: 25px;
             font-family: monospace;
+            display: none; /* Скрыто */
         }
 
         /* Большая круглая кнопка */
         .main-button {
-            width: 120px;
-            height: 120px;
+            width: 130px;
+            height: 130px;
             border-radius: 50%;
             border: none;
             cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 45px;
+            font-size: 50px;
             color: white;
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             margin-bottom: 25px;
@@ -161,18 +169,18 @@
             font-weight: 600;
             color: #a0aec0;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
             margin-bottom: 20px;
         }
 
-        /* Кнопка удаления */
+        /* Кнопка удаления - скрыта */
         .btn-delete {
             background: transparent;
             color: #cbd5e0;
             border: none;
             cursor: pointer;
             font-size: 14px;
-            display: flex;
+            display: none; /* Скрыто по умолчанию */
             align-items: center;
             justify-content: center;
             gap: 5px;
@@ -184,6 +192,11 @@
         .btn-delete:hover {
             color: #e53e3e;
         }
+
+        /* Классы для отображения элементов админом */
+        body.is-admin .device-id { display: inline-block; }
+        body.is-admin .btn-delete { display: flex; }
+        body.is-admin .btn-add { display: flex; }
 
         /* Модальное окно */
         .modal {
@@ -218,6 +231,7 @@
             margin-bottom: 20px;
             color: #2d3748;
             font-size: 22px;
+            font-family: 'Montserrat', sans-serif;
         }
 
         .input-group {
@@ -342,6 +356,7 @@
     <div class="container">
         <header>
             <h1><i class="fas fa-home"></i> Умный Дом</h1>
+            <!-- Кнопка добавления скрыта, пока не активирован режим админа -->
             <button class="btn-add" onclick="openModal()">
                 <i class="fas fa-plus"></i> Добавить
             </button>
@@ -381,6 +396,12 @@
 
         // Загрузка при старте
         window.onload = () => {
+            // Проверяем, есть ли в URL параметр ?admin=true
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('admin') === 'true') {
+                document.body.classList.add('is-admin'); // Включаем режим админа
+            }
+
             const saved = localStorage.getItem('my_smart_home_devices_v2');
             if (saved) {
                 devices = JSON.parse(saved);
@@ -437,7 +458,7 @@
                 id: Date.now().toString(),
                 name: name,
                 tuyaId: id,
-                isOn: false // По умолчанию считаем, что выключено
+                isOn: false
             });
 
             saveData();
@@ -470,16 +491,15 @@
 
             let html = '';
             devices.forEach(dev => {
-                // Определяем класс и текст статуса
                 const btnClass = dev.isOn ? 'is-on' : 'is-off';
                 const statusText = dev.isOn ? 'Включено' : 'Выключено';
 
                 html += `
                     <div class="switch-card">
                         <h3>${dev.name}</h3>
+                        <!-- ID и кнопка удаления скрыты через CSS, пока не активирован режим админа -->
                         <div class="device-id">${dev.tuyaId}</div>
                         
-                        <!-- Большая круглая кнопка -->
                         <button class="main-button ${btnClass}" onclick="toggleTuya('${dev.id}')">
                             <i class="fas fa-power-off"></i>
                         </button>
@@ -502,7 +522,6 @@
             if (devIndex === -1) return;
             
             const dev = devices[devIndex];
-            // Меняем состояние на противоположное
             const newState = dev.isOn ? 0 : 1; 
             
             setLoading(true);
@@ -512,8 +531,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'apikey': SUPABASE_ANON_KEY,           // <-- Вставляем ключ
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}` // <-- На всякий случай и сюда
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
                     },
                     body: JSON.stringify({ 
                         deviceId: dev.tuyaId, 
@@ -522,13 +541,11 @@
                 });
 
                 const data = await response.json();
-                console.log('Ответ от Supabase:', data);
-
+                
                 if (data.success === true) {
-                    // Обновляем локальное состояние
                     devices[devIndex].isOn = (newState === 1);
                     saveData();
-                    renderDevices(); // Перерисовываем, чтобы кнопка стала зеленой/красной
+                    renderDevices();
                     showToast(newState === 1 ? 'Включено!' : 'Выключено!');
                 } else {
                     console.error('Tuya Error:', data);
