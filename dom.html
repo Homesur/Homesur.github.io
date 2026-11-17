@@ -2,211 +2,171 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Умный дом</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Панель умного дома</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Библиотека для перетаскивания -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        /* Темный фон */
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            background: #0f172a;
             min-height: 100vh;
             color: #ffffff;
-            overflow-x: hidden;
+            overflow: hidden;
+            touch-action: manipulation;
         }
 
-        .container { max-width: 1400px; margin: 0 auto; padding: 30px 40px; }
-
-        /* ШАПКА */
+        /* Верхняя панель */
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 40px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px 30px;
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .header-left { display: flex; align-items: center; gap: 20px; }
-        
         .app-title {
-            font-size: 24px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #fff;
+            font-size: 20px; font-weight: 700;
+            display: flex; align-items: center; gap: 10px;
         }
         .app-title i { color: #8b5cf6; }
 
-        .header-right { display: flex; align-items: center; gap: 20px; }
+        .clock-widget { text-align: right; display: flex; gap: 15px; align-items: baseline; }
+        .clock-time { font-size: 26px; font-weight: 800; }
+        .clock-date { font-size: 14px; color: #94a3b8; }
 
-        .clock-widget {
-            text-align: right;
-            font-family: 'Inter', sans-serif;
+        /* Вкладки */
+        .category-tabs {
+            display: flex; gap: 10px; padding: 15px 30px;
+            overflow-x: auto; scrollbar-width: none;
         }
-        .clock-time { font-size: 32px; font-weight: 700; line-height: 1; }
-        .clock-date { font-size: 14px; color: #94a3b8; margin-top: 4px; text-transform: capitalize; }
+        .category-tabs::-webkit-scrollbar { display: none; }
 
-        .btn-add {
-            background: rgba(139, 92, 246, 0.2); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.5);
-            padding: 10px 20px; border-radius: 12px; font-size: 14px; font-weight: 600;
-            cursor: pointer; transition: all 0.3s ease; display: none; align-items: center; gap: 8px;
+        .tab-btn {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
+            padding: 10px 20px; border-radius: 14px;
+            font-size: 15px; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; gap: 8px;
+            white-space: nowrap; transition: all 0.2s;
         }
-        .btn-add:hover { background: rgba(139, 92, 246, 0.4); color: #fff; }
+        .tab-btn.active {
+            background: #8b5cf6; color: white; border-color: #8b5cf6;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
 
-        /* СЕТКА КАРТОЧЕК */
+        /* Сетка плиток */
         .devices-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+            padding: 10px 30px 30px 30px;
+            height: calc(100vh - 160px);
+            overflow-y: auto;
         }
+        .devices-grid::-webkit-scrollbar { width: 6px; }
+        .devices-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
-        /* КАРТОЧКА - Стекло */
-        .switch-card {
-            background: rgba(30, 41, 59, 0.3); 
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border-radius: 35px;
-            padding: 30px 25px;
-            position: relative;
-            transition: all 0.3s ease;
+        /* ПЛИТКА */
+        .tile {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 20px;
+            height: 170px;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1); 
+            align-items: center; /* Центрируем всё по горизонтали */
+            justify-content: center; /* Центрируем по вертикали */
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             cursor: pointer;
+            position: relative;
             user-select: none;
         }
 
-        .switch-card:hover {
-            background: rgba(30, 41, 59, 0.5);
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
-            border-color: rgba(255, 255, 255, 0.2);
+        .tile:active { transform: scale(0.96); }
+        
+        /* Иконка устройства */
+        .tile-icon {
+            font-size: 44px; /* Большая иконка */
+            margin-bottom: 15px;
+            transition: all 0.4s ease;
+            display: flex; justify-content: center; align-items: center;
         }
 
-        /* Название устройства */
-        .switch-card h3 {
-            font-size: 20px;
-            font-weight: 600;
-            color: #f8fafc;
-            margin-bottom: 20px;
-            width: 100%;
+        /* Состояние: Выключено (Серое) */
+        .tile.is-off .tile-icon { 
+            color: #475569; 
+            transform: scale(0.9); /* Чуть уменьшена */
         }
-
-        /* БОЛЬШАЯ КРУГЛАЯ КНОПКА ПИТАНИЯ */
-        .main-button {
-            width: 120px; 
-            height: 120px; 
-            border-radius: 50%; 
-            border: none; 
-            cursor: pointer;
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            font-size: 50px; 
-            color: white;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-            margin-bottom: 20px;
-            position: relative; 
-            box-shadow: inset 0 -8px 15px rgba(0,0,0,0.1), 0 10px 20px rgba(0,0,0,0.2);
+        .tile.is-off .tile-status { color: #64748b; }
+        .tile.is-off .tile-name { color: #94a3b8; }
+        
+        /* Состояние: Включено (Зеленое) */
+        .tile.is-on {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
         }
-
-        /* ВЫКЛЮЧЕНО (Серый градиент) */
-        .switch-card.is-off .main-button { 
-            background: linear-gradient(135deg, #475569 0%, #334155 100%); 
-            color: #94a3b8; /* Иконка становится сероватой */
-            box-shadow: inset 0 -8px 15px rgba(0,0,0,0.2), 0 10px 25px rgba(0, 0, 0, 0.2); 
+        .tile.is-on .tile-icon {
+            color: #34d399; /* Яркая зеленая иконка */
+            transform: scale(1.1); /* Увеличена */
+            filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.5)); /* Свечение */
         }
+        .tile.is-on .tile-status { color: #34d399; }
+        .tile.is-on .tile-name { color: #ffffff; }
 
-        /* ВКЛЮЧЕНО (Зеленый градиент) */
-        .switch-card.is-on .main-button { 
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); 
-            color: white;
-            box-shadow: inset 0 -8px 15px rgba(0,0,0,0.1), 0 10px 25px rgba(56, 239, 125, 0.4); 
-            animation: pulse-green 2s infinite; 
+        /* Текст */
+        .tile-info { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+        .tile-name { font-size: 16px; font-weight: 600; line-height: 1.2; }
+        .tile-status { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;}
+
+        /* Кнопка добавления (Админ) */
+        .btn-add {
+            display: none; background: #8b5cf6; color: white;
+            border: none; padding: 8px 16px; border-radius: 10px;
+            font-weight: 600; cursor: pointer; margin-left: auto;
         }
+        body.is-admin .btn-add { display: block; }
+        body.is-admin .tile { cursor: grab; border: 1px dashed rgba(255,255,255,0.2); }
 
-        @keyframes pulse-green { 
-            0% { box-shadow: 0 0 0 0 rgba(56, 239, 125, 0.5); } 
-            70% { box-shadow: 0 0 0 20px rgba(56, 239, 125, 0); } 
-            100% { box-shadow: 0 0 0 0 rgba(56, 239, 125, 0); } 
-        }
-
-        .main-button:active { transform: scale(0.92); }
-
-        /* Статус */
-        .status-text {
-            font-size: 14px;
-            font-weight: 600;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 10px;
-        }
-
-        /* Вспомогательные элементы (Админ) */
-        .device-id {
-            font-size: 10px; color: #475569; margin-top: 5px; font-family: monospace;
-            display: none; width: 100%; overflow: hidden; text-overflow: ellipsis;
-        }
-        .btn-delete {
-            position: absolute; top: 15px; right: 15px;
-            background: rgba(239, 68, 68, 0.1); color: #ef4444;
-            border: none; width: 30px; height: 30px; border-radius: 50%;
-            cursor: pointer; display: none; justify-content: center; align-items: center;
-            transition: all 0.2s;
-        }
-        .btn-delete:hover { background: #ef4444; color: white; }
-
-        body.is-admin .device-id { display: block; }
-        body.is-admin .btn-delete { display: flex; }
-        body.is-admin .btn-add { display: flex; }
-        body.is-admin .switch-card { cursor: grab; border: 1px dashed rgba(255,255,255,0.2); }
-        body.is-admin .switch-card:active { cursor: grabbing; }
-
-        .sortable-ghost { opacity: 0.3; background: rgba(139, 92, 246, 0.1); }
-
-        /* МОДАЛЬНОЕ ОКНО */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 1000; }
+        /* Модальное окно */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px); }
         .modal.active { display: flex; }
-        .modal-content { background: #1e293b; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); }
-        .modal-content h2 { margin-bottom: 20px; color: #f8fafc; font-size: 22px; }
+        .modal-content { background: #1e293b; padding: 30px; border-radius: 24px; width: 90%; max-width: 400px; border: 1px solid rgba(255,255,255,0.1); }
+        .modal-content h2 { margin-bottom: 20px; font-size: 22px; }
         .input-group { margin-bottom: 15px; position: relative; }
         .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #64748b; }
-        .input-group input { width: 100%; padding: 14px 14px 14px 45px; border: 1px solid #334155; border-radius: 12px; font-size: 15px; background: #0f172a; color: #fff; transition: all 0.2s; }
-        .input-group input:focus { outline: none; border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2); }
+        .input-group input, .input-group select { width: 100%; padding: 14px 14px 14px 45px; border: 1px solid #334155; border-radius: 12px; background: #0f172a; color: #fff; font-size: 15px; outline: none; }
         .modal-buttons { display: flex; gap: 10px; margin-top: 25px; }
-        .modal-buttons button { flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 15px; }
-        .modal-buttons .save { background: #8b5cf6; color: white; }
-        .modal-buttons .save:hover { background: #7c3aed; }
-        .modal-buttons .cancel { background: #334155; color: #cbd5e1; }
-        .modal-buttons .cancel:hover { background: #475569; }
+        .modal-buttons button { flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; }
+        .modal-buttons .save { background: #8b5cf6; color: white; } .modal-buttons .cancel { background: #334155; color: #cbd5e1; }
 
-        /* УВЕДОМЛЕНИЯ */
-        .toast { position: fixed; bottom: 20px; right: 20px; background: #1e293b; padding: 15px 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; transform: translateX(150%); transition: transform 0.3s ease; z-index: 2000; border-left: 5px solid #10b981; font-weight: 500; color: #fff; }
-        .toast.show { transform: translateX(0); }
-        .toast.error { border-left-color: #ef4444; }
-        .toast i { font-size: 20px; color: #10b981; }
-        .toast.error i { color: #ef4444; }
-
-        .loader-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(3px); z-index: 3000; justify-content: center; align-items: center; }
+        /* Утилиты */
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #1e293b; padding: 15px 25px; border-radius: 12px; display: flex; align-items: center; gap: 12px; transform: translateX(150%); transition: transform 0.3s; z-index: 2000; border-left: 5px solid #10b981; }
+        .toast.show { transform: translateX(0); } .toast.error { border-left-color: #ef4444; } .toast i { color: #10b981; } .toast.error i { color: #ef4444; }
+        .loader-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); z-index: 3000; justify-content: center; align-items: center; }
         .loader-overlay.active { display: flex; }
         .spinner { width: 40px; height: 40px; border: 4px solid #334155; border-top: 4px solid #8b5cf6; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        .btn-delete { position: absolute; top: 15px; right: 15px; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: none; justify-content: center; align-items: center; }
+        .btn-delete:hover { background: #ef4444; color: white; }
+        body.is-admin .btn-delete { display: flex; }
 
-        .empty-state { grid-column: 1 / -1; text-align: center; padding: 50px; background: rgba(30, 41, 59, 0.3); border: 2px dashed rgba(255, 255, 255, 0.1); border-radius: 20px; color: #94a3b8; }
-        .empty-state i { font-size: 50px; margin-bottom: 15px; opacity: 0.7; }
-        .empty-state p { font-size: 18px; }
+        @media (max-width: 1024px) {
+            header { padding: 10px 20px; }
+            .category-tabs { padding: 10px 20px; }
+            .devices-grid { padding: 10px 20px; gap: 15px; height: calc(100vh - 140px); }
+        }
     </style>
 </head>
 <body>
@@ -214,37 +174,41 @@
     <div class="loader-overlay" id="loader"><div class="spinner"></div></div>
     <div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg">Успешно</span></div>
 
-    <div class="container">
-        <header>
-            <div class="header-left">
-                <div class="app-title">
-                    <i class="fas fa-home"></i> Умный дом
-                </div>
-                <button class="btn-add" onclick="openModal()"><i class="fas fa-plus"></i> Добавить</button>
-            </div>
-            
-            <div class="header-right">
-                <div class="clock-widget">
-                    <div class="clock-time" id="clock-time">00:00</div>
-                    <div class="clock-date" id="clock-date">Загрузка...</div>
-                </div>
-            </div>
-        </header>
+    <header>
+        <div class="app-title">
+            <i class="fas fa-home"></i> Умный дом
+            <button class="btn-add" onclick="openModal()"><i class="fas fa-plus"></i> Добавить</button>
+        </div>
+        
+        <div class="clock-widget">
+            <div class="clock-time" id="clock-time">00:00</div>
+            <div class="clock-date" id="clock-date">Загрузка...</div>
+        </div>
+    </header>
 
-        <div class="devices-grid" id="grid"></div>
+    <div class="category-tabs">
+        <button class="tab-btn active" onclick="filterCategory('all', this)"><i class="fas fa-layer-group"></i> Все</button>
+        <button class="tab-btn" onclick="filterCategory('light', this)"><i class="fas fa-lightbulb"></i> Свет</button>
+        <button class="tab-btn" onclick="filterCategory('socket', this)"><i class="fas fa-plug"></i> Розетки</button>
+        <button class="tab-btn" onclick="filterCategory('curtain', this)"><i class="fas fa-border-all"></i> Шторы</button>
+        <button class="tab-btn" onclick="filterCategory('other', this)"><i class="fas fa-microchip"></i> Другое</button>
     </div>
 
-    <!-- Модальное окно -->
+    <div class="devices-grid" id="grid"></div>
+
     <div class="modal" id="modal">
         <div class="modal-content">
             <h2>Новое устройство</h2>
+            <div class="input-group"><i class="fas fa-tag"></i><input type="text" id="inpName" placeholder="Название (напр. Свет в спальне)"></div>
+            <div class="input-group"><i class="fas fa-microchip"></i><input type="text" id="inpId" placeholder="Tuya Device ID"></div>
             <div class="input-group">
-                <i class="fas fa-tag"></i>
-                <input type="text" id="inpName" placeholder="Название (напр. Лампа Спальня)">
-            </div>
-            <div class="input-group">
-                <i class="fas fa-microchip"></i>
-                <input type="text" id="inpId" placeholder="Tuya Device ID">
+                <i class="fas fa-list"></i>
+                <select id="inpCategory">
+                    <option value="light">Свет (Лампочка)</option>
+                    <option value="socket">Розетка (Вилка)</option>
+                    <option value="curtain">Шторы (Жалюзи)</option>
+                    <option value="other">Другое (Микрочип)</option>
+                </select>
             </div>
             <div class="modal-buttons">
                 <button class="save" onclick="addDevice()">Сохранить</button>
@@ -254,34 +218,45 @@
     </div>
 
     <script>
-        // ==========================================
-        // ВАШИ КЛЮЧИ SUPABASE (ЗАМЕНИТЕ ЗДЕСЬ)
-        // ==========================================
+        // ВАШИ КЛЮЧИ SUPABASE
         const SUPABASE_PROJECT_URL = 'https://apnqvsexgebvzqozlfmo.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_onLn9Ip6zF26jb61VZvX7Q_oUjejgJf'; 
         const SUPABASE_FUNCTION_URL = 'https://apnqvsexgebvzqozlfmo.supabase.co/functions/v1/toggle-device';
+        const SUPABASE_GET_STATUS_URL = 'https://apnqvsexgebvzqozlfmo.supabase.co/functions/v1/get-status'; 
         const SUPABASE_FUNCTION_KEY = 'sb_publishable_onLn9Ip6zF26jb61VZvX7Q_oUjejgJf';
 
         let devices = [];
+        let currentCategory = 'all';
         let sortableInstance = null;
 
-        // ==========================================
-        // ЧАСЫ
-        // ==========================================
         function updateClock() {
             const now = new Date();
-            const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-            const dateStr = now.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' });
-            
-            document.getElementById('clock-time').textContent = timeStr;
-            document.getElementById('clock-date').textContent = dateStr;
+            document.getElementById('clock-time').textContent = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('clock-date').textContent = now.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' });
         }
-        setInterval(updateClock, 1000);
-        updateClock();
+        setInterval(updateClock, 1000); updateClock();
 
-        // ==========================================
-        // БАЗА ДАННЫХ
-        // ==========================================
+        async function syncAllStatuses() {
+            for (let dev of devices) {
+                try {
+                    const res = await fetch(SUPABASE_GET_STATUS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_FUNCTION_KEY, 'Authorization': `Bearer ${SUPABASE_FUNCTION_KEY}` },
+                        body: JSON.stringify({ deviceId: dev.tuya_id })
+                    });
+                    const data = await res.json();
+                    if (data.success && data.result) {
+                        const switchState = data.result.find(s => s.code === 'switch_1' || s.code === 'switch');
+                        if (switchState && switchState.value !== dev.is_on) {
+                            await updateStatusInDb(dev.id, switchState.value);
+                            dev.is_on = switchState.value;
+                        }
+                    }
+                } catch (e) { }
+            }
+            renderDevices();
+        }
+
         async function loadDevicesFromDb() {
             setLoading(true);
             try {
@@ -289,19 +264,20 @@
                     headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
                 });
                 devices = await res.json();
-                renderDevices();
+                renderDevices(); 
                 initSortable();
+                syncAllStatuses(); 
             } catch (error) { showToast('Ошибка загрузки', true); } finally { setLoading(false); }
         }
 
-        async function addDeviceToDb(name, tuyaId) {
+        async function addDeviceToDb(name, tuyaId, category) {
             setLoading(true);
             try {
                 const order = Date.now(); 
                 await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/devices`, {
                     method: 'POST',
                     headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-                    body: JSON.stringify({ name: name, tuya_id: tuyaId, is_on: false, sort_order: order })
+                    body: JSON.stringify({ name: name, tuya_id: tuyaId, is_on: false, sort_order: order, category: category })
                 });
                 loadDevicesFromDb();
             } catch (error) { showToast('Ошибка сохранения', true); } finally { setLoading(false); }
@@ -335,13 +311,9 @@
                         body: JSON.stringify({ sort_order: i })
                     });
                 }
-                showToast('Порядок сохранен');
-            } catch (e) { showToast('Ошибка сохранения порядка', true); }
+            } catch (e) { showToast('Ошибка сохранения', true); }
         }
 
-        // ==========================================
-        // ИНТЕРФЕЙС
-        // ==========================================
         window.onload = () => {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('admin') === 'true') document.body.classList.add('is-admin');
@@ -363,8 +335,9 @@
         function addDevice() {
             const name = document.getElementById('inpName').value.trim();
             const id = document.getElementById('inpId').value.trim();
+            const category = document.getElementById('inpCategory').value;
             if (!name || !id) return showToast('Заполните все поля', true);
-            addDeviceToDb(name, id);
+            addDeviceToDb(name, id, category);
             closeModal();
         }
 
@@ -374,33 +347,46 @@
             deleteDeviceFromDb(id);
         }
 
+        function filterCategory(category, btnElement) {
+            currentCategory = category;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            renderDevices();
+            initSortable(); 
+        }
+
+        // --- Отрисовка карточек с иконками по категориям ---
         function renderDevices() {
             const grid = document.getElementById('grid');
-            if (devices.length === 0) {
-                grid.innerHTML = `<div class="empty-state"><i class="fas fa-satellite-dish"></i><p>Нет добавленных устройств</p></div>`;
+            const filtered = currentCategory === 'all' ? devices : devices.filter(d => (d.category || 'other') === currentCategory);
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="empty-state"><i class="fas fa-satellite-dish"></i><p>В этой категории нет устройств</p></div>`;
                 return;
             }
 
             let html = '';
-            devices.forEach(dev => {
+            filtered.forEach(dev => {
                 const cardClass = dev.is_on ? 'is-on' : 'is-off';
                 const statusText = dev.is_on ? 'Включено' : 'Выключено';
+                
+                // Подбираем иконку СТРОГО по категории
+                let icon = 'fa-microchip'; // По умолчанию
+                if (dev.category === 'light') icon = 'fa-lightbulb';
+                else if (dev.category === 'socket') icon = 'fa-plug';
+                else if (dev.category === 'curtain') icon = 'fa-border-all'; // Стилизованные шторы
 
                 html += `
-                    <div class="switch-card ${cardClass}" data-id="${dev.id}" onclick="toggleTuya('${dev.id}', ${dev.is_on})">
-                        <button class="btn-delete" onclick="deleteDevice(${dev.id}, event)">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                    <div class="tile ${cardClass}" data-id="${dev.id}" onclick="toggleTuya('${dev.id}', ${dev.is_on})">
+                        <button class="btn-delete" onclick="deleteDevice(${dev.id}, event)"><i class="fas fa-trash"></i></button>
                         
-                        <h3>${dev.name}</h3>
+                        <!-- Иконка по центру -->
+                        <div class="tile-icon"><i class="fas ${icon}"></i></div>
                         
-                        <!-- Круглая кнопка -->
-                        <div class="main-button">
-                            <i class="fas fa-power-off"></i>
+                        <div class="tile-info">
+                            <div class="tile-name">${dev.name}</div>
+                            <div class="tile-status">${statusText}</div>
                         </div>
-                        
-                        <div class="status-text">${statusText}</div>
-                        <div class="device-id">${dev.tuya_id}</div>
                     </div>
                 `;
             });
@@ -410,14 +396,11 @@
         function initSortable() {
             const grid = document.getElementById('grid');
             if (sortableInstance) sortableInstance.destroy();
-
             if (!document.body.classList.contains('is-admin')) return;
-
             sortableInstance = new Sortable(grid, {
-                animation: 250,
-                ghostClass: "sortable-ghost",
+                animation: 250, ghostClass: "sortable-ghost",
                 onEnd: function (evt) {
-                    const items = grid.querySelectorAll('.switch-card');
+                    const items = grid.querySelectorAll('.tile');
                     const newOrderIds = Array.from(items).map(item => item.getAttribute('data-id'));
                     updateOrderInDb(newOrderIds);
                 }
@@ -429,25 +412,20 @@
             const dev = devices.find(d => d.id == dbId);
             if (!dev) return;
 
-            // Мгновенное обновление UI
-            const card = document.querySelector(`.switch-card[data-id="${dbId}"]`);
+            const tile = document.querySelector(`.tile[data-id="${dbId}"]`);
             if (newState === 1) {
-                card.classList.remove('is-off'); card.classList.add('is-on');
-                card.querySelector('.status-text').textContent = 'Включено';
+                tile.classList.remove('is-off'); tile.classList.add('is-on');
+                tile.querySelector('.tile-status').textContent = 'Включено';
             } else {
-                card.classList.remove('is-on'); card.classList.add('is-off');
-                card.querySelector('.status-text').textContent = 'Выключено';
+                tile.classList.remove('is-on'); tile.classList.add('is-off');
+                tile.querySelector('.tile-status').textContent = 'Выключено';
             }
 
             setLoading(true);
             try {
                 const response = await fetch(SUPABASE_FUNCTION_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'apikey': SUPABASE_FUNCTION_KEY,
-                        'Authorization': `Bearer ${SUPABASE_FUNCTION_KEY}`
-                    },
+                    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_FUNCTION_KEY, 'Authorization': `Bearer ${SUPABASE_FUNCTION_KEY}` },
                     body: JSON.stringify({ deviceId: dev.tuya_id, state: newState })
                 });
 
@@ -456,7 +434,7 @@
                     await updateStatusInDb(dbId, newState === 1);
                     setTimeout(() => loadDevicesFromDb(), 500);
                 } else {
-                    showToast('Ошибка: ' + (data.msg || 'Неизвестно'), true);
+                    showToast('Ошибка Tuya', true);
                     loadDevicesFromDb(); 
                 }
             } catch (error) { 
