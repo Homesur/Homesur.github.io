@@ -329,7 +329,7 @@
 
         let devices = [];
         let currentCategory = 'all';
-        let activeTag = null; // Текущий фильтр из URL (?tag=...)
+        let activeTag = null;
         let sortableInstance = null;
         let isDragging = false;
         let isSyncing = false;
@@ -341,15 +341,13 @@
         }
         setInterval(updateClock, 1000); updateClock();
 
-        // Проверка, подходит ли устройство под текущий URL-тег
         function matchesActiveTag(dev) {
-            if (!activeTag) return true; // Если тег в ссылке не указан — показываем всё
+            if (!activeTag) return true;
             if (!dev.tags) return false;
             const devTags = dev.tags.split(',').map(t => t.trim().toLowerCase());
             return devTags.includes(activeTag);
         }
 
-        // Подписка на мгновенные изменения в таблице devices (Realtime)
         function initRealtime() {
             supabaseClient
                 .channel('devices-realtime')
@@ -376,7 +374,6 @@
                 .subscribe();
         }
 
-        // Точечное обновление одной плитки без перерисовки всей сетки
         function updateTileDOM(dev) {
             const tile = document.querySelector(`.tile[data-id="${dev.id}"]`);
             if (!tile) return;
@@ -391,38 +388,41 @@
             }
         }
 
-        // Синхронизация реальных статусов из облака Tuya
+        // Быстрая параллельная синхронизация реальных статусов из облака Tuya
         async function syncAllStatuses() {
             if (isSyncing || isDragging || document.hidden || devices.length === 0) return;
             isSyncing = true;
 
             try {
-                for (let dev of devices) {
-                    if (dev.category === 'ir_tv') continue;
-
-                    try {
-                        const res = await fetch(SUPABASE_GET_STATUS_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_FUNCTION_KEY, 'Authorization': `Bearer ${SUPABASE_FUNCTION_KEY}` },
-                            body: JSON.stringify({ deviceId: dev.tuya_id })
-                        });
-                        const data = await res.json();
-                        if (data.success && data.result) {
-                            const switchState = data.result.find(s => s.code === 'switch_1' || s.code === 'switch');
-                            if (switchState && switchState.value !== dev.is_on) {
-                                dev.is_on = switchState.value;
-                                updateTileDOM(dev);
-                                await updateStatusInDb(dev.id, switchState.value);
+                const syncTasks = devices
+                    .filter(dev => dev.category !== 'ir_tv')
+                    .map(async (dev) => {
+                        try {
+                            const res = await fetch(SUPABASE_GET_STATUS_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_FUNCTION_KEY, 'Authorization': `Bearer ${SUPABASE_FUNCTION_KEY}` },
+                                body: JSON.stringify({ deviceId: dev.tuya_id })
+                            });
+                            const data = await res.json();
+                            if (data.success && data.result) {
+                                const switchState = data.result.find(s => s.code === 'switch_1' || s.code === 'switch');
+                                if (switchState && switchState.value !== dev.is_on) {
+                                    dev.is_on = switchState.value;
+                                    updateTileDOM(dev);
+                                    await updateStatusInDb(dev.id, switchState.value);
+                                }
                             }
-                        }
-                    } catch (e) { }
-                }
+                        } catch (e) { }
+                    });
+
+                await Promise.all(syncTasks);
             } finally {
                 isSyncing = false;
             }
         }
 
-        setInterval(syncAllStatuses, 10000);
+        // Проверка статуса каждые 3 секунды
+        setInterval(syncAllStatuses, 3000);
 
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) syncAllStatuses();
@@ -435,7 +435,6 @@
                     headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
                 });
                 const allDevices = await res.json();
-                // Оставляем только устройства, подходящие под ?tag=...
                 devices = allDevices.filter(matchesActiveTag);
                 
                 renderDevices(); 
@@ -531,7 +530,6 @@
         function openModal() { 
             document.getElementById('inpName').value = ''; 
             document.getElementById('inpId').value = ''; 
-            // Если панель открыта с тегом, подставляем его по умолчанию при добавлении
             document.getElementById('inpTags').value = activeTag || ''; 
             document.getElementById('modal').classList.add('active'); 
         }
