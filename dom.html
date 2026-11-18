@@ -75,6 +75,19 @@
         .devices-grid::-webkit-scrollbar { width: 6px; }
         .devices-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
+        /* Пустое состояние */
+        .empty-state {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            gap: 15px;
+            height: 100%;
+        }
+        .empty-state i { font-size: 48px; opacity: 0.5; }
+
         /* ПЛИТКА */
         .tile {
             background: rgba(30, 41, 59, 0.4);
@@ -84,8 +97,8 @@
             height: 170px;
             display: flex;
             flex-direction: column;
-            align-items: center; /* Центрируем всё по горизонтали */
-            justify-content: center; /* Центрируем по вертикали */
+            align-items: center;
+            justify-content: center;
             border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             cursor: pointer;
@@ -97,7 +110,7 @@
         
         /* Иконка устройства */
         .tile-icon {
-            font-size: 44px; /* Большая иконка */
+            font-size: 44px;
             margin-bottom: 15px;
             transition: all 0.4s ease;
             display: flex; justify-content: center; align-items: center;
@@ -106,7 +119,7 @@
         /* Состояние: Выключено (Серое) */
         .tile.is-off .tile-icon { 
             color: #475569; 
-            transform: scale(0.9); /* Чуть уменьшена */
+            transform: scale(0.9);
         }
         .tile.is-off .tile-status { color: #64748b; }
         .tile.is-off .tile-name { color: #94a3b8; }
@@ -117,9 +130,9 @@
             border-color: rgba(16, 185, 129, 0.3);
         }
         .tile.is-on .tile-icon {
-            color: #34d399; /* Яркая зеленая иконка */
-            transform: scale(1.1); /* Увеличена */
-            filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.5)); /* Свечение */
+            color: #34d399;
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.5));
         }
         .tile.is-on .tile-status { color: #34d399; }
         .tile.is-on .tile-name { color: #ffffff; }
@@ -189,6 +202,7 @@
     <div class="category-tabs">
         <button class="tab-btn active" onclick="filterCategory('all', this)"><i class="fas fa-layer-group"></i> Все</button>
         <button class="tab-btn" onclick="filterCategory('light', this)"><i class="fas fa-lightbulb"></i> Свет</button>
+        <button class="tab-btn" onclick="filterCategory('ir_tv', this)"><i class="fas fa-tv"></i> ТВ</button>
         <button class="tab-btn" onclick="filterCategory('socket', this)"><i class="fas fa-plug"></i> Розетки</button>
         <button class="tab-btn" onclick="filterCategory('curtain', this)"><i class="fas fa-border-all"></i> Шторы</button>
         <button class="tab-btn" onclick="filterCategory('other', this)"><i class="fas fa-microchip"></i> Другое</button>
@@ -205,7 +219,7 @@
                 <i class="fas fa-list"></i>
                 <select id="inpCategory">
                     <option value="light">Свет (Лампочка)</option>
-                    <option value="ir_tv">Телевизор</option> <!-- ВОТ ЭТА СТРОКА -->
+                    <option value="ir_tv">Телевизор</option>
                     <option value="socket">Розетка (Вилка)</option>
                     <option value="curtain">Шторы (Жалюзи)</option>
                     <option value="other">Другое (Микрочип)</option>
@@ -239,6 +253,9 @@
 
         async function syncAllStatuses() {
             for (let dev of devices) {
+                // У ИК-пульта нет обратной связи по статусу switch_1
+                if (dev.category === 'ir_tv') continue;
+
                 try {
                     const res = await fetch(SUPABASE_GET_STATUS_URL, {
                         method: 'POST',
@@ -372,16 +389,16 @@
                 const statusText = dev.is_on ? 'Включено' : 'Выключено';
                 
                 // Подбираем иконку СТРОГО по категории
-                let icon = 'fa-microchip'; // По умолчанию
+                let icon = 'fa-microchip';
                 if (dev.category === 'light') icon = 'fa-lightbulb';
+                else if (dev.category === 'ir_tv') icon = 'fa-tv';
                 else if (dev.category === 'socket') icon = 'fa-plug';
-                else if (dev.category === 'curtain') icon = 'fa-border-all'; // Стилизованные шторы
+                else if (dev.category === 'curtain') icon = 'fa-border-all';
 
                 html += `
                     <div class="tile ${cardClass}" data-id="${dev.id}" onclick="toggleTuya('${dev.id}', ${dev.is_on})">
                         <button class="btn-delete" onclick="deleteDevice(${dev.id}, event)"><i class="fas fa-trash"></i></button>
                         
-                        <!-- Иконка по центру -->
                         <div class="tile-icon"><i class="fas ${icon}"></i></div>
                         
                         <div class="tile-info">
@@ -427,7 +444,11 @@
                 const response = await fetch(SUPABASE_FUNCTION_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_FUNCTION_KEY, 'Authorization': `Bearer ${SUPABASE_FUNCTION_KEY}` },
-                    body: JSON.stringify({ deviceId: dev.tuya_id, state: newState })
+                    body: JSON.stringify({ 
+                        deviceId: dev.tuya_id, 
+                        state: newState,
+                        category: dev.category 
+                    })
                 });
 
                 const data = await response.json();
