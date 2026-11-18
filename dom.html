@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <!-- Подключаем Supabase JS для Realtime обновлений -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -39,6 +38,17 @@
             display: flex; align-items: center; gap: 10px;
         }
         .app-title i { color: #8b5cf6; }
+
+        .tag-badge {
+            background: rgba(139, 92, 246, 0.2);
+            color: #c4b5fd;
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
 
         .clock-widget { text-align: right; display: flex; gap: 15px; align-items: baseline; }
         .clock-time { font-size: 26px; font-weight: 800; }
@@ -162,6 +172,23 @@
             transition: color 0.3s ease, text-shadow 0.3s ease;
         }
 
+        /* Бейдж тегов в режиме админа */
+        .tile-tags-badge {
+            display: none;
+            position: absolute;
+            bottom: 10px;
+            font-size: 10px;
+            color: #94a3b8;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 2px 8px;
+            border-radius: 6px;
+            max-width: 85%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        body.is-admin .tile-tags-badge { display: block; }
+
         /* Кнопка добавления (Админ) */
         .btn-add {
             display: none; background: #8b5cf6; color: white;
@@ -214,7 +241,7 @@
             .tab-btn { padding: 8px 14px; font-size: 13px; border-radius: 12px; }
 
             .devices-grid {
-                grid-template-columns: repeat(2, 1fr); /* Ровно 2 плитки в ряд */
+                grid-template-columns: repeat(2, 1fr);
                 gap: 12px;
                 padding: 6px 16px 24px 16px;
                 height: calc(100vh - 120px);
@@ -246,6 +273,7 @@
     <header>
         <div class="app-title">
             <i class="fas fa-home"></i> Умный дом
+            <span class="tag-badge" id="activeTagBadge" style="display: none;"></span>
             <button class="btn-add" onclick="openModal()"><i class="fas fa-plus"></i> Добавить</button>
         </div>
         
@@ -271,6 +299,7 @@
             <h2>Новое устройство</h2>
             <div class="input-group"><i class="fas fa-tag"></i><input type="text" id="inpName" placeholder="Название (напр. Свет в спальне)"></div>
             <div class="input-group"><i class="fas fa-microchip"></i><input type="text" id="inpId" placeholder="Tuya Device ID"></div>
+            <div class="input-group"><i class="fas fa-door-open"></i><input type="text" id="inpTags" placeholder="Теги / Комнаты (напр. kitchen, hall)"></div>
             <div class="input-group">
                 <i class="fas fa-list"></i>
                 <select id="inpCategory">
@@ -296,11 +325,11 @@
         const SUPABASE_GET_STATUS_URL = 'https://apnqvsexgebvzqozlfmo.supabase.co/functions/v1/get-status'; 
         const SUPABASE_FUNCTION_KEY = 'sb_publishable_onLn9Ip6zF26jb61VZvX7Q_oUjejgJf';
 
-        // Инициализация клиента Supabase для Realtime подписки
         const supabaseClient = window.supabase.createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY);
 
         let devices = [];
         let currentCategory = 'all';
+        let activeTag = null; // Текущий фильтр из URL (?tag=...)
         let sortableInstance = null;
         let isDragging = false;
         let isSyncing = false;
@@ -311,6 +340,14 @@
             document.getElementById('clock-date').textContent = now.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' });
         }
         setInterval(updateClock, 1000); updateClock();
+
+        // Проверка, подходит ли устройство под текущий URL-тег
+        function matchesActiveTag(dev) {
+            if (!activeTag) return true; // Если тег в ссылке не указан — показываем всё
+            if (!dev.tags) return false;
+            const devTags = dev.tags.split(',').map(t => t.trim().toLowerCase());
+            return devTags.includes(activeTag);
+        }
 
         // Подписка на мгновенные изменения в таблице devices (Realtime)
         function initRealtime() {
@@ -323,8 +360,14 @@
                         const updated = payload.new;
                         const index = devices.findIndex(d => d.id === updated.id);
                         if (index !== -1) {
-                            devices[index] = updated;
-                            updateTileDOM(updated);
+                            if (matchesActiveTag(updated)) {
+                                devices[index] = updated;
+                                updateTileDOM(updated);
+                            } else {
+                                loadDevicesFromDb(false);
+                            }
+                        } else if (matchesActiveTag(updated)) {
+                            loadDevicesFromDb(false);
                         }
                     } else if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
                         loadDevicesFromDb(false);
@@ -379,10 +422,8 @@
             }
         }
 
-        // Автоматический фоновый опрос каждые 10 секунд
         setInterval(syncAllStatuses, 10000);
 
-        // При возврате на вкладку телефона сразу проверяем актуальные статусы
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) syncAllStatuses();
         });
@@ -393,7 +434,10 @@
                 const res = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/devices?select=*&order=sort_order.asc`, {
                     headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
                 });
-                devices = await res.json();
+                const allDevices = await res.json();
+                // Оставляем только устройства, подходящие под ?tag=...
+                devices = allDevices.filter(matchesActiveTag);
+                
                 renderDevices(); 
                 initSortable();
                 syncAllStatuses(); 
@@ -404,14 +448,21 @@
             }
         }
 
-        async function addDeviceToDb(name, tuyaId, category) {
+        async function addDeviceToDb(name, tuyaId, category, tags) {
             setLoading(true);
             try {
                 const order = Date.now(); 
                 await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/devices`, {
                     method: 'POST',
                     headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-                    body: JSON.stringify({ name: name, tuya_id: tuyaId, is_on: false, sort_order: order, category: category })
+                    body: JSON.stringify({ 
+                        name: name, 
+                        tuya_id: tuyaId, 
+                        is_on: false, 
+                        sort_order: order, 
+                        category: category,
+                        tags: tags || 'all'
+                    })
                 });
                 loadDevicesFromDb();
             } catch (error) { showToast('Ошибка сохранения', true); } finally { setLoading(false); }
@@ -450,7 +501,19 @@
 
         window.onload = () => {
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('admin') === 'true') document.body.classList.add('is-admin');
+            
+            if (urlParams.get('admin') === 'true') {
+                document.body.classList.add('is-admin');
+            }
+            
+            const tagParam = urlParams.get('tag');
+            if (tagParam && tagParam.trim() !== '') {
+                activeTag = tagParam.trim().toLowerCase();
+                const badge = document.getElementById('activeTagBadge');
+                badge.textContent = activeTag;
+                badge.style.display = 'inline-block';
+            }
+
             loadDevicesFromDb();
             initRealtime();
         };
@@ -464,15 +527,24 @@
         }
 
         function setLoading(show) { document.getElementById('loader').classList.toggle('active', show); }
-        function openModal() { document.getElementById('inpName').value = ''; document.getElementById('inpId').value = ''; document.getElementById('modal').classList.add('active'); }
+        
+        function openModal() { 
+            document.getElementById('inpName').value = ''; 
+            document.getElementById('inpId').value = ''; 
+            // Если панель открыта с тегом, подставляем его по умолчанию при добавлении
+            document.getElementById('inpTags').value = activeTag || ''; 
+            document.getElementById('modal').classList.add('active'); 
+        }
+        
         function closeModal() { document.getElementById('modal').classList.remove('active'); }
 
         function addDevice() {
             const name = document.getElementById('inpName').value.trim();
             const id = document.getElementById('inpId').value.trim();
+            const tags = document.getElementById('inpTags').value.trim();
             const category = document.getElementById('inpCategory').value;
-            if (!name || !id) return showToast('Заполните все поля', true);
-            addDeviceToDb(name, id, category);
+            if (!name || !id) return showToast('Заполните название и ID', true);
+            addDeviceToDb(name, id, category, tags);
             closeModal();
         }
 
@@ -490,7 +562,6 @@
             initSortable(); 
         }
 
-        // --- Отрисовка карточек с иконками по категориям ---
         function renderDevices() {
             const grid = document.getElementById('grid');
             const filtered = currentCategory === 'all' ? devices : devices.filter(d => (d.category || 'other') === currentCategory);
@@ -510,6 +581,8 @@
                 else if (dev.category === 'socket') icon = 'fa-plug';
                 else if (dev.category === 'curtain') icon = 'fa-border-all';
 
+                const tagsText = dev.tags ? `<div class="tile-tags-badge">${dev.tags}</div>` : '';
+
                 html += `
                     <div class="tile ${cardClass}" data-id="${dev.id}" onclick="toggleTuya('${dev.id}', ${dev.is_on})">
                         <button class="btn-delete" onclick="deleteDevice(${dev.id}, event)"><i class="fas fa-trash"></i></button>
@@ -519,6 +592,7 @@
                         <div class="tile-info">
                             <div class="tile-name">${dev.name}</div>
                         </div>
+                        ${tagsText}
                     </div>
                 `;
             });
@@ -547,7 +621,6 @@
             const dev = devices.find(d => d.id == dbId);
             if (!dev) return;
 
-            // Оптимистичное обновление UI
             dev.is_on = (newState === 1);
             updateTileDOM(dev);
 
@@ -568,7 +641,6 @@
                     await updateStatusInDb(dbId, newState === 1);
                 } else {
                     showToast('Ошибка Tuya', true);
-                    // Откат статуса при ошибке
                     dev.is_on = currentState;
                     updateTileDOM(dev);
                 }
